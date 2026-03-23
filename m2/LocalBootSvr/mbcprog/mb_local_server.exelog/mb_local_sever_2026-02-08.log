@@ -1,0 +1,8 @@
+[2026-02-08 3:12:17:57] :Disconnected
+
+[2026-02-08 3:12:17:57] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2026-02-08 3:12:17:79] :enter auto_close_thread,auto_close_struct.delay_release_start = 1
+
+[2026-02-08 3:12:22:124] :wait auto_close_thread
+

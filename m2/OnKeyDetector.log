@@ -1,0 +1,1884 @@
+[2025/11/12,15:07:13.638] CCCBDetectorApp::InitInstance : (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:13.677] OnInitDialog: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:13.734] OnInitDialog: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:13.944] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[begin:pos:20]
+[2025/11/12,15:07:13.944] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:13.946] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[begin:pos:30]
+[2025/11/12,15:07:13.946] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:13.948] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[begin:pos:40]
+[2025/11/12,15:07:13.948] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:13.948] CCB_GetProxySettings: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:13.949] CCB_GetProxySettings: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:13.959] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[begin:pos:50]
+[2025/11/12,15:07:13.959] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:13.966] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[begin:pos:60]
+[2025/11/12,15:07:13.966] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:13.966] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[begin:pos:70]
+[2025/11/12,15:07:13.966] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:13.967] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[begin:pos:80]
+[2025/11/12,15:07:13.967] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:13.967] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[begin:pos:90]
+[2025/11/12,15:07:13.967] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[Program Startup m_bInit-enum exist key]
+[2025/11/12,15:07:13.967] RegistDeviceChangeEvent: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:13.968] RegistDeviceChangeEvent: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:13.968] EnumExistUKey: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:13.968] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_tendyron&prod_u-disk&rev_1.10#2&fcdf716&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:14.004] EnumExistUKey: (Process is 14376, thread is 588)
+	[strDevicePath:\\?\usbstor#cdrom&ven_tendyron&prod_u-disk&rev_1.10#2&fcdf716&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:14.004] EnumExistUKey: (Process is 14376, thread is 588)
+	[nKeyType:7]
+[2025/11/12,15:07:15.169] OnUpdatekeyInfo: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.177] OnUpdatekeyInfo: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.177] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\scsi#disk&ven_nvme&prod_great_wall_gw350#5&181e3641&0&000000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.177] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\scsi#disk&ven_wdc&prod_wd10ezex-08wn4a1#4&30ec406e&0&050000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.177] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_413c&pid_301a#7&99f292b&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.177] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_01&col02#7&30c82ad&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.177] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col02#3&1535a34c&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_00#7&36f30300&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col03#3&1535a34c&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col04#3&1535a34c&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col05#3&1535a34c&0&0004#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col06#3&1535a34c&0&0005#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0a#3&1535a34c&0&0009#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col07#3&1535a34c&0&0006#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_048d&pid_5702&col01#6&1d2bc57c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col08#3&1535a34c&0&0007#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_048d&pid_5702&col02#6&1d2bc57c&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col09#3&1535a34c&0&0008#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col11#3&1535a34c&0&0010#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col10#3&1535a34c&0&000f#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col12#3&1535a34c&0&0011#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.178] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0b#3&1535a34c&0&000a#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.179] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0c#3&1535a34c&0&000b#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.179] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col01#3&1535a34c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.179] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0d#3&1535a34c&0&000c#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.179] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0e#3&1535a34c&0&000d#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.179] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col02#5&27cfa2af&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.179] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col01#5&27cfa2af&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.179] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0f#3&1535a34c&0&000e#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.179] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_01&col01#7&30c82ad&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.179] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col03#5&27cfa2af&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.180] EnumExistUKey: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.181] SortControl: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.182] SortControl: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.186] CCB_DetectAll: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.187] CCB_DetectAll: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.187] RepairThread: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.187] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.199] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.206] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[begin:pos:100]
+[2025/11/12,15:07:15.206] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[Program Startup m_bInit-enum exist key]
+[2025/11/12,15:07:15.207] RegistDeviceChangeEvent: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.207] RegistDeviceChangeEvent: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.207] EnumExistUKey: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.207] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_tendyron&prod_u-disk&rev_1.10#2&fcdf716&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.208] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\scsi#disk&ven_nvme&prod_great_wall_gw350#5&181e3641&0&000000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.208] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\scsi#disk&ven_wdc&prod_wd10ezex-08wn4a1#4&30ec406e&0&050000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.209] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_413c&pid_301a#7&99f292b&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.209] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_01&col02#7&30c82ad&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.209] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col02#3&1535a34c&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.210] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_00#7&36f30300&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.210] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col03#3&1535a34c&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.210] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col04#3&1535a34c&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.210] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col05#3&1535a34c&0&0004#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.210] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col06#3&1535a34c&0&0005#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.210] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0a#3&1535a34c&0&0009#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.210] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col07#3&1535a34c&0&0006#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.210] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_048d&pid_5702&col01#6&1d2bc57c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.210] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col08#3&1535a34c&0&0007#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.210] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_048d&pid_5702&col02#6&1d2bc57c&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.210] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col09#3&1535a34c&0&0008#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.210] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col11#3&1535a34c&0&0010#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.212] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col10#3&1535a34c&0&000f#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.212] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col12#3&1535a34c&0&0011#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.212] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0b#3&1535a34c&0&000a#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.212] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0c#3&1535a34c&0&000b#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.212] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col01#3&1535a34c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.212] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0d#3&1535a34c&0&000c#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.212] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0e#3&1535a34c&0&000d#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.212] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col02#5&27cfa2af&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.212] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col01#5&27cfa2af&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.212] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0f#3&1535a34c&0&000e#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.212] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_01&col01#7&30c82ad&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.212] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col03#5&27cfa2af&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.212] EnumExistUKey: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.213] SortControl: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.213] SortControl: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.215] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.215] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[begin:pos:110]
+[2025/11/12,15:07:15.215] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[Program Startup m_bInit-enum exist key]
+[2025/11/12,15:07:15.215] RegistDeviceChangeEvent: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.215] RegistDeviceChangeEvent: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.215] EnumExistUKey: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.215] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_tendyron&prod_u-disk&rev_1.10#2&fcdf716&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.215] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\scsi#disk&ven_nvme&prod_great_wall_gw350#5&181e3641&0&000000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.215] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\scsi#disk&ven_wdc&prod_wd10ezex-08wn4a1#4&30ec406e&0&050000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.216] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_413c&pid_301a#7&99f292b&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.216] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_01&col02#7&30c82ad&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.216] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col02#3&1535a34c&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.216] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_00#7&36f30300&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.216] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col03#3&1535a34c&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.216] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col04#3&1535a34c&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.216] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col05#3&1535a34c&0&0004#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.216] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col06#3&1535a34c&0&0005#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.216] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0a#3&1535a34c&0&0009#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.216] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col07#3&1535a34c&0&0006#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.216] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_048d&pid_5702&col01#6&1d2bc57c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.216] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col08#3&1535a34c&0&0007#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_048d&pid_5702&col02#6&1d2bc57c&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col09#3&1535a34c&0&0008#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col11#3&1535a34c&0&0010#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col10#3&1535a34c&0&000f#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col12#3&1535a34c&0&0011#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0b#3&1535a34c&0&000a#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0c#3&1535a34c&0&000b#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col01#3&1535a34c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0d#3&1535a34c&0&000c#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0e#3&1535a34c&0&000d#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col02#5&27cfa2af&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col01#5&27cfa2af&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0f#3&1535a34c&0&000e#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_01&col01#7&30c82ad&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.217] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col03#5&27cfa2af&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.218] EnumExistUKey: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.218] SortControl: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.218] SortControl: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.221] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.222] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.222] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.222] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.223] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.260] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.261] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.261] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.261] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.265] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.265] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.265] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.266] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.267] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.267] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.268] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.270] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.274] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.276] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.276] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.278] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.279] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.279] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.279] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.279] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.283] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.283] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.283] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.283] CCB_IsTLS12OrLaterChecked: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.284] CCB_IsTLS12OrLaterChecked: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.284] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.285] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.287] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.287] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.287] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.288] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.288] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.288] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.289] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.292] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.294] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.294] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.296] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.296] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.297] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.297] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.299] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[begin:pos:120]
+[2025/11/12,15:07:15.299] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[Program Startup m_bInit-enum exist key]
+[2025/11/12,15:07:15.299] RegistDeviceChangeEvent: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.299] RegistDeviceChangeEvent: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.299] EnumExistUKey: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.300] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_tendyron&prod_u-disk&rev_1.10#2&fcdf716&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.300] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\scsi#disk&ven_nvme&prod_great_wall_gw350#5&181e3641&0&000000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.300] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\scsi#disk&ven_wdc&prod_wd10ezex-08wn4a1#4&30ec406e&0&050000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.300] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_413c&pid_301a#7&99f292b&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.301] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_01&col02#7&30c82ad&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.301] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col02#3&1535a34c&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.301] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_00#7&36f30300&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.301] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col03#3&1535a34c&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.301] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col04#3&1535a34c&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.301] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col05#3&1535a34c&0&0004#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.301] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col06#3&1535a34c&0&0005#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.301] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0a#3&1535a34c&0&0009#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col07#3&1535a34c&0&0006#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_048d&pid_5702&col01#6&1d2bc57c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col08#3&1535a34c&0&0007#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_048d&pid_5702&col02#6&1d2bc57c&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col09#3&1535a34c&0&0008#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col11#3&1535a34c&0&0010#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col10#3&1535a34c&0&000f#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col12#3&1535a34c&0&0011#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0b#3&1535a34c&0&000a#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0c#3&1535a34c&0&000b#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col01#3&1535a34c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0d#3&1535a34c&0&000c#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.302] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0e#3&1535a34c&0&000d#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.304] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col02#5&27cfa2af&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.304] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col01#5&27cfa2af&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.304] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0f#3&1535a34c&0&000e#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.304] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_01&col01#7&30c82ad&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.304] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col03#5&27cfa2af&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.304] EnumExistUKey: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.306] SortControl: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.306] SortControl: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.311] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.313] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[begin:pos:130]
+[2025/11/12,15:07:15.313] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[Program Startup m_bInit-enum exist key]
+[2025/11/12,15:07:15.313] RegistDeviceChangeEvent: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.313] RegistDeviceChangeEvent: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.314] EnumExistUKey: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.314] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_tendyron&prod_u-disk&rev_1.10#2&fcdf716&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.314] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\scsi#disk&ven_nvme&prod_great_wall_gw350#5&181e3641&0&000000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.314] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\scsi#disk&ven_wdc&prod_wd10ezex-08wn4a1#4&30ec406e&0&050000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:07:15.314] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_413c&pid_301a#7&99f292b&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.314] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_01&col02#7&30c82ad&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.314] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col02#3&1535a34c&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.315] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_00#7&36f30300&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.315] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col03#3&1535a34c&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.315] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col04#3&1535a34c&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.315] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col05#3&1535a34c&0&0004#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.315] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col06#3&1535a34c&0&0005#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.315] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0a#3&1535a34c&0&0009#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.315] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col07#3&1535a34c&0&0006#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.315] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_048d&pid_5702&col01#6&1d2bc57c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.315] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col08#3&1535a34c&0&0007#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_048d&pid_5702&col02#6&1d2bc57c&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col09#3&1535a34c&0&0008#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col11#3&1535a34c&0&0010#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col10#3&1535a34c&0&000f#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col12#3&1535a34c&0&0011#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0b#3&1535a34c&0&000a#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0c#3&1535a34c&0&000b#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col01#3&1535a34c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0d#3&1535a34c&0&000c#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0e#3&1535a34c&0&000d#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col02#5&27cfa2af&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col01#5&27cfa2af&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:07:15.316] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0f#3&1535a34c&0&000e#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.317] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_01&col01#7&30c82ad&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.317] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col03#5&27cfa2af&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:07:15.317] EnumExistUKey: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.319] SortControl: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.319] SortControl: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.321] DocumentCompleteExplorerBrowser: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.322] CCB_ClientWindowInfo: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.322] CCB_ClientWindowInfo: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.410] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.410] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.410] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.410] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.410] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.410] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.411] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.411] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.413] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.416] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.417] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.417] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.420] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.420] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.421] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.421] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.440] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.441] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.442] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.443] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.465] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.465] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.466] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.466] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.504] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:15.505] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:15.506] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:15.506] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:15.506] Thread_GetUkeyInfo: (Process is 14376, thread is 12228)
+	[HasGSCert ]
+[2025/11/12,15:07:16.302] Thread_GetUkeyInfo: (Process is 14376, thread is 12228)
+	[HasGMCert ]
+[2025/11/12,15:07:16.908] pDetector->CheckUnusedCert(): (Process is 14376, thread is 12228)
+	[nResult2002]
+[2025/11/12,15:07:18.046] pDetector->CheckCert(): (Process is 14376, thread is 12228)
+	[nResult0]
+[2025/11/12,15:07:18.046] GMpDetector->CheckCert(): (Process is 14376, thread is 12228)
+	[szTipUKEY_TDRGM1060]
+[2025/11/12,15:07:18.046] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:18.046] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:18.047] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:18.047] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:18.055] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:18.055] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:18.056] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:18.056] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:18.057] AddResult: (Process is 14376, thread is 12228)
+	[begin]
+[2025/11/12,15:07:18.057] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:18.059] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:18.059] AddResult: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:18.059] RepairThread: (Process is 14376, thread is 12228)
+	[end]
+[2025/11/12,15:07:24.422] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:24.423] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:26.572] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:26.573] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:26.693] CCB_RepairAll: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:26.693] RepairThread: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:26.694] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:26.697] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:26.697] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:26.697] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:26.697] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:26.698] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:26.699] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:26.699] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:26.721] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:26.721] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:26.721] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:26.722] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:26.722] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:26.722] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:26.722] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:26.723] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:26.724] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:26.726] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:26.727] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:26.727] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.296] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.296] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.297] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.298] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.302] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.307] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.311] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.312] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.313] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.318] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.319] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.319] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.320] CCB_IsTLS12OrLaterChecked: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.320] CCB_IsTLS12OrLaterChecked: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.320] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.321] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.322] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.322] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.323] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.323] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.325] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.325] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.325] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.327] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.329] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.329] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.329] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.330] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.331] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.331] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.380] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.380] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.380] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.380] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.380] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.380] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.381] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.381] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.382] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.384] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.386] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.386] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.388] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.388] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.388] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.389] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.411] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.413] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.414] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.414] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.436] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.436] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.437] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.437] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.476] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:27.477] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:27.477] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:27.477] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:27.478] Thread_GetUkeyInfo: (Process is 14376, thread is 15648)
+	[HasGSCert ]
+[2025/11/12,15:07:27.972] Thread_GetUkeyInfo: (Process is 14376, thread is 15648)
+	[HasGMCert ]
+[2025/11/12,15:07:28.554] pDetector->CheckUnusedCert(): (Process is 14376, thread is 15648)
+	[nResult2002]
+[2025/11/12,15:07:28.555] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:28.555] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:28.556] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:28.556] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:29.688] pDetector->CheckCert(): (Process is 14376, thread is 15648)
+	[nResult0]
+[2025/11/12,15:07:29.688] GMpDetector->CheckCert(): (Process is 14376, thread is 15648)
+	[szTipUKEY_TDRGM1060]
+[2025/11/12,15:07:29.688] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:29.691] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:29.692] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:29.692] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:29.700] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:29.701] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:29.701] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:29.701] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:29.702] AddResult: (Process is 14376, thread is 15648)
+	[begin]
+[2025/11/12,15:07:29.703] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:29.704] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:29.704] AddResult: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:29.704] RepairThread: (Process is 14376, thread is 15648)
+	[end]
+[2025/11/12,15:07:33.240] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:33.241] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:34.666] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:34.668] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:34.756] CCB_RepairAll: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:34.758] RepairThread: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:34.759] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:34.763] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:34.763] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:34.763] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:34.763] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:34.765] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:34.766] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:34.766] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.326] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.326] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.327] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.327] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.327] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.328] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.328] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.328] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.329] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.329] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.330] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.330] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.841] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.843] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.845] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.846] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.848] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.848] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.850] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.850] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.851] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.858] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.862] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.862] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.863] CCB_IsTLS12OrLaterChecked: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.863] CCB_IsTLS12OrLaterChecked: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.863] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.865] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.866] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.866] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.867] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.868] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.869] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.869] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.870] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.870] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.872] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.873] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.873] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.874] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.876] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.876] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.925] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.925] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.926] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.926] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.926] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.926] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.927] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.927] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.929] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.931] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.932] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.932] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.934] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.934] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.936] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.936] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.956] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.956] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.959] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.960] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:42.982] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:42.983] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:42.984] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:42.984] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:43.024] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:43.025] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:43.026] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:43.027] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:43.028] Thread_GetUkeyInfo: (Process is 14376, thread is 16724)
+	[HasGSCert ]
+[2025/11/12,15:07:43.547] Thread_GetUkeyInfo: (Process is 14376, thread is 16724)
+	[HasGMCert ]
+[2025/11/12,15:07:44.138] pDetector->CheckUnusedCert(): (Process is 14376, thread is 16724)
+	[nResult2002]
+[2025/11/12,15:07:44.138] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:44.138] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:44.139] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:44.139] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:45.282] pDetector->CheckCert(): (Process is 14376, thread is 16724)
+	[nResult0]
+[2025/11/12,15:07:45.283] GMpDetector->CheckCert(): (Process is 14376, thread is 16724)
+	[szTipUKEY_TDRGM1060]
+[2025/11/12,15:07:45.283] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:45.283] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:45.284] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:45.284] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:45.292] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:45.294] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:45.295] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:45.295] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:45.295] AddResult: (Process is 14376, thread is 16724)
+	[begin]
+[2025/11/12,15:07:45.296] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:45.296] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:45.297] AddResult: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:45.297] RepairThread: (Process is 14376, thread is 16724)
+	[end]
+[2025/11/12,15:07:49.006] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:49.006] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.212] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.212] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.315] CCB_RepairAll: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.316] RepairThread: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.316] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.317] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.317] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.317] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.318] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.318] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.319] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.319] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.337] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.338] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.339] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.339] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.339] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.339] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.339] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.340] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.340] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.343] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.344] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.344] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.834] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.834] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.836] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.836] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.838] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.838] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.841] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.841] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.842] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.843] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.844] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.845] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.845] CCB_IsTLS12OrLaterChecked: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.845] CCB_IsTLS12OrLaterChecked: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.845] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.846] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.847] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.848] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.848] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.851] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.852] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.852] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.852] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.853] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.854] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.854] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.855] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.855] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.856] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.856] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.904] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.905] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.905] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.905] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.905] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.905] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.906] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.906] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.910] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.911] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.913] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.913] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.916] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.916] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.916] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.917] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.941] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.941] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.943] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.943] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:50.965] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:50.965] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:50.966] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:50.966] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:51.004] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:51.005] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:51.006] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:51.006] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:51.006] Thread_GetUkeyInfo: (Process is 14376, thread is 8084)
+	[HasGSCert ]
+[2025/11/12,15:07:51.501] Thread_GetUkeyInfo: (Process is 14376, thread is 8084)
+	[HasGMCert ]
+[2025/11/12,15:07:52.074] pDetector->CheckUnusedCert(): (Process is 14376, thread is 8084)
+	[nResult2002]
+[2025/11/12,15:07:52.074] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:52.074] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:52.076] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:52.076] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:53.211] pDetector->CheckCert(): (Process is 14376, thread is 8084)
+	[nResult0]
+[2025/11/12,15:07:53.211] GMpDetector->CheckCert(): (Process is 14376, thread is 8084)
+	[szTipUKEY_TDRGM1060]
+[2025/11/12,15:07:53.211] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:53.211] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:53.212] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:53.212] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:53.221] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:53.227] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:53.227] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:53.228] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:53.228] AddResult: (Process is 14376, thread is 8084)
+	[begin]
+[2025/11/12,15:07:53.228] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:53.229] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:53.229] AddResult: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:53.229] RepairThread: (Process is 14376, thread is 8084)
+	[end]
+[2025/11/12,15:07:53.507] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:53.508] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:53.595] CCB_UkeyInfo: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:53.596] CCB_UkeyInfo: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:53.596] Thread_GetUkeyInfo: (Process is 14376, thread is 11296)
+	[begin nCurVendorType:7]
+[2025/11/12,15:07:53.626] Thread_GetUkeyInfo: (Process is 14376, thread is 11296)
+	[szSerialNum:H0G901675505]
+[2025/11/12,15:07:53.626] Thread_GetUkeyInfo: (Process is 14376, thread is 11296)
+	[HasGSCert ]
+[2025/11/12,15:07:54.822] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:54.823] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:54.923] CCB_Refresh: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:55.197] Thread_GetUkeyInfo: (Process is 14376, thread is 11296)
+	[HasGMCert ]
+[2025/11/12,15:07:55.806] CCB_Refresh: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:55.806] CCB_UkeyInfo: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:55.806] CCB_UkeyInfo: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:56.512] Thread_GetUkeyInfo: (Process is 14376, thread is 11296)
+	[HasGFCert]
+[2025/11/12,15:07:57.183] OnUpdatekeyInfo1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:57.184] OnUpdatekeyInfo1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:57.184] Thread_GetUkeyInfo: (Process is 14376, thread is 11296)
+	[end strUkeyInfo:{ SN:'H0G901675505',CNGS:'GSB00030198521',EndDateGS:'20281008',StartDateGS:'20231008',CNGM:'GMB00030198521',EndDateGM:'20281008',StartDateGM:'20231008',CNGF:'GFB00030198521',EndDateGF:'20281008',StartDateGF:'20231008'}]
+[2025/11/12,15:07:58.609] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:58.609] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:59.872] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:07:59.873] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:07:59.964] CCB_EntUserQuickLogin: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:00.344] Thread_GetUkeyInfo: (Process is 14376, thread is 588)
+	[GetParamGM GMCert PARAM_CERT_CN = GMB00030198521]
+[2025/11/12,15:08:00.345] CCB_PerUserQuickLogin: (Process is 14376, thread is 588)
+	[szCertCN:B00030198521]
+[2025/11/12,15:08:00.519] CCB_PerUserQuickLogin: (Process is 14376, thread is 588)
+	[szUrl:https://b2bbank.ccb.com/NCCB/V6/index.jsp?TXCODE=N90N20&dc=1]
+[2025/11/12,15:08:00.539] CCB_EntUserQuickLogin: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:27.906] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:27.906] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:28.022] CCB_UkeyInfo: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:28.023] Thread_GetUkeyInfo: (Process is 14376, thread is 8092)
+	[begin nCurVendorType:7]
+[2025/11/12,15:08:28.045] Thread_GetUkeyInfo: (Process is 14376, thread is 8092)
+	[szSerialNum:H0G901675505]
+[2025/11/12,15:08:28.045] Thread_GetUkeyInfo: (Process is 14376, thread is 8092)
+	[HasGSCert ]
+[2025/11/12,15:08:29.328] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:29.328] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:29.339] CCB_Refresh: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:29.598] Thread_GetUkeyInfo: (Process is 14376, thread is 8092)
+	[HasGMCert ]
+[2025/11/12,15:08:30.186] CCB_Refresh: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:30.352] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:30.353] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:30.876] Thread_GetUkeyInfo: (Process is 14376, thread is 8092)
+	[HasGFCert]
+[2025/11/12,15:08:31.290] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:31.290] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:31.521] OnUpdatekeyInfo1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:31.522] OnUpdatekeyInfo1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:31.522] Thread_GetUkeyInfo: (Process is 14376, thread is 8092)
+	[end strUkeyInfo:{ SN:'H0G901675505',CNGS:'GSB00030198521',EndDateGS:'20281008',StartDateGS:'20231008',CNGM:'GMB00030198521',EndDateGM:'20281008',StartDateGM:'20231008',CNGF:'GFB00030198521',EndDateGF:'20281008',StartDateGF:'20231008'}]
+[2025/11/12,15:08:32.609] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:32.610] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:34.356] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:34.357] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:34.552] CCB_RepairAll: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:34.552] RepairThread: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:34.552] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:34.553] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:34.554] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:34.554] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:34.554] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:34.555] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:34.556] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:34.557] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:34.576] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:34.577] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:34.577] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:34.578] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:34.578] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:34.578] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:34.579] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:34.579] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:34.579] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:34.579] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:34.580] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:34.580] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.024] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.025] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.027] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.027] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.030] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.030] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.032] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.032] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.032] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.033] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.033] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.033] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.034] CCB_IsTLS12OrLaterChecked: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.034] CCB_IsTLS12OrLaterChecked: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.034] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.034] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.034] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.035] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.035] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.035] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.036] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.036] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.036] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.038] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.039] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.039] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.039] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.041] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.042] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.042] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.086] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.086] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.086] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.086] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.086] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.086] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.088] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.088] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.089] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.093] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.094] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.094] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.095] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.097] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.098] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.098] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.117] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.117] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.118] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.118] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.136] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.137] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.137] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.138] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.176] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:35.176] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:35.176] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:35.178] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:35.178] Thread_GetUkeyInfo: (Process is 14376, thread is 13776)
+	[HasGSCert ]
+[2025/11/12,15:08:35.665] Thread_GetUkeyInfo: (Process is 14376, thread is 13776)
+	[HasGMCert ]
+[2025/11/12,15:08:36.227] pDetector->CheckUnusedCert(): (Process is 14376, thread is 13776)
+	[nResult2002]
+[2025/11/12,15:08:36.227] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:36.230] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:36.234] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:36.234] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:37.355] pDetector->CheckCert(): (Process is 14376, thread is 13776)
+	[nResult0]
+[2025/11/12,15:08:37.355] GMpDetector->CheckCert(): (Process is 14376, thread is 13776)
+	[szTipUKEY_TDRGM1060]
+[2025/11/12,15:08:37.356] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:37.363] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:37.365] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:37.365] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:37.378] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:37.378] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:37.379] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:37.379] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:37.379] AddResult: (Process is 14376, thread is 13776)
+	[begin]
+[2025/11/12,15:08:37.380] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:37.380] OnSendIEMsg1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:37.380] AddResult: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:37.380] RepairThread: (Process is 14376, thread is 13776)
+	[end]
+[2025/11/12,15:08:39.174] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:39.175] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:39.266] CCB_UkeyInfo: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:39.267] CCB_UkeyInfo: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:39.267] Thread_GetUkeyInfo: (Process is 14376, thread is 1436)
+	[begin nCurVendorType:7]
+[2025/11/12,15:08:39.287] Thread_GetUkeyInfo: (Process is 14376, thread is 1436)
+	[szSerialNum:H0G901675505]
+[2025/11/12,15:08:39.287] Thread_GetUkeyInfo: (Process is 14376, thread is 1436)
+	[HasGSCert ]
+[2025/11/12,15:08:40.408] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:40.408] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:40.764] Thread_GetUkeyInfo: (Process is 14376, thread is 1436)
+	[HasGMCert ]
+[2025/11/12,15:08:41.833] Thread_GetUkeyInfo: (Process is 14376, thread is 1436)
+	[HasGFCert]
+[2025/11/12,15:08:42.491] OnUpdatekeyInfo1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:42.495] OnUpdatekeyInfo1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:42.495] Thread_GetUkeyInfo: (Process is 14376, thread is 1436)
+	[end strUkeyInfo:{ SN:'H0G901675505',CNGS:'GSB00030198521',EndDateGS:'20281008',StartDateGS:'20231008',CNGM:'GMB00030198521',EndDateGM:'20281008',StartDateGM:'20231008',CNGF:'GFB00030198521',EndDateGF:'20281008',StartDateGF:'20231008'}]
+[2025/11/12,15:08:43.159] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:43.160] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:08:43.254] CCB_EntUserQuickLogin: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:08:43.634] Thread_GetUkeyInfo: (Process is 14376, thread is 588)
+	[GetParamGM GMCert PARAM_CERT_CN = GMB00030198521]
+[2025/11/12,15:08:43.635] CCB_PerUserQuickLogin: (Process is 14376, thread is 588)
+	[szCertCN:B00030198521]
+[2025/11/12,15:08:43.811] CCB_PerUserQuickLogin: (Process is 14376, thread is 588)
+	[szUrl:https://b2bbank.ccb.com/NCCB/V6/index.jsp?TXCODE=N90N20&dc=1]
+[2025/11/12,15:08:43.826] CCB_EntUserQuickLogin: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:02.995] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32772]
+[2025/11/12,15:10:02.995] WindowProc: (Process is 14376, thread is 588)
+	[strDevicePath:\\?\usbstor#cdrom&ven_tendyron&prod_u-disk&rev_1.10#2&fcdf716&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:02.997] WindowProc: (Process is 14376, thread is 588)
+	[pdbch->dbcc_name:\\?\usbstor#cdrom&ven_tendyron&prod_u-disk&rev_1.10#2&fcdf716&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:02.998] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_tendyron&prod_u-disk&rev_1.10#2&fcdf716&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:03.013] WindowProc: (Process is 14376, thread is 588)
+	[in if# strDevicePath:]
+[2025/11/12,15:10:03.015] EnumExistUKey: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:10:03.021] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\scsi#disk&ven_nvme&prod_great_wall_gw350#5&181e3641&0&000000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:03.025] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\scsi#disk&ven_wdc&prod_wd10ezex-08wn4a1#4&30ec406e&0&050000#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:03.026] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_413c&pid_301a#7&99f292b&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.026] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_01&col02#7&30c82ad&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.027] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col02#3&1535a34c&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.027] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_00#7&36f30300&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:10:03.028] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col03#3&1535a34c&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.028] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col04#3&1535a34c&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.028] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col05#3&1535a34c&0&0004#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.028] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col06#3&1535a34c&0&0005#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.029] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0a#3&1535a34c&0&0009#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.029] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col07#3&1535a34c&0&0006#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.029] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_048d&pid_5702&col01#6&1d2bc57c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.029] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col08#3&1535a34c&0&0007#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.029] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_048d&pid_5702&col02#6&1d2bc57c&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.029] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col09#3&1535a34c&0&0008#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.029] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col11#3&1535a34c&0&0010#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.029] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col10#3&1535a34c&0&000f#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.029] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col12#3&1535a34c&0&0011#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.029] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0b#3&1535a34c&0&000a#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.029] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0c#3&1535a34c&0&000b#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.030] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col01#3&1535a34c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:10:03.030] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0d#3&1535a34c&0&000c#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.030] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0e#3&1535a34c&0&000d#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.030] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col02#5&27cfa2af&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.030] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col01#5&27cfa2af&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd]
+[2025/11/12,15:10:03.030] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#intc816&col0f#3&1535a34c&0&000e#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.030] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#vid_1a2c&pid_2124&mi_01&col01#7&30c82ad&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.030] Dev2KeyType: (Process is 14376, thread is 588)
+	[begin	strDevPath:\\?\hid#converteddevice&col03#5&27cfa2af&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}]
+[2025/11/12,15:10:03.030] EnumExistUKey: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.031] OnUpdatekeyInfo: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:10:03.037] OnUpdatekeyInfo: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.037] CCB_UkeyInfo: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:10:03.038] CCB_UkeyInfo: (Process is 14376, thread is 588)
+	[end]
+[begin nCurVendorType:-1]
+[2025/11/12,15:10:03.038] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.038] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32772]
+[2025/11/12,15:10:03.038] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.038] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32772]
+[2025/11/12,15:10:03.039] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.039] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32772]
+[2025/11/12,15:10:03.039] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.039] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32772]
+[2025/11/12,15:10:03.039] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.040] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32772]
+[2025/11/12,15:10:03.040] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.040] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32772]
+[2025/11/12,15:10:03.040] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.040] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32772]
+[2025/11/12,15:10:03.042] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.042] OnUpdatekeyInfo1: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:10:03.043] OnUpdatekeyInfo1: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.044] Thread_GetUkeyInfo: (Process is 14376, thread is 14744)
+	[end strUkeyInfo:{ SN:'',CN:'',C:'',O:'',OU:'',EndDate:'',StartDate:''}]
+[2025/11/12,15:10:03.044] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.044] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32772]
+[2025/11/12,15:10:03.045] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.045] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:7]
+[2025/11/12,15:10:03.045] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:03.047] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32772]
+[2025/11/12,15:10:03.047] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:10.993] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:7]
+[2025/11/12,15:10:10.993] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.260] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:7]
+[2025/11/12,15:10:11.261] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.283] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:7]
+[2025/11/12,15:10:11.283] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.420] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32768]
+[2025/11/12,15:10:11.422] Thread_GetKeyInfo: (Process is 14376, thread is 11160)
+	[begin]
+[2025/11/12,15:10:11.422] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.423] Dev2KeyType: (Process is 14376, thread is 11160)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_rongan&prod_keypod_se&rev_1.00#2&274c8e23&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:11.423] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32768]
+[2025/11/12,15:10:11.423] Thread_GetKeyInfo: (Process is 14376, thread is 11160)
+	[Dev2KeyType returns:-1]
+[2025/11/12,15:10:11.426] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.426] Thread_GetKeyInfo: (Process is 14376, thread is 11528)
+	[begin]
+[2025/11/12,15:10:11.427] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32768]
+[2025/11/12,15:10:11.427] Dev2KeyType: (Process is 14376, thread is 11528)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_rongan&prod_keypod_se&rev_1.00#2&274c8e23&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:11.427] Thread_GetKeyInfo: (Process is 14376, thread is 11528)
+	[Dev2KeyType returns:-1]
+[2025/11/12,15:10:11.429] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.429] Thread_GetKeyInfo: (Process is 14376, thread is 7068)
+	[begin]
+[2025/11/12,15:10:11.429] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32768]
+[2025/11/12,15:10:11.429] Dev2KeyType: (Process is 14376, thread is 7068)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_rongan&prod_keypod_se&rev_1.00#2&274c8e23&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:11.430] Thread_GetKeyInfo: (Process is 14376, thread is 7068)
+	[Dev2KeyType returns:-1]
+[2025/11/12,15:10:11.430] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.430] Thread_GetKeyInfo: (Process is 14376, thread is 12600)
+	[begin]
+[2025/11/12,15:10:11.431] Dev2KeyType: (Process is 14376, thread is 12600)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_rongan&prod_keypod_se&rev_1.00#2&274c8e23&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:11.432] Thread_GetKeyInfo: (Process is 14376, thread is 12600)
+	[Dev2KeyType returns:-1]
+[2025/11/12,15:10:11.432] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32768]
+[2025/11/12,15:10:11.434] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.434] Thread_GetKeyInfo: (Process is 14376, thread is 11660)
+	[begin]
+[2025/11/12,15:10:11.434] Dev2KeyType: (Process is 14376, thread is 11660)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_rongan&prod_keypod_se&rev_1.00#2&274c8e23&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:11.434] Thread_GetKeyInfo: (Process is 14376, thread is 11660)
+	[Dev2KeyType returns:-1]
+[2025/11/12,15:10:11.436] Thread_GetKeyInfo: (Process is 14376, thread is 16908)
+	[begin]
+[2025/11/12,15:10:11.436] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.436] Dev2KeyType: (Process is 14376, thread is 16908)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_rongan&prod_keypod_se&rev_1.00#2&274c8e23&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:11.436] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32768]
+[2025/11/12,15:10:11.437] Thread_GetKeyInfo: (Process is 14376, thread is 16908)
+	[Dev2KeyType returns:-1]
+[2025/11/12,15:10:11.437] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.437] Thread_GetKeyInfo: (Process is 14376, thread is 10428)
+	[begin]
+[2025/11/12,15:10:11.438] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32768]
+[2025/11/12,15:10:11.438] Dev2KeyType: (Process is 14376, thread is 10428)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_rongan&prod_keypod_se&rev_1.00#2&274c8e23&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:11.438] Thread_GetKeyInfo: (Process is 14376, thread is 10428)
+	[Dev2KeyType returns:-1]
+[2025/11/12,15:10:11.438] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.438] Thread_GetKeyInfo: (Process is 14376, thread is 1988)
+	[begin]
+[2025/11/12,15:10:11.438] Dev2KeyType: (Process is 14376, thread is 1988)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_rongan&prod_keypod_se&rev_1.00#2&274c8e23&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:11.438] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32768]
+[2025/11/12,15:10:11.438] Thread_GetKeyInfo: (Process is 14376, thread is 1988)
+	[Dev2KeyType returns:-1]
+[2025/11/12,15:10:11.438] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.438] Thread_GetKeyInfo: (Process is 14376, thread is 2940)
+	[begin]
+[2025/11/12,15:10:11.438] Dev2KeyType: (Process is 14376, thread is 2940)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_rongan&prod_keypod_se&rev_1.00#2&274c8e23&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:11.438] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32768]
+[2025/11/12,15:10:11.438] Thread_GetKeyInfo: (Process is 14376, thread is 2940)
+	[Dev2KeyType returns:-1]
+[2025/11/12,15:10:11.440] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.440] Thread_GetKeyInfo: (Process is 14376, thread is 15496)
+	[begin]
+[2025/11/12,15:10:11.440] Dev2KeyType: (Process is 14376, thread is 15496)
+	[begin	strDevPath:\\?\usbstor#cdrom&ven_rongan&prod_keypod_se&rev_1.00#2&274c8e23&0#{53f56308-b6bf-11d0-94f2-00a0c91efb8b}]
+[2025/11/12,15:10:11.440] Thread_GetKeyInfo: (Process is 14376, thread is 15496)
+	[Dev2KeyType returns:-1]
+[2025/11/12,15:10:11.493] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32768]
+[2025/11/12,15:10:11.497] WindowProc: (Process is 14376, thread is 588)
+	[end]
+	[begin]
+[2025/11/12,15:10:11.497] Dev2KeyType: (Process is 14376, thread is 13372)
+	[begin	strDevPath:þ]
+[2025/11/12,15:10:11.499] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:7]
+[2025/11/12,15:10:11.499] Thread_GetKeyInfo: (Process is 14376, thread is 13372)
+	[Dev2KeyType returns:-1]
+[2025/11/12,15:10:11.499] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.715] WindowProc: (Process is 14376, thread is 588)
+	[begin	wParam:32768]
+[2025/11/12,15:10:11.716] WindowProc: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:11.716] Thread_GetKeyInfo: (Process is 14376, thread is 12792)
+	[begin]
+[2025/11/12,15:10:11.716] Dev2KeyType: (Process is 14376, thread is 12792)
+	[begin	strDevPath:þ]
+[2025/11/12,15:10:11.716] Thread_GetKeyInfo: (Process is 14376, thread is 12792)
+	[Dev2KeyType returns:-1]
+[2025/11/12,15:10:31.508] ShowSettingDlg: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:10:31.510] ShowSettingDlg: (Process is 14376, thread is 588)
+	[end]
+[2025/11/12,15:10:31.615] UnRegistDeviceChangeEvent: (Process is 14376, thread is 588)
+	[begin]
+[2025/11/12,15:10:31.616] UnRegistDeviceChangeEvent: (Process is 14376, thread is 588)
+	[end]

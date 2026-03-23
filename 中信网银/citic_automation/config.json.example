@@ -1,0 +1,50 @@
+{
+  "credentials": {
+    "username": "您的用户名",
+    "password": "您的密码",
+    "pin": "您的UKey PIN码"
+  },
+  "collection": {
+    "statements": {
+      "enabled": true,
+      "days_back": 30,
+      "start_date": "",
+      "end_date": "",
+      "accounts": [],
+      "file_format": "excel",
+      "download_path": "./downloads/statements",
+      "archive_by_month": true,
+      "retention_months": 2
+    },
+    "receipts": {
+      "enabled": true,
+      "days_back": 30,
+      "accounts": [],
+      "download_path": "./downloads/receipts",
+      "organize_by_date": true,
+      "archive_by_month": true,
+      "retention_months": 2
+    }
+  },
+  "browser": {
+    "login_url": "https://corp.bank.ecitic.com/cotb/login.html",
+    "headless": false,
+    "chrome_path": "",
+    "extension_path": "",
+    "extension_id": "",
+    "download_timeout": 60,
+    "page_timeout": 30
+  },
+  "runtime": {
+    "log_level": "INFO",
+    "log_path": null,
+    "max_retries": 1,
+    "retry_delay": 5,
+    "auto_close": false,
+    "log_retention_days": 30
+  },
+  "schedule": {
+    "enabled": false,
+    "cron": "0 9 * * *"
+  }
+}

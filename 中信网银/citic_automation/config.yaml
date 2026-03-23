@@ -1,0 +1,85 @@
+# 中信银行企业网银自动采集配置文件
+
+# 网银登录信息
+credentials:
+  # 企业网银登录用户名/操作员代码
+  username: "隐石"
+  # 企业网银登录密码
+  password: "hzd810218"
+  # UKey PIN码/网盾密码（6-12位，用于虚拟键盘输入）
+  pin: "hzd810218"
+
+# 采集设置
+collection:
+  # 银行流水采集设置
+  statements:
+    # 是否启用流水采集
+    enabled: true
+    # 查询起始日期（天），如采集近30天的流水填30
+    # 当设置了 start_date 和 end_date 时，此参数被忽略
+    days_back: 30
+    
+    # 自定义查询日期范围（优先级高于 days_back）
+    # 格式：YYYY-MM-DD，留空则使用 days_back 自动计算
+    start_date: "2026-01-01"
+    end_date: "2026-02-26"
+    # 账户列表（为空则自动获取所有账户）
+    accounts: []
+      # - "123456789012345"
+      # - "987654321098765"
+    # 文件格式: excel, pdf, csv
+    file_format: "excel"
+    # 下载文件保存路径
+    download_path: "./downloads/statements"
+  
+  # 电子回单采集设置
+  receipts:
+    # 是否启用回单采集
+    enabled: true
+    # 查询起始日期（天）
+    days_back: 30
+    # 账户列表（为空则自动获取所有账户）
+    accounts: []
+    # 下载文件保存路径
+    download_path: "./downloads/receipts"
+    # 是否按日期分文件夹存放
+    organize_by_date: true
+
+# 浏览器设置
+browser:
+  # 网银登录地址
+  login_url: "https://corp.bank.ecitic.com/cotb/login.html"
+  # 是否无头模式（后台运行）
+  headless: false
+  # Chrome浏览器可执行文件路径
+  # 为空则自动查找系统已安装的Chrome或Edge
+  # 如需指定，例如: "C:\Program Files\Google\Chrome\Application\chrome.exe"
+  chrome_path: ""
+  # Chrome扩展路径（如中信银行需要安全控件扩展）
+  extension_path: ""
+  # 扩展ID（可从chrome://extensions获取）
+  extension_id: ""
+  # 下载超时（秒）
+  download_timeout: 60
+  # 页面操作超时（秒）
+  page_timeout: 30
+
+# 运行设置
+runtime:
+  # 日志级别: DEBUG, INFO, WARNING, ERROR
+  log_level: "INFO"
+  # 日志文件路径（留空或注释掉则使用默认的按日期命名格式: ./logs/citic_automation_YYYYMMDD.log）
+  # log_path: "./logs/citic_automation.log"
+  # 最大重试次数
+  max_retries: 1
+  # 重试间隔（秒）
+  retry_delay: 5
+  # 任务完成后是否自动关闭浏览器
+  auto_close: false
+
+# 定时任务设置（可选）
+schedule:
+  # 是否启用定时任务
+  enabled: false
+  # 定时表达式（cron格式），如每天9点执行: "0 9 * * *"
+  cron: "0 9 * * *"

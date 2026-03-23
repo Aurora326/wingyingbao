@@ -1,0 +1,102 @@
+[2026-03-17 10:2:30:994] :New Connect
+
+[2026-03-17 10:2:30:995] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2026-03-17 10:2:31:1] :enter dev_oper_send_cmd_deal
+
+[2026-03-17 10:2:31:12] :exit dev_oper_send_cmd_deal,result = 0
+
+[2026-03-17 10:2:31:12] :exit handle_response
+
+[2026-03-17 10:2:31:19] :Disconnected
+
+[2026-03-17 10:2:31:25] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2026-03-17 10:2:31:30] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2026-03-17 10:2:36:85] :wait auto_close_thread
+
+[2026-03-17 10:6:20:229] :New Connect
+
+[2026-03-17 10:6:20:230] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2026-03-17 10:6:20:236] :enter dev_oper_send_cmd_deal
+
+[2026-03-17 10:6:20:247] :exit dev_oper_send_cmd_deal,result = 0
+
+[2026-03-17 10:6:20:247] :exit handle_response
+
+[2026-03-17 10:6:20:254] :Disconnected
+
+[2026-03-17 10:6:20:258] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2026-03-17 10:6:20:263] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2026-03-17 10:6:25:307] :wait auto_close_thread
+
+[2026-03-17 10:6:33:37] :New Connect
+
+[2026-03-17 10:6:33:38] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2026-03-17 10:6:33:46] :enter dev_oper_send_cmd_deal
+
+[2026-03-17 10:6:33:58] :exit dev_oper_send_cmd_deal,result = 0
+
+[2026-03-17 10:6:33:58] :exit handle_response
+
+[2026-03-17 10:6:33:65] :Disconnected
+
+[2026-03-17 10:6:33:70] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2026-03-17 10:6:33:75] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2026-03-17 10:6:33:342] :New Connect
+
+[2026-03-17 10:6:33:343] :dll_name = dev_info.dll,cmd = get_ter_status,data = {"cmd":"get_ter_status","dll_name":"dev_info","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533"}
+
+[2026-03-17 10:6:33:624] :Disconnected
+
+[2026-03-17 10:6:33:625] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2026-03-17 10:6:38:124] :wait auto_close_thread
+
+[2026-03-17 10:6:38:124] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2026-03-17 10:6:43:175] :wait auto_close_thread
+
+[2026-03-17 10:7:34:44] :New Connect
+
+[2026-03-17 10:7:34:44] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2026-03-17 10:7:34:51] :enter dev_oper_send_cmd_deal
+
+[2026-03-17 10:7:34:66] :exit dev_oper_send_cmd_deal,result = 0
+
+[2026-03-17 10:7:34:66] :exit handle_response
+
+[2026-03-17 10:7:34:74] :Disconnected
+
+[2026-03-17 10:7:34:80] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2026-03-17 10:7:34:85] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2026-03-17 10:7:34:392] :New Connect
+
+[2026-03-17 10:7:34:394] :dll_name = dev_oper.dll,cmd = start_robot_arm,data = {"cmd":"start_robot_arm","dll_name":"dev_oper","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","oper_port":"20"}
+
+[2026-03-17 10:7:34:406] :enter dev_oper_send_cmd_deal
+
+[2026-03-17 10:7:34:484] :exit dev_oper_send_cmd_deal,result = 0
+
+[2026-03-17 10:7:34:484] :exit handle_response
+
+[2026-03-17 10:7:34:493] :Disconnected
+
+[2026-03-17 10:7:34:500] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2026-03-17 10:7:39:128] :wait auto_close_thread
+
+[2026-03-17 10:7:39:130] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2026-03-17 10:7:44:185] :wait auto_close_thread
+

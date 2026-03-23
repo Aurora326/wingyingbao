@@ -1,0 +1,92 @@
+[2026-02-05 14:7:46:141] :Disconnected
+
+[2026-02-05 14:7:46:142] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2026-02-05 14:7:46:150] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2026-02-05 14:7:47:598] :New Connect
+
+[2026-02-05 14:7:47:918] :dll_name = dev_oper.dll,cmd = get_version_id,data = {"cmd":"get_version_id","dll_name":"dev_oper"}
+
+[2026-02-05 14:7:47:921] :enter dev_oper_send_cmd_deal
+
+[2026-02-05 14:7:47:936] :exit dev_oper_send_cmd_deal,result = 0
+
+[2026-02-05 14:7:47:937] :exit handle_response
+
+[2026-02-05 14:7:48:106] :dll_name = dev_oper.dll,cmd = get_mac,data = {"cmd":"get_mac","dll_name":"dev_oper"}
+
+[2026-02-05 14:7:48:106] :enter dev_oper_send_cmd_deal
+
+[2026-02-05 14:7:48:123] :exit dev_oper_send_cmd_deal,result = 0
+
+[2026-02-05 14:7:48:123] :exit handle_response
+
+[2026-02-05 14:7:48:131] :delay_release response_data = {"cmd":"delay_release","code":0,"data":""}
+
+[2026-02-05 14:7:48:414] :dll_name = dev_oper.dll,cmd = set_branch,data = {"cmd":"set_branch","dll_name":"dev_oper","branch":"25073018072315410004"}
+
+[2026-02-05 14:7:48:414] :enter dev_oper_send_cmd_deal
+
+[2026-02-05 14:7:48:430] :exit dev_oper_send_cmd_deal,result = 0
+
+[2026-02-05 14:7:48:431] :exit handle_response
+
+[2026-02-05 14:7:49:426] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2026-02-05 14:7:49:427] :enter dev_oper_send_cmd_deal
+
+[2026-02-05 14:7:49:446] :exit dev_oper_send_cmd_deal,result = 0
+
+[2026-02-05 14:7:49:446] :exit handle_response
+
+[2026-02-05 14:7:49:455] :dll_name = dev_oper.dll,cmd = get_ters_status,data = {"cmd":"get_ters_status","dll_name":"dev_oper","ter_data":[{"server_ip":"192.168.254.132","server_port":"3240"},{"server_ip":"192.168.254.123","server_port":"3240"}]}
+
+[2026-02-05 14:7:49:461] :enter dev_oper_send_cmd_deal
+
+[2026-02-05 14:7:49:912] :exit dev_oper_send_cmd_deal,result = 0
+
+[2026-02-05 14:7:49:913] :exit handle_response
+
+[2026-02-05 14:7:51:188] :wait auto_close_thread
+
+[2026-02-05 14:7:56:198] :dll_name = usbip.dll,cmd = forced_close_new,data = {"cmd":"forced_close_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","oper_port":"29","user":"15711668178"}
+
+[2026-02-05 14:7:56:199] :enter usbip_send_cmd_deal
+
+[2026-02-05 14:7:56:735] :exit usbip_send_cmd_deal
+
+[2026-02-05 14:7:56:735] :exit handle_response
+
+[2026-02-05 14:7:57:250] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2026-02-05 14:7:57:251] :enter dev_oper_send_cmd_deal
+
+[2026-02-05 14:7:57:267] :exit dev_oper_send_cmd_deal,result = 0
+
+[2026-02-05 14:7:57:267] :exit handle_response
+
+[2026-02-05 14:7:57:276] :dll_name = dev_oper.dll,cmd = get_ters_status,data = {"cmd":"get_ters_status","dll_name":"dev_oper","ter_data":[{"server_ip":"192.168.254.132","server_port":"3240"},{"server_ip":"192.168.254.123","server_port":"3240"}]}
+
+[2026-02-05 14:7:57:284] :enter dev_oper_send_cmd_deal
+
+[2026-02-05 14:7:57:632] :exit dev_oper_send_cmd_deal,result = 0
+
+[2026-02-05 14:7:57:632] :exit handle_response
+
+[2026-02-05 14:8:1:86] :delay_release response_data = {"cmd":"delay_release","code":0,"data":""}
+
+[2026-02-05 14:8:1:87] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","dev_port":29,"oper_id":"74-56-3C-0F-05-64;100008432","ter_id":"068330001533","user":"15711668178","trans_type":"0","force_open":"0"}
+
+[2026-02-05 14:8:1:97] :enter usbip_send_cmd_deal
+
+[2026-02-05 14:8:1:450] :exit usbip_send_cmd_deal
+
+[2026-02-05 14:8:1:450] :exit handle_response
+
+[2026-02-05 14:8:1:459] :enter get_open_port_parm
+
+[2026-02-05 14:8:1:465] :exit get_open_port_parm
+
+[2026-02-05 14:8:1:474] :dll_name = dev_info.dll,cmd = get_ter_status,data = {"cmd":"get_ter_status","dll_name":"dev_oper","server_ip":"192.168.254.123","server_port":"3240"}
+

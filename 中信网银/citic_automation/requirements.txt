@@ -1,0 +1,11 @@
+# CITIC Bank Automation Tool Dependencies
+playwright>=1.40.0
+pyyaml>=6.0
+loguru>=0.7.0
+pyautogui>=0.9.54
+pyscreeze>=0.1.29
+pygetwindow>=0.0.9
+
+# Optional dependencies
+# pillow>=10.0.0
+# opencv-python>=4.8.0
