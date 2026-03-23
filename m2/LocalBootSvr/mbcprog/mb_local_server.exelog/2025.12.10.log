@@ -1,0 +1,248 @@
+[2025-12-10 10:30:13:528] :socket err!,info->i
+ 192.168.254.124,err = 10004
+
+[2025-12-10 10:30:23:546] :Get ip is:192.168.254.124
+
+[2025-12-10 10:30:23:548] :find_adapter num is :1
+[2025-12-10 10:30:23:561] :dev_discovery step2,num = 1
+
+[2025-12-10 10:33:22:572] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 10:33:32:579] :Get ip is:192.168.254.124
+
+[2025-12-10 10:33:32:580] :find_adapter num is :1
+[2025-12-10 10:33:32:587] :dev_discovery step2,num = 1
+
+[2025-12-10 10:36:31:595] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 10:36:41:613] :Get ip is:192.168.254.124
+
+[2025-12-10 10:36:41:614] :find_adapter num is :1
+[2025-12-10 10:36:41:622] :dev_discovery step2,num = 1
+
+[2025-12-10 10:39:40:636] :socket err!,info->i
+ 192.168.254.124,err = 10004
+
+[2025-12-10 10:39:50:643] :Get ip is:192.168.254.124
+
+[2025-12-10 10:39:50:643] :find_adapter num is :1
+[2025-12-10 10:39:50:650] :dev_discovery step2,num = 1
+
+[2025-12-10 10:42:49:658] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 10:42:59:669] :Get ip is:192.168.254.124
+
+[2025-12-10 10:42:59:669] :find_adapter num is :1
+[2025-12-10 10:42:59:677] :dev_discovery step2,num = 1
+
+[2025-12-10 10:45:58:693] :dev_discovery step3[2025-12-10 10:45:58:693] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 10:46:8:707] :Get ip is:192.168.254.124
+
+[2025-12-10 10:46:8:707] :find_adapter num is :1
+[2025-12-10 10:46:8:716] :dev_discovery step2,num = 1
+
+[2025-12-10 10:49:7:736] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+
+[2025-12-10 10:49:17:739] :Get ip is:192.168.254.124
+
+[2025-12-10 10:49:17:740] :find_adapter num is :1
+[2025-12-10 10:49:17:751] :dev_discovery step2,num = 1
+
+[2025-12-10 10:52:16:761] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 10:52:26:768] :Get ip is:192.168.254.124
+
+[2025-12-10 10:52:26:768] :find_adapter num is :1
+[2025-12-10 10:52:26:777] :dev_discovery step2,num = 1
+
+[2025-12-10 11:42:22:418] :dev_discovery step3
+25-12-10 11:42:22:418] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 11:42:32:421] :Get ip is:192.168.254.124
+
+[2025-12-10 11:42:32:421] :find_adapter num is :1
+[2025-12-10 11:42:32:429] :dev_discovery step2,num = 1
+
+[2025-12-10 11:45:31:452] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 11:45:41:468] :Get ip is:192.168.254.124
+
+[2025-12-10 11:45:41:469] :find_adapter num is :1
+[2025-12-10 11:45:41:478] :dev_discovery step2,num = 1
+
+[2025-12-10 11:48:40:493] :dev_discovery step3p = 192.168.254.124,err = 10004
+
+
+[2025-12-10 11:48:50:506] :Get ip is:192.168.254.124
+
+[2025-12-10 11:48:50:507] :find_adapter num is :1
+[2025-12-10 11:48:50:518] :dev_discovery step2,num = 1
+
+[2025-12-10 11:51:49:529] :socket err!,info->i
+ 192.168.254.124,err = 10004
+
+[2025-12-10 11:51:59:548] :Get ip is:192.168.254.124
+
+[2025-12-10 11:51:59:549] :find_adapter num is :1
+[2025-12-10 11:51:59:563] :dev_discovery step2,num = 1
+
+[2025-12-10 11:54:58:571] :dev_discovery step3p = 192.168.254.124,err = 10004
+
+
+[2025-12-10 11:55:8:576] :Get ip is:192.168.254.124
+
+[2025-12-10 11:55:8:577] :find_adapter num is :1
+[2025-12-10 11:55:8:590] :dev_discovery step2,num = 1
+
+[2025-12-10 14:4:43:197] :dev_discovery step3
+[2025-12-10 14:4:43:197] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 14:4:53:206] :Get ip is:192.168.254.124
+
+[2025-12-10 14:4:53:207] :find_adapter num is :1
+[2025-12-10 14:4:53:217] :dev_discovery step2,num = 1
+
+[2025-12-10 14:7:52:236] :dev_discovery step3p = 192.168.254.124,err = 10004
+
+
+[2025-12-10 14:8:2:249] :Get ip is:192.168.254.124
+
+[2025-12-10 14:8:2:249] :find_adapter num is :1
+[2025-12-10 14:8:2:256] :dev_discovery step2,num = 1
+
+[2025-12-10 14:11:1:265] :dev_discovery step3
+[2025-12-10 14:11:1:265] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 14:11:11:283] :Get ip is:192.168.254.124
+
+[2025-12-10 14:11:11:284] :find_adapter num is :1
+[2025-12-10 14:11:11:297] :dev_discovery step2,num = 1
+
+[2025-12-10 14:14:10:306] :socket err!,info->i
+ 192.168.254.124,err = 10004
+
+[2025-12-10 14:14:20:321] :Get ip is:192.168.254.124
+
+[2025-12-10 14:14:20:322] :find_adapter num is :1
+[2025-12-10 14:14:20:331] :dev_discovery step2,num = 1
+
+[2025-12-10 14:17:19:341] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 14:17:19:341] :dev_discovery step3
+[2025-12-10 14:17:29:360] :Get ip is:192.168.254.124
+
+[2025-12-10 14:17:29:361] :find_adapter num is :1
+[2025-12-10 14:17:29:374] :dev_discovery step2,num = 1
+
+[2025-12-10 16:59:6:374] :dev_discovery step3p = 192.168.254.124,err = 10004
+
+
+[2025-12-10 16:59:16:396] :Get ip is:192.168.254.124
+
+[2025-12-10 16:59:16:397] :find_adapter num is :1
+[2025-12-10 16:59:16:406] :dev_discovery step2,num = 1
+
+[2025-12-10 17:2:15:425] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 17:2:15:425] :dev_discovery step3
+[2025-12-10 17:2:25:444] :Get ip is:192.168.254.124
+
+[2025-12-10 17:2:25:444] :find_adapter num is :1
+[2025-12-10 17:2:25:454] :dev_discovery step2,num = 1
+
+[2025-12-10 17:5:24:469] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 17:5:24:469] :dev_discovery step3
+[2025-12-10 17:5:34:482] :Get ip is:192.168.254.124
+
+[2025-12-10 17:5:34:483] :find_adapter num is :1
+[2025-12-10 17:5:34:497] :dev_discovery step2,num = 1
+
+[2025-12-10 17:8:33:508] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 17:8:33:508] :dev_discovery step3
+[2025-12-10 17:8:43:529] :Get ip is:192.168.254.124
+
+[2025-12-10 17:8:43:529] :find_adapter num is :1
+[2025-12-10 17:8:43:541] :dev_discovery step2,num = 1
+
+[2025-12-10 17:11:42:550] :socket err!,info->ip = 192.168.254.124,err = 10004
+[2025-12-10 17:11:42:550] :dev_discovery step3
+[2025-12-10 17:11:52:563] :Get ip is:192.168.254.124
+
+[2025-12-10 17:11:52:564] :find_adapter num is :1
+[2025-12-10 17:11:52:576] :dev_discovery step2,num = 1
+
+[2025-12-10 17:14:51:594] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 17:14:51:594] :dev_discovery step3
+[2025-12-10 17:15:1:598] :Get ip is:192.168.254.124
+
+[2025-12-10 17:15:1:600] :find_adapter num is :1
+[2025-12-10 17:15:1:607] :dev_discovery step2,num = 1
+
+[2025-12-10 17:18:0:627] :dev_discovery step3
+[2025-12-10 17:18:0:627] :socket err!,info->ip = 192.168.254.124,err = 10004
+
+[2025-12-10 17:18:10:641] :Get ip is:192.168.254.124
+
+[2025-12-10 17:18:10:642] :find_adapter num is :1
+[2025-12-10 17:18:10:656] :dev_discovery step2,num = 1
+
+[2025-12-10 17:30:32:788] :dll_oper init_dll_interface
+[2025-12-10 17:30:32:800] :1111 set_path = C:\LocalBootSvr\mbcprog\mb_local_server.exe
+[2025-12-10 17:30:32:800] :set_path = C:\LocalBootSvr\mbcprog\
+[2025-12-10 17:30:32:800] :bootdll_path = C:\LocalBootSvr\mbcprog\boot.dll
+[2025-12-10 17:30:32:800] :dist_path = C:\LocalBootSvr\boot.dll
+[2025-12-10 17:30:32:800] :CreateThread loop
+[2025-12-10 17:30:34:819] :http_server_init,url =  h 
+
+[2025-12-10 17:30:34:819] :dll_info init_dll_interface[2025-12-10 17:30:34:819] :HttpInitialize,retCode =  0 
+
+[2025-12-10 17:30:34:819] :HttpCreateHttpHandle,retCode =  0 
+
+[2025-12-10 17:30:34:819] :listening for requests on the following url: h
+
+[2025-12-10 17:30:34:819] :find_adapter num is :0
+[2025-12-10 17:30:34:819] :HttpAddUrl,retCode =  0 
+
+[2025-12-10 17:30:34:819] :dev_discovery step2,num = 0
+
+[2025-12-10 17:30:34:826] :dev_discovery step3
+[2025-12-10 17:30:34:826] :out dev_discovery not_found_count! ,not_found_count = 1
+
+[2025-12-10 17:30:34:826] :1,dev_info_tmp = {"cmd":"find_dev","data":[]}
+ 
+[2025-12-10 17:30:34:826] :2,dev_info_back = 
+ 
+[2025-12-10 17:30:34:826] :find_adapter num is :0
+[2025-12-10 17:30:34:826] :dev_discovery step2,num = 0
+
+[2025-12-10 17:30:34:826] :dev_discovery step3
+[2025-12-10 17:30:34:826] :out dev_discovery not_found_count! ,not_found_count = 2
+
+[2025-12-10 17:30:34:826] :1,dev_info_tmp = {"cmd":"find_dev","data":[]}
+ 
+[2025-12-10 17:30:34:826] :2,dev_info_back = 
+ 
+[2025-12-10 17:30:34:826] :find_adapter num is :0
+[2025-12-10 17:30:34:826] :dev_discovery step2,num = 0
+
+[2025-12-10 17:30:34:826] :dev_discovery step3
+[2025-12-10 17:30:34:826] :out dev_discovery not_found_count! ,not_found_count = 3
+
+[2025-12-10 17:30:34:826] :1,dev_info_tmp = {"cmd":"find_dev","data":[]}
+ 
+[2025-12-10 17:30:34:830] :2,dev_info_back = 
+ 
+[2025-12-10 17:30:34:830] :find_adapter num is :0
+[2025-12-10 17:30:34:830] :dev_discovery step2,num = 0
+
+[2025-12-10 17:30:34:830] :dev_discovery step3
+[2025-12-10 17:30:44:836] :Get ip is:192.168.254.124
+
+[2025-12-10 17:30:44:844] :find_adapter num is :1
+[2025-12-10 17:30:44:850] :dev_discovery step2,num = 1
+

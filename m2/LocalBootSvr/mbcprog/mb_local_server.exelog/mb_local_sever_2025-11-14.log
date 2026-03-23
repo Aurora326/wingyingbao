@@ -1,0 +1,2349 @@
+[2025-11-14 10:24:32:537] :New Connect
+
+[2025-11-14 10:24:32:538] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:24:32:543] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:24:32:554] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:24:32:554] :exit handle_response
+
+[2025-11-14 10:24:32:561] :Disconnected
+
+[2025-11-14 10:24:32:568] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:24:32:574] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:24:37:628] :wait auto_close_thread
+
+[2025-11-14 10:25:21:919] :New Connect
+
+[2025-11-14 10:25:21:921] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:25:21:927] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:25:21:938] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:25:21:938] :exit handle_response
+
+[2025-11-14 10:25:21:944] :Disconnected
+
+[2025-11-14 10:25:21:950] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:25:21:956] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:25:22:298] :New Connect
+
+[2025-11-14 10:25:22:300] :dll_name = dev_info.dll,cmd = get_ter_status,data = {"cmd":"get_ter_status","dll_name":"dev_info","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167"}
+
+[2025-11-14 10:25:22:557] :Disconnected
+
+[2025-11-14 10:25:22:557] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:25:27:25] :wait auto_close_thread
+
+[2025-11-14 10:25:27:27] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:25:32:68] :wait auto_close_thread
+
+[2025-11-14 10:27:8:645] :New Connect
+
+[2025-11-14 10:27:8:646] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:27:8:652] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:27:8:665] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:27:8:666] :exit handle_response
+
+[2025-11-14 10:27:8:672] :Disconnected
+
+[2025-11-14 10:27:8:679] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:27:8:685] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:27:13:724] :wait auto_close_thread
+
+[2025-11-14 10:27:29:173] :New Connect
+
+[2025-11-14 10:27:29:173] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:27:29:180] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:27:29:193] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:27:29:193] :exit handle_response
+
+[2025-11-14 10:27:29:200] :Disconnected
+
+[2025-11-14 10:27:29:208] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:27:29:215] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:27:29:430] :New Connect
+
+[2025-11-14 10:27:29:430] :dll_name = dev_oper.dll,cmd = start_robot_arm,data = {"cmd":"start_robot_arm","dll_name":"dev_oper","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","oper_port":"6"}
+
+[2025-11-14 10:27:29:437] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:27:29:504] :exit dev_oper_send_cmd_deal,result = 224
+
+[2025-11-14 10:27:29:504] :exit handle_response
+
+[2025-11-14 10:27:29:510] :Disconnected
+
+[2025-11-14 10:27:29:517] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:27:34:265] :wait auto_close_thread
+
+[2025-11-14 10:27:34:265] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:27:39:335] :wait auto_close_thread
+
+[2025-11-14 10:27:54:110] :New Connect
+
+[2025-11-14 10:27:54:110] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:27:54:117] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:27:54:131] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:27:54:131] :exit handle_response
+
+[2025-11-14 10:27:54:139] :Disconnected
+
+[2025-11-14 10:27:54:145] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:27:54:154] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:27:54:409] :New Connect
+
+[2025-11-14 10:27:54:409] :dll_name = dev_oper.dll,cmd = start_robot_arm,data = {"cmd":"start_robot_arm","dll_name":"dev_oper","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","oper_port":"4"}
+
+[2025-11-14 10:27:54:418] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:27:54:471] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:27:54:472] :exit handle_response
+
+[2025-11-14 10:27:54:479] :Disconnected
+
+[2025-11-14 10:27:54:486] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:27:59:196] :wait auto_close_thread
+
+[2025-11-14 10:27:59:198] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:28:4:250] :wait auto_close_thread
+
+[2025-11-14 10:28:23:259] :New Connect
+
+[2025-11-14 10:28:23:259] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:28:23:266] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:28:23:279] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:28:23:279] :exit handle_response
+
+[2025-11-14 10:28:23:287] :Disconnected
+
+[2025-11-14 10:28:23:295] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:28:23:301] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:28:23:648] :New Connect
+
+[2025-11-14 10:28:23:650] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"4","user":"test"}
+
+[2025-11-14 10:28:23:680] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:28:24:93] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:28:24:93] :exit handle_response
+
+[2025-11-14 10:28:24:103] :enter get_open_port_parm
+
+[2025-11-14 10:28:24:109] :exit get_open_port_parm
+
+[2025-11-14 10:28:24:117] :Disconnected
+
+[2025-11-14 10:28:24:125] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:28:28:353] :wait auto_close_thread
+
+[2025-11-14 10:28:28:354] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:28:33:406] :wait auto_close_thread
+
+[2025-11-14 10:28:37:140] :New Connect
+
+[2025-11-14 10:28:37:142] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:28:37:148] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:28:37:161] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:28:37:161] :exit handle_response
+
+[2025-11-14 10:28:37:168] :Disconnected
+
+[2025-11-14 10:28:37:175] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:28:37:181] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:28:37:447] :New Connect
+
+[2025-11-14 10:28:37:450] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"4","user":"test"}
+
+[2025-11-14 10:28:37:458] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:28:37:969] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:28:37:969] :exit handle_response
+
+[2025-11-14 10:28:37:976] :enter get_open_port_parm
+
+[2025-11-14 10:28:37:984] :exit get_open_port_parm
+
+[2025-11-14 10:28:37:991] :Disconnected
+
+[2025-11-14 10:28:37:997] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:28:42:207] :wait auto_close_thread
+
+[2025-11-14 10:28:42:207] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:28:42:828] :New Connect
+
+[2025-11-14 10:28:42:828] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:28:42:835] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:28:42:848] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:28:42:848] :exit handle_response
+
+[2025-11-14 10:28:42:856] :Disconnected
+
+[2025-11-14 10:28:42:861] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:28:43:107] :New Connect
+
+[2025-11-14 10:28:43:108] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"4","user":"test"}
+
+[2025-11-14 10:28:43:119] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:28:47:246] :wait auto_close_thread
+
+[2025-11-14 10:28:47:246] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:28:49:793] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:28:49:793] :exit handle_response
+
+[2025-11-14 10:28:49:799] :enter get_open_port_parm
+
+[2025-11-14 10:28:49:806] :exit get_open_port_parm
+
+[2025-11-14 10:28:49:813] :Disconnected
+
+[2025-11-14 10:28:49:819] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:28:52:285] :wait auto_close_thread
+
+[2025-11-14 10:28:52:285] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:28:55:376] :New Connect
+
+[2025-11-14 10:28:55:378] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:28:55:384] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:28:55:398] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:28:55:398] :exit handle_response
+
+[2025-11-14 10:28:55:405] :Disconnected
+
+[2025-11-14 10:28:55:411] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:28:55:659] :New Connect
+
+[2025-11-14 10:28:55:660] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"4","user":"test"}
+
+[2025-11-14 10:28:55:670] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:28:55:965] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:28:55:965] :exit handle_response
+
+[2025-11-14 10:28:55:973] :enter get_open_port_parm
+
+[2025-11-14 10:28:55:980] :exit get_open_port_parm
+
+[2025-11-14 10:28:55:990] :Disconnected
+
+[2025-11-14 10:28:55:997] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:28:57:336] :wait auto_close_thread
+
+[2025-11-14 10:28:57:337] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:29:2:395] :wait auto_close_thread
+
+[2025-11-14 10:29:35:760] :New Connect
+
+[2025-11-14 10:29:35:762] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:29:35:769] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:29:35:782] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:29:35:782] :exit handle_response
+
+[2025-11-14 10:29:35:790] :Disconnected
+
+[2025-11-14 10:29:35:796] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:29:35:802] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:29:36:37] :New Connect
+
+[2025-11-14 10:29:36:38] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"4","user":"test"}
+
+[2025-11-14 10:29:36:46] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:29:36:52] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:29:36:58] :exit handle_response
+
+[2025-11-14 10:29:36:64] :enter remove_close_port_parm
+
+[2025-11-14 10:29:36:70] :exit remove_close_port_parm
+
+[2025-11-14 10:29:36:77] :Disconnected
+
+[2025-11-14 10:29:36:83] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:29:40:863] :wait auto_close_thread
+
+[2025-11-14 10:29:40:863] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:29:45:897] :wait auto_close_thread
+
+[2025-11-14 10:30:6:431] :New Connect
+
+[2025-11-14 10:30:6:431] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:30:6:438] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:30:6:452] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:30:6:452] :exit handle_response
+
+[2025-11-14 10:30:6:460] :Disconnected
+
+[2025-11-14 10:30:6:466] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:30:6:472] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:30:6:744] :New Connect
+
+[2025-11-14 10:30:6:745] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"4","user":"test"}
+
+[2025-11-14 10:30:6:754] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:30:6:760] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:30:6:768] :exit handle_response
+
+[2025-11-14 10:30:6:773] :enter remove_close_port_parm
+
+[2025-11-14 10:30:6:779] :exit remove_close_port_parm
+
+[2025-11-14 10:30:6:787] :Disconnected
+
+[2025-11-14 10:30:6:792] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:30:11:521] :wait auto_close_thread
+
+[2025-11-14 10:30:11:522] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:30:14:596] :New Connect
+
+[2025-11-14 10:30:14:598] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:30:14:604] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:30:14:617] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:30:14:618] :exit handle_response
+
+[2025-11-14 10:30:14:626] :Disconnected
+
+[2025-11-14 10:30:14:633] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:30:15:169] :New Connect
+
+[2025-11-14 10:30:15:169] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"4","user":"test"}
+
+[2025-11-14 10:30:15:178] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:30:15:584] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:30:15:584] :exit handle_response
+
+[2025-11-14 10:30:15:591] :enter get_open_port_parm
+
+[2025-11-14 10:30:15:597] :exit get_open_port_parm
+
+[2025-11-14 10:30:15:605] :Disconnected
+
+[2025-11-14 10:30:15:612] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:30:16:578] :wait auto_close_thread
+
+[2025-11-14 10:30:16:579] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:30:21:626] :wait auto_close_thread
+
+[2025-11-14 10:30:50:415] :New Connect
+
+[2025-11-14 10:30:50:416] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:30:50:422] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:30:50:435] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:30:50:435] :exit handle_response
+
+[2025-11-14 10:30:50:443] :Disconnected
+
+[2025-11-14 10:30:50:450] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:30:50:456] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:30:50:678] :New Connect
+
+[2025-11-14 10:30:50:680] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:30:50:688] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:30:51:151] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:30:51:151] :exit handle_response
+
+[2025-11-14 10:30:51:158] :enter get_open_port_parm
+
+[2025-11-14 10:30:51:165] :exit get_open_port_parm
+
+[2025-11-14 10:30:51:173] :Disconnected
+
+[2025-11-14 10:30:51:180] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:30:56:913] :wait auto_close_thread
+
+[2025-11-14 10:30:56:913] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:31:1:964] :wait auto_close_thread
+
+[2025-11-14 10:31:11:913] :New Connect
+
+[2025-11-14 10:31:11:913] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:31:11:919] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:31:11:932] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:31:11:932] :exit handle_response
+
+[2025-11-14 10:31:11:940] :Disconnected
+
+[2025-11-14 10:31:11:947] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:31:11:953] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:31:12:183] :New Connect
+
+[2025-11-14 10:31:12:184] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:31:12:195] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:31:12:632] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:31:12:632] :exit handle_response
+
+[2025-11-14 10:31:12:638] :enter get_open_port_parm
+
+[2025-11-14 10:31:12:644] :exit get_open_port_parm
+
+[2025-11-14 10:31:12:651] :Disconnected
+
+[2025-11-14 10:31:12:657] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:31:18:380] :wait auto_close_thread
+
+[2025-11-14 10:31:18:380] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:31:23:419] :wait auto_close_thread
+
+[2025-11-14 10:31:51:997] :New Connect
+
+[2025-11-14 10:31:51:997] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:31:52:5] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:31:52:18] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:31:52:18] :exit handle_response
+
+[2025-11-14 10:31:52:26] :Disconnected
+
+[2025-11-14 10:31:52:32] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:31:52:38] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:31:52:325] :New Connect
+
+[2025-11-14 10:31:52:326] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:31:52:335] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:31:52:341] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:31:52:347] :exit handle_response
+
+[2025-11-14 10:31:52:353] :enter remove_close_port_parm
+
+[2025-11-14 10:31:52:359] :exit remove_close_port_parm
+
+[2025-11-14 10:31:52:366] :Disconnected
+
+[2025-11-14 10:31:52:373] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:31:57:85] :wait auto_close_thread
+
+[2025-11-14 10:31:57:85] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:31:57:672] :New Connect
+
+[2025-11-14 10:31:57:674] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:31:57:680] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:31:57:693] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:31:57:693] :exit handle_response
+
+[2025-11-14 10:31:57:702] :Disconnected
+
+[2025-11-14 10:31:57:707] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:31:57:919] :New Connect
+
+[2025-11-14 10:31:57:919] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:31:57:926] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:31:57:933] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:31:57:940] :exit handle_response
+
+[2025-11-14 10:31:57:947] :enter remove_close_port_parm
+
+[2025-11-14 10:31:57:953] :exit remove_close_port_parm
+
+[2025-11-14 10:31:57:960] :Disconnected
+
+[2025-11-14 10:31:57:967] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:32:2:115] :wait auto_close_thread
+
+[2025-11-14 10:32:2:115] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:32:7:152] :wait auto_close_thread
+
+[2025-11-14 10:32:14:982] :New Connect
+
+[2025-11-14 10:32:14:983] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:32:14:989] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:32:15:1] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:32:15:1] :exit handle_response
+
+[2025-11-14 10:32:15:9] :Disconnected
+
+[2025-11-14 10:32:15:16] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:32:15:23] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:32:15:318] :New Connect
+
+[2025-11-14 10:32:15:319] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:32:15:330] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:32:15:339] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:32:15:348] :exit handle_response
+
+[2025-11-14 10:32:15:355] :enter remove_close_port_parm
+
+[2025-11-14 10:32:15:362] :exit remove_close_port_parm
+
+[2025-11-14 10:32:15:371] :Disconnected
+
+[2025-11-14 10:32:15:378] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:32:20:72] :wait auto_close_thread
+
+[2025-11-14 10:32:20:73] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:32:25:125] :wait auto_close_thread
+
+[2025-11-14 10:32:29:757] :New Connect
+
+[2025-11-14 10:32:29:757] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:32:29:764] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:32:29:777] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:32:29:777] :exit handle_response
+
+[2025-11-14 10:32:29:785] :Disconnected
+
+[2025-11-14 10:32:29:791] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:32:29:797] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:32:30:50] :New Connect
+
+[2025-11-14 10:32:30:52] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:32:30:60] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:32:30:388] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:32:30:388] :exit handle_response
+
+[2025-11-14 10:32:30:397] :enter get_open_port_parm
+
+[2025-11-14 10:32:30:404] :exit get_open_port_parm
+
+[2025-11-14 10:32:30:412] :Disconnected
+
+[2025-11-14 10:32:30:417] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:32:36:232] :wait auto_close_thread
+
+[2025-11-14 10:32:36:233] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:32:38:830] :New Connect
+
+[2025-11-14 10:32:38:831] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:32:38:841] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:32:38:856] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:32:38:857] :exit handle_response
+
+[2025-11-14 10:32:38:866] :Disconnected
+
+[2025-11-14 10:32:38:875] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:32:39:112] :New Connect
+
+[2025-11-14 10:32:39:115] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:32:39:124] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:32:39:463] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:32:39:463] :exit handle_response
+
+[2025-11-14 10:32:39:471] :enter get_open_port_parm
+
+[2025-11-14 10:32:39:476] :exit get_open_port_parm
+
+[2025-11-14 10:32:39:484] :Disconnected
+
+[2025-11-14 10:32:39:490] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:32:41:786] :wait auto_close_thread
+
+[2025-11-14 10:32:41:786] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:32:46:817] :wait auto_close_thread
+
+[2025-11-14 10:32:57:51] :New Connect
+
+[2025-11-14 10:32:57:53] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:32:57:59] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:32:57:72] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:32:57:72] :exit handle_response
+
+[2025-11-14 10:32:57:79] :Disconnected
+
+[2025-11-14 10:32:57:85] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:32:57:92] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:32:57:348] :New Connect
+
+[2025-11-14 10:32:57:349] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:32:57:357] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:32:57:364] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:32:57:371] :exit handle_response
+
+[2025-11-14 10:32:57:376] :enter remove_close_port_parm
+
+[2025-11-14 10:32:57:383] :exit remove_close_port_parm
+
+[2025-11-14 10:32:57:389] :Disconnected
+
+[2025-11-14 10:32:57:397] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:33:2:129] :wait auto_close_thread
+
+[2025-11-14 10:33:2:129] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:33:7:168] :wait auto_close_thread
+
+[2025-11-14 10:33:17:7] :New Connect
+
+[2025-11-14 10:33:17:9] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:33:17:15] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:33:17:28] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:33:17:28] :exit handle_response
+
+[2025-11-14 10:33:17:37] :Disconnected
+
+[2025-11-14 10:33:17:42] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:33:17:49] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:33:17:295] :New Connect
+
+[2025-11-14 10:33:17:295] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:33:17:302] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:33:17:859] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:33:17:859] :exit handle_response
+
+[2025-11-14 10:33:17:866] :enter get_open_port_parm
+
+[2025-11-14 10:33:17:872] :exit get_open_port_parm
+
+[2025-11-14 10:33:17:878] :Disconnected
+
+[2025-11-14 10:33:17:885] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:33:23:401] :New Connect
+
+[2025-11-14 10:33:23:401] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:33:23:407] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:33:23:422] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:33:23:422] :exit handle_response
+
+[2025-11-14 10:33:23:429] :Disconnected
+
+[2025-11-14 10:33:23:436] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:33:23:491] :wait auto_close_thread
+
+[2025-11-14 10:33:23:491] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:33:23:682] :New Connect
+
+[2025-11-14 10:33:23:684] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:33:23:693] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:33:23:703] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:33:23:711] :exit handle_response
+
+[2025-11-14 10:33:23:718] :enter remove_close_port_parm
+
+[2025-11-14 10:33:23:726] :exit remove_close_port_parm
+
+[2025-11-14 10:33:23:733] :Disconnected
+
+[2025-11-14 10:33:23:739] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:33:28:263] :New Connect
+
+[2025-11-14 10:33:28:264] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:33:28:270] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:33:28:283] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:33:28:284] :exit handle_response
+
+[2025-11-14 10:33:28:291] :Disconnected
+
+[2025-11-14 10:33:28:299] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:33:28:529] :wait auto_close_thread
+
+[2025-11-14 10:33:28:529] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:33:28:635] :New Connect
+
+[2025-11-14 10:33:28:636] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:33:28:642] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:33:28:977] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:33:28:977] :exit handle_response
+
+[2025-11-14 10:33:28:984] :enter get_open_port_parm
+
+[2025-11-14 10:33:28:989] :exit get_open_port_parm
+
+[2025-11-14 10:33:28:996] :Disconnected
+
+[2025-11-14 10:33:29:3] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:33:33:229] :New Connect
+
+[2025-11-14 10:33:33:231] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:33:33:237] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:33:33:250] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:33:33:251] :exit handle_response
+
+[2025-11-14 10:33:33:258] :Disconnected
+
+[2025-11-14 10:33:33:264] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:33:33:541] :New Connect
+
+[2025-11-14 10:33:33:542] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:33:33:550] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:33:34:532] :wait auto_close_thread
+
+[2025-11-14 10:33:34:534] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:33:34:545] :exit handle_response
+
+[2025-11-14 10:33:34:554] :enter remove_close_port_parm
+
+[2025-11-14 10:33:34:564] :exit remove_close_port_parm
+
+[2025-11-14 10:33:34:575] :Disconnected
+
+[2025-11-14 10:33:34:583] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:33:39:580] :wait auto_close_thread
+
+[2025-11-14 10:33:39:582] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:33:44:620] :wait auto_close_thread
+
+[2025-11-14 10:40:45:99] :New Connect
+
+[2025-11-14 10:40:45:107] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:40:45:112] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:40:45:124] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:40:45:125] :exit handle_response
+
+[2025-11-14 10:40:45:132] :Disconnected
+
+[2025-11-14 10:40:45:138] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:40:45:144] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:40:45:474] :New Connect
+
+[2025-11-14 10:40:45:476] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:40:45:483] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:40:46:64] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:40:46:64] :exit handle_response
+
+[2025-11-14 10:40:46:71] :enter get_open_port_parm
+
+[2025-11-14 10:40:46:76] :exit get_open_port_parm
+
+[2025-11-14 10:40:46:84] :Disconnected
+
+[2025-11-14 10:40:46:90] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:40:51:719] :wait auto_close_thread
+
+[2025-11-14 10:40:51:719] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:40:56:749] :wait auto_close_thread
+
+[2025-11-14 10:41:14:582] :New Connect
+
+[2025-11-14 10:41:14:583] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:41:14:590] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:41:14:602] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:41:14:602] :exit handle_response
+
+[2025-11-14 10:41:14:612] :Disconnected
+
+[2025-11-14 10:41:14:625] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:41:14:637] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:41:15:178] :New Connect
+
+[2025-11-14 10:41:15:180] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:41:15:208] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:41:15:658] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:41:15:658] :exit handle_response
+
+[2025-11-14 10:41:15:669] :enter get_open_port_parm
+
+[2025-11-14 10:41:15:679] :exit get_open_port_parm
+
+[2025-11-14 10:41:15:688] :Disconnected
+
+[2025-11-14 10:41:15:694] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:41:20:606] :wait auto_close_thread
+
+[2025-11-14 10:41:20:606] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:41:25:674] :wait auto_close_thread
+
+[2025-11-14 10:41:31:510] :New Connect
+
+[2025-11-14 10:41:31:510] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:41:31:518] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:41:31:532] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:41:31:532] :exit handle_response
+
+[2025-11-14 10:41:31:541] :Disconnected
+
+[2025-11-14 10:41:31:547] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:41:31:554] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:41:31:976] :New Connect
+
+[2025-11-14 10:41:31:977] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:41:31:991] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:41:32:740] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:41:32:740] :exit handle_response
+
+[2025-11-14 10:41:32:752] :enter get_open_port_parm
+
+[2025-11-14 10:41:32:761] :exit get_open_port_parm
+
+[2025-11-14 10:41:32:771] :Disconnected
+
+[2025-11-14 10:41:32:778] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:41:37:459] :wait auto_close_thread
+
+[2025-11-14 10:41:37:459] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:41:42:516] :wait auto_close_thread
+
+[2025-11-14 10:41:50:391] :New Connect
+
+[2025-11-14 10:41:50:392] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:41:50:402] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:41:50:418] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:41:50:418] :exit handle_response
+
+[2025-11-14 10:41:50:425] :Disconnected
+
+[2025-11-14 10:41:50:433] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:41:50:439] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:41:50:914] :New Connect
+
+[2025-11-14 10:41:50:915] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:41:50:922] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:41:51:387] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:41:51:387] :exit handle_response
+
+[2025-11-14 10:41:51:394] :enter get_open_port_parm
+
+[2025-11-14 10:41:51:403] :exit get_open_port_parm
+
+[2025-11-14 10:41:51:412] :Disconnected
+
+[2025-11-14 10:41:51:418] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:41:57:117] :wait auto_close_thread
+
+[2025-11-14 10:41:57:117] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:42:2:168] :wait auto_close_thread
+
+[2025-11-14 10:42:7:505] :New Connect
+
+[2025-11-14 10:42:7:505] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:42:7:513] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:42:7:526] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:42:7:526] :exit handle_response
+
+[2025-11-14 10:42:7:533] :Disconnected
+
+[2025-11-14 10:42:7:541] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:42:7:549] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:42:8:46] :New Connect
+
+[2025-11-14 10:42:8:46] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:42:8:54] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:42:8:685] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:42:8:685] :exit handle_response
+
+[2025-11-14 10:42:8:693] :enter get_open_port_parm
+
+[2025-11-14 10:42:8:703] :exit get_open_port_parm
+
+[2025-11-14 10:42:8:709] :Disconnected
+
+[2025-11-14 10:42:8:716] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:42:13:653] :wait auto_close_thread
+
+[2025-11-14 10:42:13:653] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:42:16:361] :New Connect
+
+[2025-11-14 10:42:16:361] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:42:16:368] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:42:16:384] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:42:16:384] :exit handle_response
+
+[2025-11-14 10:42:16:394] :Disconnected
+
+[2025-11-14 10:42:16:402] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:42:16:893] :New Connect
+
+[2025-11-14 10:42:16:894] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:42:16:900] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:42:17:447] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:42:17:448] :exit handle_response
+
+[2025-11-14 10:42:17:458] :enter get_open_port_parm
+
+[2025-11-14 10:42:17:468] :exit get_open_port_parm
+
+[2025-11-14 10:42:17:481] :Disconnected
+
+[2025-11-14 10:42:17:489] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:42:19:317] :wait auto_close_thread
+
+[2025-11-14 10:42:19:318] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:42:22:395] :New Connect
+
+[2025-11-14 10:42:22:395] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:42:22:403] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:42:22:415] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:42:22:416] :exit handle_response
+
+[2025-11-14 10:42:22:422] :Disconnected
+
+[2025-11-14 10:42:22:430] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:42:22:915] :New Connect
+
+[2025-11-14 10:42:22:916] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"4","user":"test"}
+
+[2025-11-14 10:42:22:928] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:42:23:360] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:42:23:360] :exit handle_response
+
+[2025-11-14 10:42:23:367] :enter get_open_port_parm
+
+[2025-11-14 10:42:23:376] :exit get_open_port_parm
+
+[2025-11-14 10:42:23:387] :Disconnected
+
+[2025-11-14 10:42:23:398] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:42:25:13] :wait auto_close_thread
+
+[2025-11-14 10:42:25:14] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:42:30:62] :wait auto_close_thread
+
+[2025-11-14 10:45:48:5] :New Connect
+
+[2025-11-14 10:45:48:11] :dll_name = dev_oper.dll,cmd = find_dev,data = {"cmd":"find_dev","dll_name":"dev_oper"}
+
+[2025-11-14 10:45:48:20] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:45:48:34] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:45:48:35] :exit handle_response
+
+[2025-11-14 10:45:48:106] :Disconnected
+
+[2025-11-14 10:45:48:107] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:45:48:116] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:45:53:152] :wait auto_close_thread
+
+[2025-11-14 10:47:5:561] :New Connect
+
+[2025-11-14 10:47:5:610] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.123","server_port":"3240","ter_id":"068330001533","dev_port":"05","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 10:47:5:611] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:47:6:44] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:47:6:44] :exit handle_response
+
+[2025-11-14 10:47:6:52] :enter get_open_port_parm
+
+[2025-11-14 10:47:6:61] :exit get_open_port_parm
+
+[2025-11-14 10:47:6:232] :Disconnected
+
+[2025-11-14 10:47:6:232] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:47:6:239] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:47:12:786] :wait auto_close_thread
+
+[2025-11-14 10:47:26:91] :New Connect
+
+[2025-11-14 10:47:26:133] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 10:47:26:133] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:47:26:759] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:47:26:759] :exit handle_response
+
+[2025-11-14 10:47:26:770] :enter get_open_port_parm
+
+[2025-11-14 10:47:26:780] :exit get_open_port_parm
+
+[2025-11-14 10:47:26:874] :Disconnected
+
+[2025-11-14 10:47:26:874] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:47:26:884] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:47:32:956] :wait auto_close_thread
+
+[2025-11-14 10:48:9:17] :New Connect
+
+[2025-11-14 10:48:9:63] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"04","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 10:48:9:63] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:48:9:515] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:48:9:516] :exit handle_response
+
+[2025-11-14 10:48:9:530] :enter get_open_port_parm
+
+[2025-11-14 10:48:9:543] :exit get_open_port_parm
+
+[2025-11-14 10:48:9:589] :Disconnected
+
+[2025-11-14 10:48:9:590] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:48:9:601] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:48:14:659] :wait auto_close_thread
+
+[2025-11-14 10:48:24:230] :New Connect
+
+[2025-11-14 10:48:24:233] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"05","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 10:48:24:238] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:48:24:553] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:48:24:553] :exit handle_response
+
+[2025-11-14 10:48:24:561] :enter get_open_port_parm
+
+[2025-11-14 10:48:24:566] :exit get_open_port_parm
+
+[2025-11-14 10:48:24:582] :Disconnected
+
+[2025-11-14 10:48:24:582] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:48:24:590] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:48:29:658] :wait auto_close_thread
+
+[2025-11-14 10:48:34:150] :New Connect
+
+[2025-11-14 10:48:34:153] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"05","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 10:48:34:158] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:48:34:459] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:48:34:459] :exit handle_response
+
+[2025-11-14 10:48:34:465] :enter get_open_port_parm
+
+[2025-11-14 10:48:34:471] :exit get_open_port_parm
+
+[2025-11-14 10:48:34:482] :Disconnected
+
+[2025-11-14 10:48:34:487] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:48:34:494] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:48:39:560] :wait auto_close_thread
+
+[2025-11-14 10:48:47:436] :New Connect
+
+[2025-11-14 10:48:47:439] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"05","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 10:48:47:447] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:48:47:885] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:48:47:885] :exit handle_response
+
+[2025-11-14 10:48:47:892] :enter get_open_port_parm
+
+[2025-11-14 10:48:47:899] :exit get_open_port_parm
+
+[2025-11-14 10:48:47:920] :Disconnected
+
+[2025-11-14 10:48:47:920] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:48:47:928] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:48:53:1] :wait auto_close_thread
+
+[2025-11-14 10:49:27:140] :New Connect
+
+[2025-11-14 10:49:27:144] :dll_name = dev_oper.dll,cmd = ter_restart,data = {"cmd":"ter_restart","dll_name":"dev_oper","server_ip":"192.168.254.123","server_port":"3240"}
+
+[2025-11-14 10:49:27:177] :enter dev_oper_send_cmd_deal
+
+[2025-11-14 10:49:27:247] :exit dev_oper_send_cmd_deal,result = 0
+
+[2025-11-14 10:49:27:247] :exit handle_response
+
+[2025-11-14 10:49:27:267] :Disconnected
+
+[2025-11-14 10:49:27:269] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:49:27:281] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:49:32:334] :wait auto_close_thread
+
+[2025-11-14 10:59:42:149] :New Connect
+
+[2025-11-14 10:59:42:153] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 10:59:42:161] :enter usbip_send_cmd_deal
+
+[2025-11-14 10:59:42:587] :exit usbip_send_cmd_deal
+
+[2025-11-14 10:59:42:587] :exit handle_response
+
+[2025-11-14 10:59:42:595] :enter get_open_port_parm
+
+[2025-11-14 10:59:42:603] :exit get_open_port_parm
+
+[2025-11-14 10:59:42:630] :Disconnected
+
+[2025-11-14 10:59:42:630] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 10:59:42:639] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 10:59:48:616] :wait auto_close_thread
+
+[2025-11-14 11:0:3:648] :New Connect
+
+[2025-11-14 11:0:3:650] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 11:0:3:657] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:0:4:84] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:0:4:84] :exit handle_response
+
+[2025-11-14 11:0:4:92] :enter get_open_port_parm
+
+[2025-11-14 11:0:4:101] :exit get_open_port_parm
+
+[2025-11-14 11:0:4:184] :Disconnected
+
+[2025-11-14 11:0:4:184] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:0:4:192] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:0:10:165] :wait auto_close_thread
+
+[2025-11-14 11:0:29:534] :New Connect
+
+[2025-11-14 11:0:29:536] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 11:0:29:545] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:0:29:974] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:0:29:974] :exit handle_response
+
+[2025-11-14 11:0:29:982] :enter get_open_port_parm
+
+[2025-11-14 11:0:29:989] :exit get_open_port_parm
+
+[2025-11-14 11:0:30:2] :Disconnected
+
+[2025-11-14 11:0:30:7] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:0:30:16] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:0:36:20] :wait auto_close_thread
+
+[2025-11-14 11:1:52:246] :New Connect
+
+[2025-11-14 11:1:52:300] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 11:1:52:300] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:1:52:939] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:1:52:940] :exit handle_response
+
+[2025-11-14 11:1:52:947] :enter get_open_port_parm
+
+[2025-11-14 11:1:52:955] :exit get_open_port_parm
+
+[2025-11-14 11:1:52:977] :Disconnected
+
+[2025-11-14 11:1:52:978] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:1:52:986] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:1:58:909] :wait auto_close_thread
+
+[2025-11-14 11:4:2:699] :New Connect
+
+[2025-11-14 11:4:2:702] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test"}
+
+[2025-11-14 11:4:2:712] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:4:2:719] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:4:2:726] :exit handle_response
+
+[2025-11-14 11:4:2:734] :enter remove_close_port_parm
+
+[2025-11-14 11:4:2:741] :exit remove_close_port_parm
+
+[2025-11-14 11:4:2:797] :Disconnected
+
+[2025-11-14 11:4:2:798] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:4:2:806] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:4:7:839] :wait auto_close_thread
+
+[2025-11-14 11:4:12:556] :New Connect
+
+[2025-11-14 11:4:12:561] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test"}
+
+[2025-11-14 11:4:12:568] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:4:12:577] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:4:12:586] :exit handle_response
+
+[2025-11-14 11:4:12:593] :enter remove_close_port_parm
+
+[2025-11-14 11:4:12:600] :exit remove_close_port_parm
+
+[2025-11-14 11:4:12:652] :Disconnected
+
+[2025-11-14 11:4:12:652] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:4:12:662] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:4:17:695] :wait auto_close_thread
+
+[2025-11-14 11:4:29:496] :New Connect
+
+[2025-11-14 11:4:29:610] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 11:4:29:610] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:4:30:153] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:4:30:153] :exit handle_response
+
+[2025-11-14 11:4:30:161] :enter get_open_port_parm
+
+[2025-11-14 11:4:30:167] :exit get_open_port_parm
+
+[2025-11-14 11:4:30:240] :Disconnected
+
+[2025-11-14 11:4:30:240] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:4:30:249] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:4:32:962] :New Connect
+
+[2025-11-14 11:4:32:964] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test"}
+
+[2025-11-14 11:4:32:978] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:4:33:553] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:4:33:553] :exit handle_response
+
+[2025-11-14 11:4:33:560] :enter remove_close_port_parm
+
+[2025-11-14 11:4:33:567] :exit remove_close_port_parm
+
+[2025-11-14 11:4:33:618] :Disconnected
+
+[2025-11-14 11:4:33:618] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:4:35:313] :wait auto_close_thread
+
+[2025-11-14 11:4:35:313] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:4:36:445] :New Connect
+
+[2025-11-14 11:4:36:474] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test"}
+
+[2025-11-14 11:4:36:475] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:4:36:482] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:4:36:489] :exit handle_response
+
+[2025-11-14 11:4:36:494] :enter remove_close_port_parm
+
+[2025-11-14 11:4:36:500] :exit remove_close_port_parm
+
+[2025-11-14 11:4:36:556] :Disconnected
+
+[2025-11-14 11:4:36:556] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:4:40:389] :wait auto_close_thread
+
+[2025-11-14 11:4:40:389] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:4:44:204] :New Connect
+
+[2025-11-14 11:4:44:207] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 11:4:44:221] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:4:44:553] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:4:44:553] :exit handle_response
+
+[2025-11-14 11:4:44:559] :enter get_open_port_parm
+
+[2025-11-14 11:4:44:566] :exit get_open_port_parm
+
+[2025-11-14 11:4:44:581] :Disconnected
+
+[2025-11-14 11:4:44:581] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:4:46:110] :wait auto_close_thread
+
+[2025-11-14 11:4:46:110] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:4:51:154] :wait auto_close_thread
+
+[2025-11-14 11:5:46:443] :New Connect
+
+[2025-11-14 11:5:46:542] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 11:5:46:543] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:5:46:963] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:5:46:963] :exit handle_response
+
+[2025-11-14 11:5:46:970] :enter get_open_port_parm
+
+[2025-11-14 11:5:46:977] :exit get_open_port_parm
+
+[2025-11-14 11:5:47:0] :Disconnected
+
+[2025-11-14 11:5:47:0] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:5:47:11] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:5:52:971] :wait auto_close_thread
+
+[2025-11-14 11:22:43:98] :New Connect
+
+[2025-11-14 11:22:43:101] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 11:22:43:110] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:22:43:646] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:22:43:646] :exit handle_response
+
+[2025-11-14 11:22:43:655] :enter get_open_port_parm
+
+[2025-11-14 11:22:43:661] :exit get_open_port_parm
+
+[2025-11-14 11:22:45:676] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:22:45:677] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:22:45:685] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:22:45:693] :exit handle_response
+
+[2025-11-14 11:22:47:730] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:22:47:730] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:22:47:738] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:22:47:748] :exit handle_response
+
+[2025-11-14 11:22:49:773] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:22:49:774] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:22:49:781] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:22:49:789] :exit handle_response
+
+[2025-11-14 11:22:51:818] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:22:51:819] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:22:51:825] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:22:51:832] :exit handle_response
+
+[2025-11-14 11:22:53:882] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:22:53:883] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:22:53:889] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:22:53:896] :exit handle_response
+
+[2025-11-14 11:22:55:941] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:22:55:942] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:22:55:949] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:22:55:955] :exit handle_response
+
+[2025-11-14 11:22:58:3] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:22:58:3] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:22:58:11] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:22:58:20] :exit handle_response
+
+[2025-11-14 11:23:0:63] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:0:64] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:0:73] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:0:83] :exit handle_response
+
+[2025-11-14 11:23:2:104] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:2:104] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:2:112] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:2:118] :exit handle_response
+
+[2025-11-14 11:23:4:182] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:4:182] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:4:192] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:4:202] :exit handle_response
+
+[2025-11-14 11:23:6:216] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:6:216] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:6:225] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:6:233] :exit handle_response
+
+[2025-11-14 11:23:8:256] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:8:256] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:8:262] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:8:269] :exit handle_response
+
+[2025-11-14 11:23:10:376] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:10:376] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:10:387] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:10:396] :exit handle_response
+
+[2025-11-14 11:23:12:455] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:12:456] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:12:466] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:12:473] :exit handle_response
+
+[2025-11-14 11:23:14:485] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:14:485] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:14:492] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:14:499] :exit handle_response
+
+[2025-11-14 11:23:16:512] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:16:513] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:16:520] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:16:528] :exit handle_response
+
+[2025-11-14 11:23:18:556] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:18:556] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:18:564] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:18:572] :exit handle_response
+
+[2025-11-14 11:23:20:590] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:20:590] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:20:598] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:20:605] :exit handle_response
+
+[2025-11-14 11:23:21:482] :New Connect
+
+[2025-11-14 11:23:21:573] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test"}
+
+[2025-11-14 11:23:21:573] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:23:123] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:23:123] :exit handle_response
+
+[2025-11-14 11:23:23:130] :enter remove_close_port_parm
+
+[2025-11-14 11:23:23:136] :exit remove_close_port_parm
+
+[2025-11-14 11:23:23:142] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:23:149] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:23:156] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:23:162] :exit handle_response
+
+[2025-11-14 11:23:23:175] :Disconnected
+
+[2025-11-14 11:23:23:187] :enter handle_callback_closed,auto_close_struct.connected_num = 1
+
+[2025-11-14 11:23:25:270] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:25:270] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:25:278] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:25:285] :exit handle_response
+
+[2025-11-14 11:23:27:343] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:27:343] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:27:351] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:27:357] :exit handle_response
+
+[2025-11-14 11:23:29:389] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:29:390] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:29:397] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:29:405] :exit handle_response
+
+[2025-11-14 11:23:31:451] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:31:452] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:31:460] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:31:467] :exit handle_response
+
+[2025-11-14 11:23:33:521] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:33:521] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:33:530] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:33:538] :exit handle_response
+
+[2025-11-14 11:23:35:574] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:35:574] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:35:582] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:35:591] :exit handle_response
+
+[2025-11-14 11:23:37:617] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:37:617] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:37:624] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:37:632] :exit handle_response
+
+[2025-11-14 11:23:39:681] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:39:682] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:39:689] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:39:695] :exit handle_response
+
+[2025-11-14 11:23:41:714] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:41:714] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:41:721] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:41:728] :exit handle_response
+
+[2025-11-14 11:23:43:786] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:43:786] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:43:795] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:43:802] :exit handle_response
+
+[2025-11-14 11:23:45:840] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:45:840] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:45:848] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:45:854] :exit handle_response
+
+[2025-11-14 11:23:47:915] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:47:916] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:47:923] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:47:931] :exit handle_response
+
+[2025-11-14 11:23:49:974] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:49:974] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:49:983] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:49:989] :exit handle_response
+
+[2025-11-14 11:23:52:31] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:52:32] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:52:39] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:52:46] :exit handle_response
+
+[2025-11-14 11:23:54:105] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:54:105] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:54:114] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:54:119] :exit handle_response
+
+[2025-11-14 11:23:56:158] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:56:158] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:56:166] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:56:172] :exit handle_response
+
+[2025-11-14 11:23:56:972] :New Connect
+
+[2025-11-14 11:23:56:975] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test"}
+
+[2025-11-14 11:23:56:982] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:56:990] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:56:997] :exit handle_response
+
+[2025-11-14 11:23:57:3] :enter remove_close_port_parm
+
+[2025-11-14 11:23:57:9] :exit remove_close_port_parm
+
+[2025-11-14 11:23:57:71] :Disconnected
+
+[2025-11-14 11:23:57:72] :enter handle_callback_closed,auto_close_struct.connected_num = 1
+
+[2025-11-14 11:23:58:230] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:23:58:230] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:23:58:239] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:23:58:247] :exit handle_response
+
+[2025-11-14 11:24:0:287] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:0:287] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:0:295] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:0:301] :exit handle_response
+
+[2025-11-14 11:24:2:395] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:2:396] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:2:404] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:2:410] :exit handle_response
+
+[2025-11-14 11:24:4:519] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:4:519] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:4:527] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:4:536] :exit handle_response
+
+[2025-11-14 11:24:5:443] :Disconnected
+
+[2025-11-14 11:24:5:443] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:24:5:452] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:24:5:894] :New Connect
+
+[2025-11-14 11:24:5:917] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 11:24:5:917] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:6:303] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:6:303] :exit handle_response
+
+[2025-11-14 11:24:6:311] :enter get_open_port_parm
+
+[2025-11-14 11:24:6:317] :exit get_open_port_parm
+
+[2025-11-14 11:24:8:370] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:8:370] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:8:378] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:8:384] :exit handle_response
+
+[2025-11-14 11:24:10:415] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:10:416] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:10:423] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:10:429] :exit handle_response
+
+[2025-11-14 11:24:12:141] :wait auto_close_thread
+
+[2025-11-14 11:24:12:482] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:12:482] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:12:489] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:12:495] :exit handle_response
+
+[2025-11-14 11:24:14:559] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:14:559] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:14:567] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:14:573] :exit handle_response
+
+[2025-11-14 11:24:16:622] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:16:622] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:16:630] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:16:636] :exit handle_response
+
+[2025-11-14 11:24:18:695] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:18:695] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:18:702] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:18:710] :exit handle_response
+
+[2025-11-14 11:24:20:752] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:20:752] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:20:761] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:20:767] :exit handle_response
+
+[2025-11-14 11:24:22:809] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:22:810] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:22:818] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:22:825] :exit handle_response
+
+[2025-11-14 11:24:24:874] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:24:874] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:24:882] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:24:889] :exit handle_response
+
+[2025-11-14 11:24:25:97] :Disconnected
+
+[2025-11-14 11:24:25:98] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:24:25:105] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:24:27:954] :New Connect
+
+[2025-11-14 11:24:28:45] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 11:24:28:45] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:28:465] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:28:466] :exit handle_response
+
+[2025-11-14 11:24:28:472] :enter get_open_port_parm
+
+[2025-11-14 11:24:28:479] :exit get_open_port_parm
+
+[2025-11-14 11:24:30:512] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:30:512] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:30:521] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:30:527] :exit handle_response
+
+[2025-11-14 11:24:30:779] :wait auto_close_thread
+
+[2025-11-14 11:24:32:555] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:32:555] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:32:563] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:32:571] :exit handle_response
+
+[2025-11-14 11:24:34:626] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:34:626] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:34:634] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:34:641] :exit handle_response
+
+[2025-11-14 11:24:36:677] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:36:677] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:36:686] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:36:691] :exit handle_response
+
+[2025-11-14 11:24:38:737] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:38:737] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:38:745] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:38:751] :exit handle_response
+
+[2025-11-14 11:24:40:803] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:40:803] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:40:810] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:40:817] :exit handle_response
+
+[2025-11-14 11:24:42:464] :Disconnected
+
+[2025-11-14 11:24:42:465] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:24:42:473] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:24:47:463] :New Connect
+
+[2025-11-14 11:24:47:531] :dll_name = usbip.dll,cmd = close_new,data = {"cmd":"close_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test"}
+
+[2025-11-14 11:24:47:532] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:47:543] :exit usbip_send_cmd_deal
+
+
+[2025-11-14 11:24:47:554] :exit handle_response
+
+[2025-11-14 11:24:47:564] :enter remove_close_port_parm
+
+[2025-11-14 11:24:47:574] :exit remove_close_port_parm
+
+[2025-11-14 11:24:47:628] :Disconnected
+
+[2025-11-14 11:24:47:629] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:24:47:639] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:24:52:222] :New Connect
+
+[2025-11-14 11:24:52:226] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 11:24:52:234] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:52:663] :wait auto_close_thread
+
+[2025-11-14 11:24:52:804] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:52:804] :exit handle_response
+
+[2025-11-14 11:24:52:814] :enter get_open_port_parm
+
+[2025-11-14 11:24:52:821] :exit get_open_port_parm
+
+[2025-11-14 11:24:54:892] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:54:892] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:54:899] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:54:906] :exit handle_response
+
+[2025-11-14 11:24:56:940] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:56:941] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:56:949] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:56:956] :exit handle_response
+
+[2025-11-14 11:24:58:991] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:24:58:992] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:24:59:2] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:24:59:12] :exit handle_response
+
+[2025-11-14 11:25:1:52] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:1:52] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:1:60] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:1:66] :exit handle_response
+
+[2025-11-14 11:25:3:110] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:3:111] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:3:119] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:3:125] :exit handle_response
+
+[2025-11-14 11:25:5:171] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:5:172] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:5:179] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:5:185] :exit handle_response
+
+[2025-11-14 11:25:7:235] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:7:235] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:7:242] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:7:250] :exit handle_response
+
+[2025-11-14 11:25:9:380] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:9:381] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:9:391] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:9:401] :exit handle_response
+
+[2025-11-14 11:25:11:474] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:11:474] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:11:485] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:11:494] :exit handle_response
+
+[2025-11-14 11:25:13:522] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:13:523] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:13:530] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:13:537] :exit handle_response
+
+[2025-11-14 11:25:15:549] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:15:550] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:15:560] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:15:569] :exit handle_response
+
+[2025-11-14 11:25:17:575] :Disconnected
+
+[2025-11-14 11:25:17:576] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:25:17:584] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:25:24:278] :wait auto_close_thread
+
+[2025-11-14 11:25:26:263] :New Connect
+
+[2025-11-14 11:25:26:345] :dll_name = usbip.dll,cmd = open_new,data = {"cmd":"open_new","dll_name":"usbip","server_ip":"192.168.254.132","server_port":"3240","ter_id":"068406000167","dev_port":"06","user":"test","oper_id":"C0-25-A5-89-9D-FF","trans_type":"0"}
+
+[2025-11-14 11:25:26:345] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:26:884] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:26:884] :exit handle_response
+
+[2025-11-14 11:25:26:892] :enter get_open_port_parm
+
+[2025-11-14 11:25:26:899] :exit get_open_port_parm
+
+[2025-11-14 11:25:28:972] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:28:973] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:28:980] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:28:986] :exit handle_response
+
+[2025-11-14 11:25:31:49] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:31:50] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:31:58] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:31:64] :exit handle_response
+
+[2025-11-14 11:25:33:99] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:33:100] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:33:110] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:33:119] :exit handle_response
+
+[2025-11-14 11:25:35:176] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:35:176] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:35:184] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:35:191] :exit handle_response
+
+[2025-11-14 11:25:37:226] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:37:227] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:37:235] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:37:241] :exit handle_response
+
+[2025-11-14 11:25:39:296] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:39:296] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:39:305] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:39:313] :exit handle_response
+
+[2025-11-14 11:25:41:427] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:41:427] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:41:434] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:41:441] :exit handle_response
+
+[2025-11-14 11:25:43:491] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:43:491] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:43:500] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:43:506] :exit handle_response
+
+[2025-11-14 11:25:45:554] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:45:554] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:45:560] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:45:566] :exit handle_response
+
+[2025-11-14 11:25:47:602] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:47:602] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:47:609] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:47:616] :exit handle_response
+
+[2025-11-14 11:25:49:663] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:49:664] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:49:672] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:49:687] :exit handle_response
+
+[2025-11-14 11:25:51:724] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:51:725] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:51:732] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:51:739] :exit handle_response
+
+[2025-11-14 11:25:53:774] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:53:775] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:53:782] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:53:791] :exit handle_response
+
+[2025-11-14 11:25:55:836] :dll_name = usbip.dll,cmd = list_device,data = {"cmd":"list_device","ter_id":"068406000167"}
+
+[2025-11-14 11:25:55:836] :enter usbip_send_cmd_deal
+
+[2025-11-14 11:25:55:844] :exit usbip_send_cmd_deal
+
+[2025-11-14 11:25:55:850] :exit handle_response
+
+[2025-11-14 11:25:57:338] :Disconnected
+
+[2025-11-14 11:25:57:338] :enter handle_callback_closed,auto_close_struct.connected_num = 0
+
+[2025-11-14 11:25:57:349] :enter auto_close_thread,auto_close_struct.delay_release_start = 0
+
+[2025-11-14 11:26:3:518] :wait auto_close_thread
+

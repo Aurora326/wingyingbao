@@ -1,0 +1,92 @@
+[2026-01-19 11:20:38:492] :error dll_inint_flag
+[2026-01-19 11:24:22:567] :error dll_inint_flag
+[2026-01-19 11:25:24:96] :error dll_inint_flag
+[2026-01-19 11:27:52:603] :error dll_inint_flag
+[2026-01-19 11:29:19:402] :error dll_inint_flag
+[2026-01-19 11:30:51:55] :error dll_inint_flag
+[2026-01-19 11:31:52:664] :error dll_inint_flag
+[2026-01-19 11:33:22:278] :error dll_inint_flag
+[2026-01-19 11:34:42:39] :error dll_inint_flag
+[2026-01-19 11:35:50:93] :error dll_inint_flag
+[2026-01-19 17:13:53:523] :error dll_inint_flag
+[2026-01-19 17:16:57:242] :init_dll_interface ok
+[2026-01-19 17:16:57:243] :open open step1 
+
+[2026-01-19 17:16:57:252] :-------------------------enter open_port
+
+[2026-01-19 17:16:57:259] :force_open is not NULL
+
+[2026-01-19 17:16:57:265] :force_open = 0
+
+[2026-01-19 17:16:57:273] :get dev_port 29
+
+[2026-01-19 17:16:57:279] :check_ip send  server_ip = 192.168.254.123,server_port_str = 3240
+[2026-01-19 17:16:57:287] :usbipDLL socket connect ip :192.168.254.123  port:3240
+[2026-01-19 17:16:57:294] :hostname=192.168.254.123,tmp_server=3240
+[2026-01-19 17:16:57:442] :check_ip recvlen = 12684
+[2026-01-19 17:16:57:446] :on_ip_white_list is 1
+
+[2026-01-19 17:16:57:456] :exit check_ip
+
+[2026-01-19 17:16:57:464] :check_ip successfully
+
+[2026-01-19 17:16:57:472] :open_port,server_ip = 192.168.254.123,server_port = 3240,ter_id = 068330001533,dev_port = 29,user = 15711668178,oper_id = 74-56-3C-0F-05-64;100008432,trans_type = 0
+
+[2026-01-19 17:16:57:566] :Deal_Thread in ,point is:0!
+[2026-01-19 17:16:57:567] :Deal_Thread,ip:192.168.254.
+---port:3240
+[2026-01-19 17:16:57:592] :trans_type = 0
+---------exit open_port
+
+
+[2026-01-19 17:16:57:604] :--------------------zwl---------------------0202
+
+[2026-01-19 17:16:57:610] :attach_device server 192.168.254.123 port 3240 ,random = 15711668178  type :0
+
+[2026-01-19 17:16:57:618] :usbipDLL socket connect ip :192.168.254.123  port:3240
+[2026-01-19 17:16:57:624] :hostname=192.168.254.123,tmp_server=3240
+[2026-01-19 17:16:57:633] :query_import_device
+
+[2026-01-19 17:16:57:639] :dev_port = 29
+[2026-01-19 17:17:0:736] :busid 1-1.2.4.7:    product_nameunknown vendor : unknown product (2ec9:1001)
+[2026-01-19 17:17:0:737] :path         : /sys/bus/usb/devices/1-1.2.4.7
+[2026-01-19 17:17:0:747] :class_name         : (Defined at Interface level) (00/00/00)
+[2026-01-19 17:17:0:754] :        :  0 - unknown class / unknown subclass / unknown protocol (08/06/50)
+[2026-01-19 17:17:0:760] :get_busid is:1-1.2.4.7
+
+[2026-01-19 17:17:0:766] :usbipDLL socket connect ip :192.168.254.123  port:3240
+[2026-01-19 17:17:0:772] :hostname=192.168.254.123,tmp_server=3240
+[2026-01-19 17:17:0:781] :query_import_device
+
+[2026-01-19 17:17:0:788] :send 8003 ret = 0
+[2026-01-19 17:17:0:799] :setup_wudev_from_udev:bDeviceClass:08 -bDeviceSubClass:06 -bDeviceProtocol:50 -bNumInterfaces:01 
+
+[2026-01-19 17:17:0:800] :after get_wudev:wuDev.proto:80 --wuDev.class:8 -- wuDev.subclass:6 
+
+[2026-01-19 17:17:0:806] :获取到设备实例路径为 lbc:\\?\root#usbshare#0000#{d35f7840-6a0c-11d2-b841-00c04fad5171}
+
+[2026-01-19 17:17:0:812] :获取到设备实例路径为:\\?\root#usbshare#0000#{d35f7840-6a0c-11d2-b841-00c04fad5171}
+
+[2026-01-19 17:17:0:819] :path buf = \\?\root#usbshare#0000#{d35f7840-6a0c-11d2-b841-00c04fad5171}
+[2026-01-19 17:17:0:824] :devid = 65589
+[2026-01-19 17:17:0:831] :idVendor = 0x2ec9
+[2026-01-19 17:17:0:837] :idProduct = 0x1001
+[2026-01-19 17:17:0:842] :bcdDevice = 1
+[2026-01-19 17:17:0:848] :speed = 2
+[2026-01-19 17:17:0:854] :bNumInterfaces = 1
+[2026-01-19 17:17:0:859] :bDeviceClass = 8
+[2026-01-19 17:17:0:866] :bDeviceSubClass = 6
+[2026-01-19 17:17:0:871] :bDeviceProtocol = 80
+[2026-01-19 17:17:0:877] :devfd:0419F74C
+
+[2026-01-19 17:17:0:888] :new usb device attached to usbvbus port 1,sockfd = 892
+
+[2026-01-19 17:17:0:897] :hdev_src:000003A8
+
+[2026-01-19 17:17:1:35] :get_decp_len = 9
+[2026-01-19 17:17:1:42] :get_decp_len = 32
+[2026-01-19 17:17:1:48] :i = 9,wbuff->scsi_struct.susport_scsi_flag = 1
+[2026-01-19 17:17:1:52] :i = 18,trans_type = 2
+[2026-01-19 17:17:1:60] :i = 25,trans_type = 2
+[2026-01-19 17:17:1:878] :uint is ready
+

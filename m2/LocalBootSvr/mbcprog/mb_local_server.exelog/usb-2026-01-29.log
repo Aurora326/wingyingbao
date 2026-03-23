@@ -1,0 +1,3 @@
+[2026-01-29 13:35:12:991] :forced_close_port:server_ip:192.168.254.123,server_port = 3240,usb_port:10!
+[2026-01-29 13:35:12:991] :usbipDLL socket connect ip :192.168.254.123  port:3240
+[2026-01-29 13:35:12:998] :hostname=192.168.254.123,tmp_server=3240

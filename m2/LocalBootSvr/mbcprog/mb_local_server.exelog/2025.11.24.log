@@ -1,0 +1,372 @@
+[2025-11-24 9:12:28:50] :find_adapter num is :0
+[2025-11-24 9:12:28:51] :dev_discovery step2,num = 0
+
+[2025-11-24 9:12:28:61] :dev_discovery step3
+[2025-11-24 9:12:38:84] :find_adapter num is :0
+[2025-11-24 9:12:38:84] :dev_discovery step2,num = 0
+
+[2025-11-24 9:12:38:91] :dev_discovery step3
+[2025-11-24 9:12:48:98] :find_adapter num is :0
+[2025-11-24 9:12:48:98] :dev_discovery step2,num = 0
+
+[2025-11-24 9:12:48:106] :dev_discovery step3
+[2025-11-24 9:12:58:123] :find_adapter num is :0
+[2025-11-24 9:12:58:124] :dev_discovery step2,num = 0
+
+[2025-11-24 9:12:58:130] :dev_discovery step3
+[2025-11-24 9:13:8:143] :find_adapter num is :0
+[2025-11-24 9:13:8:143] :dev_discovery step2,num = 0
+
+[2025-11-24 9:13:8:155] :dev_discovery step3
+[2025-11-24 9:13:18:162] :find_adapter num is :0
+[2025-11-24 9:13:18:162] :dev_discovery step2,num = 0
+
+[2025-11-24 9:13:18:169] :dev_discovery step3
+[2025-11-24 9:13:28:186] :find_adapter num is :0
+[2025-11-24 9:13:28:186] :dev_discovery step2,num = 0
+
+[2025-11-24 9:13:28:194] :dev_discovery step3
+[2025-11-24 9:13:38:204] :find_adapter num is :0
+[2025-11-24 9:13:38:204] :dev_discovery step2,num = 0
+
+[2025-11-24 9:13:38:212] :dev_discovery step3
+[2025-11-24 9:13:48:218] :find_adapter num is :0
+[2025-11-24 9:13:48:219] :dev_discovery step2,num = 0
+
+[2025-11-24 9:13:48:226] :dev_discovery step3
+[2025-11-24 9:13:58:246] :find_adapter num is :0
+[2025-11-24 9:13:58:248] :dev_discovery step2,num = 0
+
+[2025-11-24 9:13:58:256] :dev_discovery step3
+[2025-11-24 9:14:8:276] :find_adapter num is :0
+[2025-11-24 9:14:8:277] :dev_discovery step2,num = 0
+
+[2025-11-24 9:14:8:286] :dev_discovery step3
+[2025-11-24 9:14:18:304] :find_adapter num is :0
+[2025-11-24 9:14:18:305] :dev_discovery step2,num = 0
+
+[2025-11-24 9:14:18:314] :dev_discovery step3
+[2025-11-24 9:14:28:330] :find_adapter num is :0
+[2025-11-24 9:14:28:331] :dev_discovery step2,num = 0
+
+[2025-11-24 9:14:28:344] :dev_discovery step3
+[2025-11-24 9:14:38:361] :find_adapter num is :0
+[2025-11-24 9:14:38:363] :dev_discovery step2,num = 0
+
+[2025-11-24 9:14:38:372] :dev_discovery step3
+[2025-11-24 9:14:48:385] :find_adapter num is :0
+[2025-11-24 9:14:48:387] :dev_discovery step2,num = 0
+
+[2025-11-24 9:14:48:396] :dev_discovery step3
+[2025-11-24 9:14:58:415] :find_adapter num is :0
+[2025-11-24 9:14:58:417] :dev_discovery step2,num = 0
+
+[2025-11-24 9:14:58:425] :dev_discovery step3
+[2025-11-24 9:15:8:443] :find_adapter num is :0
+[2025-11-24 9:15:8:444] :dev_discovery step2,num = 0
+
+[2025-11-24 9:15:8:453] :dev_discovery step3
+[2025-11-24 9:15:18:464] :find_adapter num is :0
+[2025-11-24 9:15:18:465] :dev_discovery step2,num = 0
+
+[2025-11-24 9:15:18:475] :dev_discovery step3
+[2025-11-24 9:15:28:485] :find_adapter num is :0
+[2025-11-24 9:15:28:486] :dev_discovery step2,num = 0
+
+[2025-11-24 9:15:28:500] :dev_discovery step3
+[2025-11-24 9:15:38:511] :find_adapter num is :0
+[2025-11-24 9:15:38:513] :dev_discovery step2,num = 0
+
+[2025-11-24 9:15:38:521] :dev_discovery step3
+[2025-11-24 9:15:48:534] :find_adapter num is :0
+[2025-11-24 9:15:48:535] :dev_discovery step2,num = 0
+
+[2025-11-24 9:15:48:548] :dev_discovery step3
+[2025-11-24 9:15:58:562] :find_adapter num is :0
+[2025-11-24 9:15:58:563] :dev_discovery step2,num = 0
+
+[2025-11-24 9:15:58:576] :dev_discovery step3
+[2025-11-24 9:16:8:589] :find_adapter num is :0
+[2025-11-24 9:16:8:591] :dev_discovery step2,num = 0
+
+[2025-11-24 9:16:8:601] :dev_discovery step3
+[2025-11-24 9:16:18:619] :find_adapter num is :0
+[2025-11-24 9:16:18:620] :dev_discovery step2,num = 0
+
+[2025-11-24 9:16:18:630] :dev_discovery step3
+[2025-11-24 9:16:28:641] :find_adapter num is :0
+[2025-11-24 9:16:28:643] :dev_discovery step2,num = 0
+
+[2025-11-24 9:16:28:658] :dev_discovery step3
+[2025-11-24 9:16:38:681] :find_adapter num is :0
+[2025-11-24 9:16:38:681] :dev_discovery step2,num = 0
+
+[2025-11-24 9:16:38:690] :dev_discovery step3
+[2025-11-24 9:16:48:700] :find_adapter num is :0
+[2025-11-24 9:16:48:702] :dev_discovery step2,num = 0
+
+[2025-11-24 9:16:48:710] :dev_discovery step3
+[2025-11-24 9:16:58:725] :find_adapter num is :0
+[2025-11-24 9:16:58:726] :dev_discovery step2,num = 0
+
+[2025-11-24 9:16:58:735] :dev_discovery step3
+[2025-11-24 9:17:8:745] :find_adapter num is :0
+[2025-11-24 9:17:8:746] :dev_discovery step2,num = 0
+
+[2025-11-24 9:17:8:755] :dev_discovery step3
+[2025-11-24 9:17:18:770] :find_adapter num is :0
+[2025-11-24 9:17:18:772] :dev_discovery step2,num = 0
+
+[2025-11-24 9:17:18:779] :dev_discovery step3
+[2025-11-24 9:17:28:789] :find_adapter num is :0
+[2025-11-24 9:17:28:790] :dev_discovery step2,num = 0
+
+[2025-11-24 9:17:28:803] :dev_discovery step3
+[2025-11-24 9:17:38:828] :find_adapter num is :0
+[2025-11-24 9:17:38:829] :dev_discovery step2,num = 0
+
+[2025-11-24 9:17:38:842] :dev_discovery step3
+[2025-11-24 9:17:48:862] :find_adapter num is :0
+[2025-11-24 9:17:48:864] :dev_discovery step2,num = 0
+
+[2025-11-24 9:17:48:874] :dev_discovery step3
+[2025-11-24 9:17:58:890] :find_adapter num is :0
+[2025-11-24 9:17:58:891] :dev_discovery step2,num = 0
+
+[2025-11-24 9:17:58:899] :dev_discovery step3
+[2025-11-24 9:18:8:911] :find_adapter num is :0
+[2025-11-24 9:18:8:913] :dev_discovery step2,num = 0
+
+[2025-11-24 9:18:8:922] :dev_discovery step3
+[2025-11-24 9:18:18:939] :find_adapter num is :0
+[2025-11-24 9:18:18:939] :dev_discovery step2,num = 0
+
+[2025-11-24 9:18:18:946] :dev_discovery step3
+[2025-11-24 9:18:28:961] :find_adapter num is :0
+[2025-11-24 9:18:28:961] :dev_discovery step2,num = 0
+
+[2025-11-24 9:18:28:971] :dev_discovery step3
+[2025-11-24 9:18:38:984] :find_adapter num is :0
+[2025-11-24 9:18:38:985] :dev_discovery step2,num = 0
+
+[2025-11-24 9:18:38:995] :dev_discovery step3
+[2025-11-24 9:18:49:4] :find_adapter num is :0
+[2025-11-24 9:18:49:5] :dev_discovery step2,num = 0
+
+[2025-11-24 9:18:49:13] :dev_discovery step3
+[2025-11-24 9:18:59:29] :find_adapter num is :0
+[2025-11-24 9:18:59:30] :dev_discovery step2,num = 0
+
+[2025-11-24 9:18:59:41] :dev_discovery step3
+[2025-11-24 9:19:9:50] :find_adapter num is :0
+[2025-11-24 9:19:9:52] :dev_discovery step2,num = 0
+
+[2025-11-24 9:19:9:61] :dev_discovery step3
+[2025-11-24 9:19:19:73] :find_adapter num is :0
+[2025-11-24 9:19:19:74] :dev_discovery step2,num = 0
+
+[2025-11-24 9:19:19:84] :dev_discovery step3
+[2025-11-24 9:19:29:105] :find_adapter num is :0
+[2025-11-24 9:19:29:106] :dev_discovery step2,num = 0
+
+[2025-11-24 9:19:29:118] :dev_discovery step3
+[2025-11-24 9:19:39:129] :find_adapter num is :0
+[2025-11-24 9:19:39:131] :dev_discovery step2,num = 0
+
+[2025-11-24 9:19:39:140] :dev_discovery step3
+[2025-11-24 9:19:49:162] :find_adapter num is :0
+[2025-11-24 9:19:49:163] :dev_discovery step2,num = 0
+
+[2025-11-24 9:19:49:174] :dev_discovery step3
+[2025-11-24 9:19:59:196] :find_adapter num is :0
+[2025-11-24 9:19:59:198] :dev_discovery step2,num = 0
+
+[2025-11-24 9:19:59:209] :dev_discovery step3
+[2025-11-24 9:20:9:219] :find_adapter num is :0
+[2025-11-24 9:20:9:219] :dev_discovery step2,num = 0
+
+[2025-11-24 9:20:9:232] :dev_discovery step3
+[2025-11-24 9:20:19:249] :find_adapter num is :0
+[2025-11-24 9:20:19:250] :dev_discovery step2,num = 0
+
+[2025-11-24 9:20:19:259] :dev_discovery step3
+[2025-11-24 9:20:29:276] :find_adapter num is :0
+[2025-11-24 9:20:29:278] :dev_discovery step2,num = 0
+
+[2025-11-24 9:20:29:289] :dev_discovery step3
+[2025-11-24 9:20:39:301] :find_adapter num is :0
+[2025-11-24 9:20:39:302] :dev_discovery step2,num = 0
+
+[2025-11-24 9:20:39:309] :dev_discovery step3
+[2025-11-24 9:20:49:328] :find_adapter num is :0
+[2025-11-24 9:20:49:329] :dev_discovery step2,num = 0
+
+[2025-11-24 9:20:49:338] :dev_discovery step3
+[2025-11-24 9:20:59:357] :find_adapter num is :0
+[2025-11-24 9:20:59:359] :dev_discovery step2,num = 0
+
+[2025-11-24 9:20:59:369] :dev_discovery step3
+[2025-11-24 9:21:9:384] :find_adapter num is :0
+[2025-11-24 9:21:9:384] :dev_discovery step2,num = 0
+
+[2025-11-24 9:21:9:392] :dev_discovery step3
+[2025-11-24 9:21:19:404] :find_adapter num is :0
+[2025-11-24 9:21:19:405] :dev_discovery step2,num = 0
+
+[2025-11-24 9:21:19:419] :dev_discovery step3
+[2025-11-24 9:21:29:438] :find_adapter num is :0
+[2025-11-24 9:21:29:440] :dev_discovery step2,num = 0
+
+[2025-11-24 9:21:29:452] :dev_discovery step3
+[2025-11-24 9:21:39:475] :find_adapter num is :0
+[2025-11-24 9:21:39:477] :dev_discovery step2,num = 0
+
+[2025-11-24 9:21:39:485] :dev_discovery step3
+[2025-11-24 9:21:49:507] :find_adapter num is :0
+[2025-11-24 9:21:49:508] :dev_discovery step2,num = 0
+
+[2025-11-24 9:21:49:516] :dev_discovery step3
+[2025-11-24 9:21:59:527] :find_adapter num is :0
+[2025-11-24 9:21:59:528] :dev_discovery step2,num = 0
+
+[2025-11-24 9:21:59:538] :dev_discovery step3
+[2025-11-24 9:22:9:550] :find_adapter num is :0
+[2025-11-24 9:22:9:550] :dev_discovery step2,num = 0
+
+[2025-11-24 9:22:9:557] :dev_discovery step3
+[2025-11-24 9:22:19:565] :find_adapter num is :0
+[2025-11-24 9:22:19:565] :dev_discovery step2,num = 0
+
+[2025-11-24 9:22:19:577] :dev_discovery step3
+[2025-11-24 9:22:29:597] :find_adapter num is :0
+[2025-11-24 9:22:29:597] :dev_discovery step2,num = 0
+
+[2025-11-24 9:22:29:611] :dev_discovery step3
+[2025-11-24 9:22:39:631] :find_adapter num is :0
+[2025-11-24 9:22:39:641] :dev_discovery step2,num = 0
+
+[2025-11-24 9:22:39:647] :dev_discovery step3
+[2025-11-24 9:22:49:654] :find_adapter num is :0
+[2025-11-24 9:22:49:655] :dev_discovery step2,num = 0
+
+[2025-11-24 9:22:49:664] :dev_discovery step3
+[2025-11-24 9:22:59:686] :find_adapter num is :0
+[2025-11-24 9:22:59:686] :dev_discovery step2,num = 0
+
+[2025-11-24 9:22:59:694] :dev_discovery step3
+[2025-11-24 9:23:9:711] :find_adapter num is :0
+[2025-11-24 9:23:9:712] :dev_discovery step2,num = 0
+
+[2025-11-24 9:23:9:724] :dev_discovery step3
+[2025-11-24 9:23:19:733] :find_adapter num is :0
+[2025-11-24 9:23:19:734] :dev_discovery step2,num = 0
+
+[2025-11-24 9:23:19:743] :dev_discovery step3
+[2025-11-24 9:23:29:762] :find_adapter num is :0
+[2025-11-24 9:23:29:762] :dev_discovery step2,num = 0
+
+[2025-11-24 9:23:29:776] :dev_discovery step3
+[2025-11-24 9:23:39:800] :find_adapter num is :0
+[2025-11-24 9:23:39:802] :dev_discovery step2,num = 0
+
+[2025-11-24 9:23:39:812] :dev_discovery step3
+[2025-11-24 9:23:49:825] :find_adapter num is :0
+[2025-11-24 9:23:49:825] :dev_discovery step2,num = 0
+
+[2025-11-24 9:23:49:833] :dev_discovery step3
+[2025-11-24 9:23:59:850] :find_adapter num is :0
+[2025-11-24 9:23:59:851] :dev_discovery step2,num = 0
+
+[2025-11-24 9:23:59:860] :dev_discovery step3
+[2025-11-24 9:24:9:878] :find_adapter num is :0
+[2025-11-24 9:24:9:880] :dev_discovery step2,num = 0
+
+[2025-11-24 9:24:9:894] :dev_discovery step3
+[2025-11-24 9:24:19:910] :find_adapter num is :0
+[2025-11-24 9:24:19:911] :dev_discovery step2,num = 0
+
+[2025-11-24 9:24:19:921] :dev_discovery step3
+[2025-11-24 9:24:29:939] :find_adapter num is :0
+[2025-11-24 9:24:29:941] :dev_discovery step2,num = 0
+
+[2025-11-24 9:24:29:957] :dev_discovery step3
+[2025-11-24 9:24:39:971] :find_adapter num is :0
+[2025-11-24 9:24:39:971] :dev_discovery step2,num = 0
+
+[2025-11-24 9:24:39:981] :dev_discovery step3
+[2025-11-24 9:24:49:996] :find_adapter num is :0
+[2025-11-24 9:24:49:996] :dev_discovery step2,num = 0
+
+[2025-11-24 9:24:50:4] :dev_discovery step3
+[2025-11-24 9:25:0:20] :find_adapter num is :0
+[2025-11-24 9:25:0:20] :dev_discovery step2,num = 0
+
+[2025-11-24 9:25:0:28] :dev_discovery step3
+[2025-11-24 9:25:10:46] :find_adapter num is :0
+[2025-11-24 9:25:10:46] :dev_discovery step2,num = 0
+
+[2025-11-24 9:25:10:54] :dev_discovery step3
+[2025-11-24 9:25:20:65] :find_adapter num is :0
+[2025-11-24 9:25:20:65] :dev_discovery step2,num = 0
+
+[2025-11-24 9:25:20:72] :dev_discovery step3
+[2025-11-24 9:25:30:80] :find_adapter num is :0
+[2025-11-24 9:25:30:80] :dev_discovery step2,num = 0
+
+[2025-11-24 9:25:30:94] :dev_discovery step3
+[2025-11-24 9:25:40:109] :find_adapter num is :0
+[2025-11-24 9:25:40:109] :dev_discovery step2,num = 0
+
+[2025-11-24 9:25:40:116] :dev_discovery step3
+[2025-11-24 9:25:50:133] :find_adapter num is :0
+[2025-11-24 9:25:50:133] :dev_discovery step2,num = 0
+
+[2025-11-24 9:25:50:140] :dev_discovery step3
+[2025-11-24 9:26:0:159] :find_adapter num is :0
+[2025-11-24 9:26:0:159] :dev_discovery step2,num = 0
+
+[2025-11-24 9:26:0:166] :dev_discovery step3
+[2025-11-24 9:26:10:187] :find_adapter num is :0
+[2025-11-24 9:26:10:187] :dev_discovery step2,num = 0
+
+[2025-11-24 9:26:10:195] :dev_discovery step3
+[2025-11-24 9:26:20:211] :find_adapter num is :0
+[2025-11-24 9:26:20:211] :dev_discovery step2,num = 0
+
+[2025-11-24 9:26:20:221] :dev_discovery step3
+[2025-11-24 9:26:30:234] :find_adapter num is :0
+[2025-11-24 9:26:30:234] :dev_discovery step2,num = 0
+
+[2025-11-24 9:26:30:246] :dev_discovery step3
+[2025-11-24 9:26:40:258] :find_adapter num is :0
+[2025-11-24 9:26:40:258] :dev_discovery step2,num = 0
+
+[2025-11-24 9:26:40:266] :dev_discovery step3
+[2025-11-24 9:26:50:281] :find_adapter num is :0
+[2025-11-24 9:26:50:281] :dev_discovery step2,num = 0
+
+[2025-11-24 9:26:50:288] :dev_discovery step3
+[2025-11-24 9:27:0:307] :find_adapter num is :0
+[2025-11-24 9:27:0:307] :dev_discovery step2,num = 0
+
+[2025-11-24 9:27:0:314] :dev_discovery step3
+[2025-11-24 9:27:10:322] :find_adapter num is :0
+[2025-11-24 9:27:10:322] :dev_discovery step2,num = 0
+
+[2025-11-24 9:27:10:329] :dev_discovery step3
+[2025-11-24 9:27:20:347] :find_adapter num is :0
+[2025-11-24 9:27:20:347] :dev_discovery step2,num = 0
+
+[2025-11-24 9:27:20:354] :dev_discovery step3
+[2025-11-24 9:27:30:368] :find_adapter num is :0
+[2025-11-24 9:27:30:368] :dev_discovery step2,num = 0
+
+[2025-11-24 9:27:30:381] :dev_discovery step3
+[2025-11-24 9:27:40:403] :find_adapter num is :0
+[2025-11-24 9:27:40:403] :dev_discovery step2,num = 0
+
+[2025-11-24 9:27:40:410] :dev_discovery step3
+[2025-11-24 9:27:50:428] :find_adapter num is :0
+[2025-11-24 9:27:50:428] :dev_discovery step2,num = 0
+
+[2025-11-24 9:27:50:436] :dev_discovery step3

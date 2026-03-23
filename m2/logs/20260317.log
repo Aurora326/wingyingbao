@@ -1,0 +1,36 @@
+[2026-03-17 10:02:10] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:02:10] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:03:22] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:03:22] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:08:42] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:08:42] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:12:10] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:12:10] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:12:26] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:12:26] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:12:57] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:12:57] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:13:31] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:13:31] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:17:36] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": [{"ter_ip": "192.168.254.123", "ter_id": "068330001533", "usb_port_num": "30", "ter_version": "4-0-0.3", "ter_type": "MB_2303", "protocol_ver": "1", "online": "1"}, {"ter_ip": "192.168.254.132", "ter_id": "068406000167", "usb_port_num": "6", "ter_version": "4-0-0.3", "ter_type": "MB_2401", "protocol_ver": "1", "online": "1"}]}}
+[2026-03-17 10:17:36] CMD: {} RESP: {"result": true, "data": {"068330001533": "192.168.254.123", "068406000167": "192.168.254.132"}, "error": null, "code": null}
+[2026-03-17 10:49:04] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:49:04] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:49:15] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:49:15] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:49:37] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:49:37] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:50:03] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:50:03] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:51:05] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:51:05] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:51:15] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:51:15] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:53:36] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:53:36] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:54:25] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:54:25] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:56:26] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:56:26] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}
+[2026-03-17 10:57:20] CMD: {"cmd": "sendcmd", "moduledll": "dev_oper.dll", "senddata": {"cmd": "find_dev", "dll_name": "dev_oper"}} RESP: {"cmd": "find_dev", "code": 0, "data": {"cmd": "find_dev", "data": []}}
+[2026-03-17 10:57:20] CMD: {} RESP: {"result": false, "data": null, "error": "没有在线机柜", "code": null}

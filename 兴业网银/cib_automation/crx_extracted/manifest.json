@@ -1,0 +1,82 @@
+{
+"update_url": "https://clients2.google.com/service/update2/crx",
+  
+    "manifest_version": 3,
+    "name" : "CFCA CertEnrollment.CIB Extension",
+    "version" : "3.2.0.2",
+    "description" : "CFCA Security Application Development Kit",
+    "author": "CFCA",
+    "minimum_chrome_version" : "88",
+
+    "background": {
+      "service_worker": "eventPage.js"
+   },
+
+    "icons": {
+         "16": "icon-16.png",
+         "48": "icon-48.png",
+        "128": "icon-128.png"
+	},
+
+    "action": {
+        "default_icon": { 
+         "16": "icon-16.png",
+         "48": "icon-48.png",
+        "128": "icon-128.png"
+        }
+	},
+    
+    "permissions": [
+        "nativeMessaging"
+    ],
+
+  "host_permissions": [
+    "https://*.cib.com.cn/*",
+    "https://*.cib.com/*",
+    "http://*.cib.com/*",
+    "http://*.cib.com.cn/*",
+    "https://168.3.60.112/*",
+    "https://168.3.63.11/*",
+    "http://168.3.60.47/*",
+    "http://168.3.62.79/*",
+    "https://10.3.49.231/*",
+    "https://168.3.63.198/*",
+    "https://10.3.48.168/*",
+    "https://10.3.49.178/*",
+    "https://www.firmbank.xyz/*",
+    "https://localhost/*",
+    "http://localhost/*",
+    "https://xydf.com.cn/*",
+    "https://xdf.com.cn/*",
+    "https://*.xyyh.com.cn/*",
+    "http://xydf.com.cn/*",
+    "http://xdf.com.cn/*",
+    "http://*.xyyh.com.cn/*"
+  ],
+	
+    "externally_connectable": {
+      "matches": [
+        "https://*.cib.com.cn/*",
+        "https://*.cib.com/*",
+        "http://*.cib.com/*",
+        "http://*.cib.com.cn/*",
+        "https://168.3.60.112/*",
+        "https://168.3.63.11/*",
+        "http://168.3.60.47/*",
+        "http://168.3.62.79/*",
+        "https://10.3.49.231/*",
+        "https://168.3.63.198/*",
+        "https://10.3.48.168/*",
+        "https://10.3.49.178/*",
+        "https://www.firmbank.xyz/*",
+        "https://localhost/*",
+        "http://localhost/*",
+        "https://xydf.com.cn/*",
+        "https://xdf.com.cn/*",
+        "https://*.xyyh.com.cn/*",
+        "http://xydf.com.cn/*",
+        "http://xdf.com.cn/*",
+        "http://*.xyyh.com.cn/*"
+      ]
+	}
+}
