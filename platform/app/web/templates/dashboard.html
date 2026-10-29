@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% from "_ui.html" import bank_name, bank_mark, task_type_text, trigger_text, error_text %}
+{% block title %}首页 · 银行财务平台{% endblock %}
+{% block content %}
+{% set todo_count = (0 if s.accounts else 1) + s.failed_tasks + (1 if s.unmatched_count else 0) + (s.anomalies | length) %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">工作台</div>
+    <h1><span data-greeting>你好</span></h1>
+    <div class="sub"><span data-today></span> · 这是你所有银行账户的最新情况</div>
+  </div>
+  <div class="head-meta">
+    <button class="small" onclick="location.reload()">
+      <svg class="ico" style="width:14px;height:14px"><use href="#i-refresh"/></svg>刷新数据
+    </button>
+  </div>
+</div>
+
+<div class="hero">
+  <section class="hero-card">
+    <div>
+      <div class="eyebrow">全部账户余额 · {{ s.account_count }} 个账户</div>
+      <div class="amount"><small>¥</small>{{ s.total_balance | money }}</div>
+      <div class="hint">所有已绑定银行账户的余额合计</div>
+    </div>
+    <div class="hero-stats">
+      <div><span>今日收入</span><b class="in">+{{ s.today_inflow | money }}</b></div>
+      <div><span>今日支出</span><b class="out">-{{ s.today_outflow | money }}</b></div>
+      <div><span>待对账</span><b>{{ s.unmatched_count }} 笔</b></div>
+    </div>
+  </section>
+
+  <section class="todo-card">
+    <div class="todo-head">
+      <h2>需要你处理</h2>
+      {% if todo_count %}<span class="todo-count">{{ todo_count }}</span>{% endif %}
+    </div>
+    <div class="todo-list">
+      {% if not s.accounts %}
+      <a class="todo-item" href="/accounts">
+        <span class="todo-ico blue"><svg class="ico"><use href="#i-plus"/></svg></span>
+        <span class="todo-text"><b>先添加一个银行账户</b><span>添加后系统才能开始自动采集</span></span>
+        <span class="todo-go">去添加</span>
+      </a>
+      {% endif %}
+
+      {% if s.failed_tasks %}
+      <a class="todo-item" href="/tasks?status=failed">
+        <span class="todo-ico red"><svg class="ico"><use href="#i-alert"/></svg></span>
+        <span class="todo-text"><b>{{ s.failed_tasks }} 次采集没有完成</b><span>数据可能不是最新的，建议查看原因并重试</span></span>
+        <span class="todo-go">去处理</span>
+      </a>
+      {% endif %}
+
+      {% if s.unmatched_count %}
+      <a class="todo-item" href="/recon">
+        <span class="todo-ico"><svg class="ico"><use href="#i-link"/></svg></span>
+        <span class="todo-text"><b>{{ s.unmatched_count }} 笔流水还没有对上账</b><span>去对账工作台确认对应单据</span></span>
+        <span class="todo-go">去对账</span>
+      </a>
+      {% endif %}
+
+      {% for a in s.anomalies[:3] %}
+      <a class="todo-item" href="{{ '/devices' if a.type == 'cert' else '/accounts' }}">
+        <span class="todo-ico red"><svg class="ico"><use href="#i-alert"/></svg></span>
+        <span class="todo-text">
+          <b>{{ '账户余额出现不连续' if a.type == 'balance' else 'UKey 证书即将到期' }}</b>
+          <span>{{ a.account }} · {{ a.message }}</span>
+        </span>
+        <span class="todo-go">查看</span>
+      </a>
+      {% endfor %}
+
+      {% if s.anomalies | length > 3 %}
+      <a class="todo-item" href="/accounts">
+        <span class="todo-ico"><svg class="ico"><use href="#i-info"/></svg></span>
+        <span class="todo-text"><b>还有 {{ (s.anomalies | length) - 3 }} 项需要关注</b><span>查看全部异常提示</span></span>
+        <span class="todo-go">查看</span>
+      </a>
+      {% endif %}
+
+      {% if todo_count == 0 %}
+      <div class="todo-done">
+        <span class="todo-done-ico"><svg class="ico"><use href="#i-check"/></svg></span>
+        <b>今天没有需要处理的事情</b>
+        <span>所有账户数据都已正常采集，放心用吧</span>
+      </div>
+      {% endif %}
+    </div>
+    <div class="todo-note">
+      <svg class="ico"><use href="#i-info"/></svg>
+      <span>系统会按各账户的采集计划自动取数，只有失败或对账异常时才会提醒你。</span>
+    </div>
+    <div class="todo-sys">
+      <span class="dot {{ 'idle' if not s.active_tasks }}"></span>
+      <span>{% if s.active_tasks %}正在采集 {{ s.active_tasks }} 项{% else %}采集队列空闲{% endif %}</span>
+      <a href="/tasks">查看记录</a>
+    </div>
+  </section>
+</div>
+
+<div class="section-head">
+  <div>
+    <h2>我的银行账户</h2>
+    <p>余额来自最近一次采集，点击卡片可查看该账户的流水</p>
+  </div>
+  <a class="more" href="/accounts">管理账户 <svg class="ico"><use href="#i-arrow"/></svg></a>
+</div>
+
+{% if s.accounts %}
+<div class="acct-grid">
+  {% for a in s.accounts %}
+  <article class="acct-card">
+    <div class="acct-head">
+      {{ bank_mark(a.bank_code) }}
+      <div class="acct-name">
+        <b>{{ bank_name(a.bank_code) }}</b>
+        <span>{{ a.account_name or '未填写户名' }}</span>
+      </div>
+      {% if a.balance_date %}<span class="tag green">已采集</span>{% else %}<span class="tag">待采集</span>{% endif %}
+    </div>
+    <div class="acct-balance">
+      <span class="label">账户余额</span>
+      <div class="value {{ 'pending' if not a.balance else '' }}">{{ '待采集' if not a.balance else a.balance | money }}</div>
+      <span class="hint">
+        {% if a.balance_date %}更新于 {{ a.balance_date | dt }}{% else %}还没有采集到余额{% endif %}
+      </span>
+    </div>
+    <div class="acct-meta">
+      <div><span>账号</span><b class="mono">{{ a.account_no }}</b></div>
+      <div>
+        <span>数据采至</span>
+        <b>{% if a.watermark_date %}{{ a.watermark_date | dt }}{% else %}尚未采集{% endif %}</b>
+      </div>
+    </div>
+    <div class="acct-actions">
+      <button class="small primary" onclick="collectNow({{ a.id }})">立即采集</button>
+      <a class="btn small" href="/statements?account_id={{ a.id }}">查看流水</a>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel">
+  <div class="empty">
+    还没有添加银行账户，添加后系统会自动帮你采集流水和回单
+    <div class="empty-actions"><a class="btn primary" href="/accounts">添加银行账户</a></div>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid-2">
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>近 7 日收支</h2>
+        <div class="panel-sub">看看这一周钱进钱出的大致情况</div>
+      </div>
+      {% if s.trend %}
+      <div class="legend"><span><i></i>收入</span><span><i class="debit"></i>支出</span></div>
+      {% endif %}
+    </div>
+    {% if s.trend %}
+      {% set ns = namespace(max=1) %}
+      {% for t in s.trend %}{% set ns.max = [ns.max, t.credit, t.debit] | max %}{% endfor %}
+      <div class="trend">
+        {% for t in s.trend %}
+        <div class="bar" title="{{ t.date }} · 收入 {{ t.credit | money }} · 支出 {{ t.debit | money }}">
+          <div class="pair">
+            <div class="fill" style="height: {{ ((t.credit / ns.max) * 100) | round(0) }}%"></div>
+            <div class="fill debit" style="height: {{ ((t.debit / ns.max) * 100) | round(0) }}%"></div>
+          </div>
+          <div class="cap">{{ t.date[5:] }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="chart-empty">
+        <svg class="ico"><use href="#i-wallet"/></svg>
+        还没有流水数据，完成一次采集后这里会出现收支趋势
+        <a href="/tasks">查看采集记录</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>最近动态</h2>
+        <div class="panel-sub">系统最近帮你做的事</div>
+      </div>
+      <a class="more" href="/tasks">全部记录 <svg class="ico"><use href="#i-arrow"/></svg></a>
+    </div>
+    {% if tasks %}
+    <ul class="activity">
+      {% for t in tasks[:4] %}
+      <li>
+        <span class="dot {{ 'ok' if t.status == 'succeeded' else 'fail' if t.status == 'failed' else 'run' }}"></span>
+        <div class="what">
+          <div>
+            <b>{{ bank_name(t.bank_code) }} · 尾号 {{ t.account[-4:] }}</b>
+            {% if t.status == 'succeeded' %}的{{ task_type_text(t.type) }}采集完成
+            {% elif t.status == 'failed' %}的{{ task_type_text(t.type) }}采集没有完成
+            {% else %}正在采集{{ task_type_text(t.type) }}{% endif %}
+          </div>
+          <div class="when">
+            {% if t.created_at %}{{ t.created_at.strftime('%m-%d %H:%M') }}{% else %}—{% endif %}
+            · {{ trigger_text(t.trigger) }}
+            {% if t.status == 'failed' and t.error_code %} · {{ error_text(t.error_code) }}{% endif %}
+          </div>
+        </div>
+        {% if t.status == 'failed' %}
+        <button class="small" onclick="showLog({{ t.id }})">看原因</button>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      <div class="empty compact">还没有采集记录，添加账户后系统会自动开始工作</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,171 @@
+bank_code: cib
+display_name: 兴业银行
+
+urls:
+  login: https://corporatebank.cib.com.cn/firm/main/login/login
+  statement: ""
+  receipt: ""
+
+file_prefix:
+  statement: 兴业银行_银行流水
+  receipt: 兴业银行_电子回单
+
+frames:
+  main_name: mainframe
+  react_app_id: react-app
+  dialog_id: dialogFrame
+  receipt_url_hint: queryElectReceipt
+  receipt_name_hint: "130302"
+
+options:
+  headless: false
+  page_timeout: 30
+  window: [1366, 768]
+  chrome_path: ""
+  aikeyboard_path: C:\wangyingbao\keyboard\AiKeyboard.exe
+  extension_path: C:\wangyingbao\兴业网银\CryptoKitExtension.CIB.crx
+  download_timeout: 120
+  date_click_other: false
+  pin_order: [pyautogui, fill, js, aikeyboard]
+  sidebar_scroll: true
+  archive_by_month: true
+  retention_months: 12
+  extra_args:
+    - --kiosk-printing
+    - --disable-print-preview
+
+selectors:
+  password_input:
+    - "input[type='password']"
+    - "input[name='password']"
+    - "#password"
+  pin_input:
+    - "input[type='password'][placeholder*='PIN']"
+    - "input[name='pin']"
+    - "input[id='pin']"
+  login_name_input:
+    - "#loginName"
+    - "input#loginName"
+    - "input[placeholder*='登录名']"
+    - ".el-input__inner"
+    - "input[type='text']"
+  login_password_input:
+    - "#password"
+    - "input#password"
+    - "input[placeholder*='登录密码']"
+    - "input[placeholder*='密码']"
+    - "input[type='password']"
+  agree_checkbox:
+    - "input[type='checkbox']"
+  login_button:
+    - "button:has-text('登录')"
+    - "input[type='submit']"
+    - "a:has-text('登录')"
+    - ".login-btn"
+    - "#loginBtn"
+  confirm_button:
+    - "button:has-text('确认')"
+    - "button:has-text('确定')"
+    - "button:has-text('登录')"
+    - "input[type='submit']"
+    - ".confirm-btn"
+    - "#confirmBtn"
+  logged_in:
+    - ".user-name"
+    - ".welcome"
+    - "#main-frame"
+    - ".main-content"
+    - "text=欢迎页"
+    - ".logout"
+    - "text=退出"
+  statement_quick_entry:
+    - "a#queryUrl"
+  statement_menu:
+    - "text=账户明细查询"
+    - "text=明细查询"
+    - "text=账户查询"
+  main_frame_markers:
+    - "input#startDate"
+    - "input[name='startDate']"
+    - "text=账户明细查询"
+  sidebar:
+    - ".bottom-menu.bottom-menu-min"
+    - ".ant-layout-sider"
+  sub_menu_title:
+    - ".sub-menu-title"
+  menu_item:
+    - ".menu-item"
+  menu_account_query:
+    - "text=账户查询"
+  receipt_menu_step1:
+    - "text=回单"
+  receipt_menu_step2:
+    - "text=电子回单"
+  receipt_menu_step3:
+    - "text=电子回单查询/补打"
+    - "text=电子回单查询"
+    - "text=电子回单查询补打"
+  date_other:
+    - "text=其他"
+  date_start_input:
+    - "input#startDate"
+    - "input[name='startDate']"
+    - "input[placeholder='起始日期']"
+  date_end_input:
+    - "input#endDate"
+    - "input[name='endDate']"
+    - "input[placeholder='截止日期']"
+  query_button:
+    - "input#queryOpeBtn"
+    - "button#queryOpeBtn"
+    - "button:has-text('查询')"
+    - "button[ng-click='qry()']"
+    - "#queryBtn"
+  account_dropdown:
+    - "text=查询账户"
+  account_options:
+    - ".el-select-dropdown__item"
+  no_data:
+    - "text=无数据显示"
+    - "text=暂无数据"
+    - "text=未查询到"
+    - ".no-data"
+    - ".empty"
+  data_rows:
+    - "table tbody tr"
+    - ".ant-table-row"
+    - ".data-row"
+  download_menu:
+    - "text=下载"
+  download_all:
+    - "text=下载"
+  excel_option:
+    - "text=Excel下载"
+    - "text=Excel"
+  pdf_option:
+    - "text=PDF下载"
+  download_link:
+    - "a:has-text('打包下载已生成文件')"
+    - "a[href*='downloadAll']"
+  receipt_select_all:
+    - "#jqgh_cb > label"
+    - "input[type='checkbox']"
+  receipt_download_button:
+    - "#downloadBtn"
+  receipt_pdf_button:
+    - "#downloadPdf"
+  receipt_confirm_button:
+    - ".ui-dialog-buttonpane.type-confirm .ui-dialog-buttonset button:last-child"
+    - ".ui-dialog-buttonpane button:nth-child(2)"
+  confirm_dialog_box:
+    - ".ui-dialog.dialogFixed"
+    - ".ui-dialog"
+  excel_dialog_close:
+    - ".ui-dialog-titlebar-close"
+    - ".dialog-close"
+    - "button[title='关闭']"
+    - "button:has-text('取消')"
+    - "button:has-text('关闭')"
+    - ".el-dialog__close"
+
+dialogs: {}

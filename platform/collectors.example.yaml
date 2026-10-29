@@ -1,0 +1,18 @@
+# 采集程序清单
+#
+# 平台只往命令行末尾追加 --task <task.json>，采集程序把结果写到 task.json 里的 result_path。
+# 开发机和客户机用的是同一个契约，区别只在这份清单里的 command 指向源码还是 exe。
+#
+# 开发机：不需要这个文件。没配清单时平台默认用源码模式跑本仓库的 collector，
+#         改完代码直接重跑任务即可，不用打包。
+# 客户机：复制成 collectors.yaml，把 command 换成编好的 exe。
+
+# icbc:
+#   # python 写成列表最稳妥；写成一行字符串也可以，会按空格拆分
+#   command: ["D:\\collectors\\icbc\\icbc-collector.exe"]
+#   cwd: D:\collectors\icbc
+
+# 开发机上只想覆盖某一家银行时（cwd 需要能 import 到 collector 包）
+# icbc:
+#   command: ["python", "-m", "collector.run_task"]
+#   cwd: C:\wangyingbao\platform

@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+{% from "_ui.html" import bank_name, bank_mark, schedule_text, device_status %}
+{% block title %}账户与 UKey · 银行财务平台{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">配置</div>
+    <h1>账户与 UKey</h1>
+    <div class="sub">管理需要自动采集的银行账户和对应的 UKey。添加后，系统会按计划自动登录银行取数。</div>
+  </div>
+  <div class="head-meta">
+    <button class="primary" onclick="openAccountModal()">
+      <svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg>添加银行账户
+    </button>
+  </div>
+</div>
+
+{% set ns = namespace(enabled=0, bound=0, pending=0) %}
+{% for a in accounts %}
+  {% if a.collect_enabled %}{% set ns.enabled = ns.enabled + 1 %}{% endif %}
+  {% if a.device_id %}{% set ns.bound = ns.bound + 1 %}{% endif %}
+  {% if not a.watermark_date %}{% set ns.pending = ns.pending + 1 %}{% endif %}
+{% endfor %}
+
+<div class="workspace-tabs" role="tablist" aria-label="账户与设备">
+  <button type="button" role="tab" aria-selected="true" class="active" data-pane-target="accounts" onclick="switchPane('accounts', this)">
+    银行账户<span class="count">{{ accounts | length }}</span>
+  </button>
+  <button type="button" role="tab" aria-selected="false" data-pane-target="devices" onclick="switchPane('devices', this)">
+    UKey 设备<span class="count">{{ devices | length }}</span>
+  </button>
+</div>
+
+<div data-pane="accounts">
+  <div class="stat-row">
+    <div class="stat">
+      <span class="k">银行账户</span>
+      <span class="v">{{ accounts | length }}</span>
+      <span class="f">已接入自动采集</span>
+    </div>
+    <div class="stat">
+      <span class="k">自动采集开启</span>
+      <span class="v">{{ ns.enabled }}</span>
+      <span class="f">按计划自动登录取数</span>
+    </div>
+    <div class="stat">
+      <span class="k">已绑定 UKey</span>
+      <span class="v">{{ ns.bound }}</span>
+      <span class="f">采集时需要对应的电子钥匙</span>
+    </div>
+    <div class="stat">
+      <span class="k">尚未采集</span>
+      <span class="v {{ 'amber' if ns.pending else '' }}">{{ ns.pending }}</span>
+      <span class="f">账户还没有历史数据</span>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div>
+      <h2>银行账户</h2>
+      <p>余额来自最近一次采集，点击「查看流水」可查看该账户的交易明细</p>
+    </div>
+  </div>
+
+  {% if accounts %}
+  <div class="acct-grid">
+    {% for a in accounts %}
+    <article class="acct-card">
+      <div class="acct-head">
+        {{ bank_mark(a.bank_code) }}
+        <div class="acct-name">
+          <b>{{ bank_name(a.bank_code) }}</b>
+          <span>{{ a.account_name or '未填写户名' }}</span>
+        </div>
+        {% if a.collect_enabled %}<span class="tag green">自动采集</span>{% else %}<span class="tag">已暂停</span>{% endif %}
+      </div>
+
+      <div class="acct-balance">
+        <span class="label">账户余额</span>
+        <div class="value {{ 'pending' if not a.balance else '' }}">{{ '待采集' if not a.balance else a.balance | money }}</div>
+        <span class="hint">
+          {% if a.balance_date %}更新于 {{ a.balance_date | dt }}{% else %}还没有采集到余额{% endif %}
+        </span>
+      </div>
+
+      <div class="acct-meta">
+        <div>
+          <span>账号</span>
+          <b class="mono">{{ a.account_no }}
+            <button class="inline-copy" onclick="copyText('{{ a.account_no }}', '账号已复制')" title="复制账号" aria-label="复制账号">
+              <svg class="ico"><use href="#i-copy"/></svg>
+            </button>
+          </b>
+        </div>
+        <div><span>采集计划</span><b>{{ schedule_text(a.collect_cron) }}</b></div>
+        <div><span>对应 UKey</span><b>{{ a.device or '未绑定' }}</b></div>
+        <div>
+          <span>数据采至</span>
+          <b>{% if a.watermark_date %}{{ a.watermark_date | dt }}{% else %}尚未采集{% endif %}</b>
+        </div>
+      </div>
+
+      <div class="acct-actions">
+        <button class="small primary" onclick="collectNow({{ a.id }})">立即采集</button>
+        <a class="btn small" href="/statements?account_id={{ a.id }}">查看流水</a>
+        <button class="icon-btn bordered" onclick="openCredentialModal({{ a.id }}, '{{ bank_name(a.bank_code) }} · {{ a.account_no }}')" title="更新登录信息" aria-label="更新登录信息">
+          <svg class="ico"><use href="#i-key"/></svg>
+        </button>
+        <button class="icon-btn bordered account-delete-btn" onclick="openDeleteAccountModal(this)"
+                data-id="{{ a.id }}"
+                data-label="{{ bank_name(a.bank_code) }} · {{ a.account_no }}"
+                data-account-no="{{ a.account_no }}"
+                data-statements="{{ a.statements }}"
+                data-receipts="{{ a.receipts }}"
+                data-artifacts="{{ a.artifacts }}"
+                data-tasks="{{ a.tasks }}"
+                data-active="{{ a.active_tasks }}"
+                data-enabled="{{ 1 if a.collect_enabled else 0 }}"
+                title="删除账户" aria-label="删除账户">
+          <svg class="ico"><use href="#i-trash"/></svg>
+        </button>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="panel">
+    <div class="empty">
+      还没有添加银行账户。添加后，系统会自动把每天的流水和回单取回来
+      <div class="empty-actions"><button class="btn primary" onclick="openAccountModal()">添加第一个账户</button></div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div data-pane="devices" class="hidden">
+  <div class="section-head">
+    <div>
+      <h2>UKey 与采集设备</h2>
+      <p>设备在线才能采集；证书到期前建议及时更换</p>
+    </div>
+    <a class="more" href="/devices">管理采集设备 <svg class="ico"><use href="#i-arrow"/></svg></a>
+  </div>
+
+  <div class="panel">
+    <div class="device-bar">
+      <div class="search-box">
+        <svg class="ico"><use href="#i-search"/></svg>
+        <input id="device-search" placeholder="搜索设备名称、银行、位置或账号" oninput="filterDeviceRows(this.value)">
+      </div>
+      <span class="muted">显示 <b id="device-count-visible">{{ devices | length }}</b> / {{ devices | length }} 台</span>
+    </div>
+
+    {% if devices %}
+    <div class="table-scroll">
+    <table id="device-table">
+      <thead><tr><th>设备名称</th><th>银行</th><th>位置</th><th>绑定账户</th><th>状态</th><th>证书到期</th></tr></thead>
+      <tbody>
+        {% for d in devices %}
+        {% set bound = device_bindings.get(d.id) %}
+        <tr data-search="{{ d.name }} {{ bank_name(d.bank_code) }} {{ d.gf3 }} {{ d.agent_name }} {{ bound or '' }}">
+          <td><b>{{ d.name }}</b></td>
+          <td>{{ bank_name(d.bank_code) }}</td>
+          <td class="muted">
+            {{ '本地机柜' if d.backend == 'gf3' else '远程机柜' }} · {{ d.gf3 }}
+            <div class="cell-sub">{{ d.agent_name }}</div>
+          </td>
+          <td class="muted">
+            {% if bound %}
+              {% set parts = bound.split(' · ') %}
+              {{ bank_name(parts[0]) }} · {{ parts[1] if parts|length > 1 else '' }}
+            {% else %}<span class="faint">未绑定</span>{% endif %}
+          </td>
+          <td>{{ device_status(d.status) }}</td>
+          <td class="muted nowrap">{% if d.cert_expires_at %}{{ d.cert_expires_at | dt }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+      <div class="empty">
+        还没有同步到 UKey 设备
+        <div class="empty-actions"><a class="btn small" href="/devices">去采集设备页同步</a></div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 添加银行账户 -->
+<div class="modal" id="account-modal" role="dialog" aria-modal="true" aria-labelledby="account-modal-title">
+  <div class="box form-box">
+    <div class="head">
+      <div>
+        <strong id="account-modal-title">添加银行账户</strong>
+        <div class="modal-sub">添加后系统会按计划自动登录银行采集流水和回单</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('account-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+
+    <form id="account-form" onsubmit="submitAccountForm(event)">
+      <fieldset class="form-section">
+        <legend><span class="step-no">1</span>账户信息</legend>
+        <div class="form-grid">
+          <div class="field">
+            <label>银行</label>
+            <select name="bank_code" id="account-bank" onchange="filterAccountDevices(this.value)">
+              {% for b in banks %}{% if b.implemented %}
+              <option value="{{ b.code }}">{{ b.name }}</option>
+              {% endif %}{% endfor %}
+            </select>
+          </div>
+          <div class="field"><label>账号</label><input name="account_no" required placeholder="请输入完整银行账号" autocomplete="off"></div>
+          <div class="field full"><label>户名</label><input name="account_name" placeholder="公司在这家银行的账户名称"></div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend><span class="step-no">2</span>网银登录信息</legend>
+        <p class="form-note"><svg class="ico"><use href="#i-shield"/></svg>这些信息会加密保存，只在采集时使用，不会显示在页面上。</p>
+        <div class="form-grid">
+          <div class="field"><label>网银用户名</label><input name="username" autocomplete="off" placeholder="登录企业网银的账号"></div>
+          <div class="field"><label>网银密码</label><input name="password" type="password" autocomplete="new-password"></div>
+          <div class="field"><label>UKey PIN</label><input name="pin" type="password" autocomplete="new-password"><span class="tip">UKey 电子钥匙的 PIN 码</span></div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend><span class="step-no">3</span>自动采集设置</legend>
+        <div class="form-grid">
+          <div class="field">
+            <label>采集频率</label>
+            <select id="schedule-preset" onchange="applySchedulePreset(this.value)">
+              <option value="0 8,18 * * *">每天 08:00 和 18:00（推荐）</option>
+              <option value="0 9 * * *">每天早上 09:00</option>
+              <option value="0 */6 * * *">每 6 小时一次</option>
+              <option value="0 8 * * 1-5">工作日早上 08:00</option>
+              <option value="custom">自定义时间…</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>首次补采最近多少天</label>
+            <input name="days_back" value="30" type="number" min="1" max="365">
+            <span class="tip">第一次采集时向前补取的历史天数</span>
+          </div>
+          <div class="field full" id="cron-custom-wrap" hidden>
+            <label>自定义时间（技术人员填写）</label>
+            <input name="collect_cron" id="cron-input" value="0 8,18 * * *" readonly>
+            <span class="tip">格式：分 时 日 月 周，例如 0 8,18 * * *。当前含义：<b id="cron-preview"></b></span>
+          </div>
+        </div>
+
+        <div class="field full" style="margin-top:14px">
+          <label>对应 UKey（电子钥匙）</label>
+          <select name="ukey_device_id" id="account-device" onchange="renderDeviceHint()">
+            <option value="">不绑定 / 稍后再选</option>
+            {% for d in devices %}
+            <option value="{{ d.id }}"
+                    data-bank="{{ d.bank_code }}"
+                    data-backend="{{ d.backend }}"
+                    data-cabinet="{{ d.cabinet }}"
+                    data-portnum="{{ d.port }}"
+                    data-location="{{ d.gf3 }}"
+                    data-terid="{{ d.ter_id }}"
+                    data-pid="{{ d.pid }}"
+                    data-agent="{{ d.agent_name }}"
+                    data-status="{{ d.status }}"
+                    data-cert="{{ d.cert_expires_at or '' }}"
+                    data-bound="{{ device_bindings.get(d.id, '') }}">{{ d.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="device-hint-row"><span class="tip-label">已选设备</span><span id="device-hint" class="tip"></span></div>
+        </div>
+
+        <details class="tech">
+          <summary>高级：按机柜和端口指定 UKey</summary>
+          <div class="form-grid" style="margin-top:10px">
+            <div class="field"><label>机柜编号</label><input id="account-cabinet" type="number" min="0" placeholder="如 1533" oninput="matchAccountDeviceByPort()"></div>
+            <div class="field"><label>端口</label><input id="account-port" type="number" min="0" placeholder="如 12" oninput="matchAccountDeviceByPort()"></div>
+          </div>
+        </details>
+      </fieldset>
+
+      <div class="modal-foot">
+        <button type="button" onclick="closeModal('account-modal')">取消</button>
+        <button class="primary" type="submit">创建账户</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 更新登录信息 -->
+<div class="modal" id="credential-modal" role="dialog" aria-modal="true" aria-labelledby="credential-modal-title">
+  <div class="box form-box" style="width:min(520px,100%)">
+    <div class="head">
+      <div>
+        <strong id="credential-modal-title">更新登录信息</strong>
+        <div class="modal-sub">修改 <b id="credential-account-label"></b> 的网银登录信息</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('credential-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <form id="credential-form" onsubmit="submitCredentialForm(event)">
+      <input type="hidden" name="account_id" id="credential-account-id">
+      <p class="form-note"><svg class="ico"><use href="#i-shield"/></svg>请完整填写三项信息，保存后会立即加密更新。</p>
+      <div class="form-grid">
+        <div class="field full"><label>网银用户名</label><input name="username" id="credential-username" autocomplete="off"></div>
+        <div class="field"><label>网银密码</label><input name="password" type="password" autocomplete="new-password"></div>
+        <div class="field"><label>UKey PIN</label><input name="pin" type="password" autocomplete="new-password"></div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" onclick="closeModal('credential-modal')">取消</button>
+        <button class="primary" type="submit">保存登录信息</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="delete-account-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
+  <div class="box form-box" style="width:min(560px,100%)">
+    <div class="head">
+      <div>
+        <strong id="delete-account-title">删除账户</strong>
+        <div class="modal-sub" id="delete-account-label"></div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('delete-account-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <div class="form-note" id="delete-account-warning"></div>
+    <table class="kv" style="margin:0 0 14px">
+      <tbody>
+        <tr><th>流水</th><td id="delete-statements">0 条</td></tr>
+        <tr><th>电子回单</th><td id="delete-receipts">0 份</td></tr>
+        <tr><th>原始文件</th><td id="delete-artifacts">0 个</td></tr>
+        <tr><th>采集任务</th><td id="delete-tasks">0 条</td></tr>
+      </tbody>
+    </table>
+    <div class="field full">
+      <label>输入完整账号以确认删除</label>
+      <input id="delete-account-confirm" autocomplete="off" placeholder="请输入完整账号">
+      <span class="tip">删除后无法恢复。如果只是停止采集，请点击下面的「停用采集」。</span>
+    </div>
+    <div class="modal-foot">
+      <button type="button" onclick="closeModal('delete-account-modal')">取消</button>
+      <button type="button" class="small" id="delete-account-toggle" onclick="toggleAccountFromModal()">停用采集</button>
+      <button type="button" class="danger" id="delete-account-submit" onclick="confirmDeleteAccount()" disabled>确认删除</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

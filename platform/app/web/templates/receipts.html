@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% from "_ui.html" import bank_name, bank_mark %}
+{% block title %}电子回单 · 银行财务平台{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">账务</div>
+    <h1>电子回单</h1>
+    <div class="sub">银行电子回单会自动归档，可随时下载原件，也能和流水对应起来。</div>
+  </div>
+  <div class="head-meta">
+    <span class="chip"><i class="dot"></i>共 {{ data.total }} 份</span>
+  </div>
+</div>
+
+<div class="panel filter-panel">
+  <div class="filter-top">
+    <div class="quick-ranges">
+      <button type="button" class="range-chip" data-range="7" onclick="quickRange('7')">近 7 天</button>
+      <button type="button" class="range-chip" data-range="30" onclick="quickRange('30')">近 30 天</button>
+      <button type="button" class="range-chip" data-range="month" onclick="quickRange('month')">本月</button>
+      <button type="button" class="range-chip" data-range="all" onclick="quickRange('all')">全部时间</button>
+    </div>
+    <span class="filter-count">当前显示第 {{ data.page }} 页 · 每页 {{ data.size }} 份</span>
+  </div>
+  <form class="inline" method="get" action="/receipts" data-filter-form>
+    <div class="field">
+      <label>账户</label>
+      <select name="account_id">
+        <option value="">全部账户</option>
+        {% for a in accounts %}
+        <option value="{{ a.id }}" {{ 'selected' if filters.account_id == a.id }}>{{ bank_name(a.bank_code) }} · 尾号 {{ a.account_no[-4:] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field"><label>开始日期</label><input type="date" name="date_from" value="{{ filters.date_from }}"></div>
+    <div class="field"><label>结束日期</label><input type="date" name="date_to" value="{{ filters.date_to }}"></div>
+    <div class="field grow"><label>关键词</label><input name="q" value="{{ filters.q }}" placeholder="对方户名或回单号"></div>
+    <div class="filter-actions">
+      <button class="primary" type="submit">查询</button>
+      <a class="btn" href="/receipts">重置</a>
+    </div>
+  </form>
+</div>
+
+{% if data['items'] %}
+{% set sums = namespace(amount=0, matched=0, pending=0) %}
+{% for r in data['items'] %}
+  {% set sums.amount = sums.amount + r.amount | float %}
+  {% if r.matched_statement_id %}{% set sums.matched = sums.matched + 1 %}{% else %}{% set sums.pending = sums.pending + 1 %}{% endif %}
+{% endfor %}
+<div class="stat-row">
+  <div class="stat">
+    <span class="k">本页回单</span>
+    <span class="v">{{ data['items'] | length }}</span>
+    <span class="f">当前页的电子回单数量</span>
+  </div>
+  <div class="stat">
+    <span class="k">本页金额合计</span>
+    <span class="v">{{ sums.amount | money }}</span>
+    <span class="f">当前页回单金额总和</span>
+  </div>
+  <div class="stat">
+    <span class="k">已关联流水</span>
+    <span class="v green">{{ sums.matched }}</span>
+    <span class="f">可直接追溯对应的银行流水</span>
+  </div>
+  <div class="stat">
+    <span class="k">待对应</span>
+    <span class="v {{ 'amber' if sums.pending else '' }}">{{ sums.pending }}</span>
+    <span class="f">等待与流水自动匹配</span>
+  </div>
+</div>
+{% endif %}
+
+<div class="panel">
+  {% if data['items'] %}
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>日期</th><th>账户</th><th>对方</th><th class="num">金额</th><th>回单号</th><th>关联流水</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for r in data['items'] %}
+      <tr>
+        <td class="nowrap"><b>{{ r.txn_date | dt }}</b></td>
+        <td>
+          <div class="acct-cell">
+            {{ bank_mark(r.bank_code) }}
+            <div>
+              <b>{{ bank_name(r.bank_code) }}</b>
+              <span class="cell-sub">尾号 {{ r.account[-4:] }}</span>
+            </div>
+          </div>
+        </td>
+        <td>{{ r.counterparty_name or '—' }}</td>
+        <td class="num"><span class="money">{{ r.amount | money }}</span></td>
+        <td class="mono muted">{{ r.receipt_no or '—' }}</td>
+        <td>
+          {% if r.matched_statement_id %}<span class="tag green">已对应</span>
+          {% else %}<span class="tag">待对应</span>{% endif %}
+        </td>
+        <td class="right nowrap">
+          {% if r.artifact_id %}
+          <a class="btn small" href="/api/artifacts/{{ r.artifact_id }}/download">
+            <svg class="ico" style="width:13px;height:13px"><use href="#i-download"/></svg>下载
+          </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="pager">
+    <span>第 {{ data.page }} 页 · 共 {{ data.total }} 份</span>
+    <span class="spacer"></span>
+    {% set qs = 'account_id=' ~ (filters.account_id or '') ~ '&date_from=' ~ filters.date_from ~ '&date_to=' ~ filters.date_to ~ '&q=' ~ filters.q %}
+    {% if data.page > 1 %}<a class="btn small" href="/receipts?page={{ data.page - 1 }}&{{ qs }}">上一页</a>{% endif %}
+    {% if data.page * data.size < data.total %}<a class="btn small" href="/receipts?page={{ data.page + 1 }}&{{ qs }}">下一页</a>{% endif %}
+  </div>
+  {% else %}
+    <div class="empty">
+      还没有电子回单，完成一次采集后回单会自动归档
+      <div class="empty-actions">
+        <a class="btn small" href="/receipts">清除筛选</a>
+        <a class="btn small" href="/tasks">去采集</a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+data/
+__pycache__/
+*.pyc
+.env
+agent/agent.env
+collectors.yaml
+access_token.conf
+.pytest_cache/
+venv/
+.venv/

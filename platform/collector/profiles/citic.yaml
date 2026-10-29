@@ -1,0 +1,171 @@
+bank_code: citic
+display_name: 中信银行
+
+urls:
+  login: https://corp.bank.ecitic.com/cotb/login.html
+  statement: https://corp.bank.ecitic.com/cotb/index_v5.html#/00102011
+  receipt: https://corp.bank.ecitic.com/cotb/index_v5.html#/00103011
+
+file_prefix:
+  statement: 中信银行_银行流水
+  receipt: 中信银行_电子回单
+
+options:
+  headless: false
+  page_timeout: 30
+  window: [1380, 900]
+  chrome_path: ""
+  aikeyboard_path: C:\wangyingbao\keyboard\AiKeyboard.exe
+  extension_path: ""
+  profile_source: C:\wangyingbao\中信网银\citic_automation\chrome_user_data
+  download_timeout: 60
+  date_click_other: true
+  pin_order: [aikeyboard, fill, js, pyautogui]
+  sidebar_close_click: [600, 400]
+  archive_by_month: true
+  retention_months: 12
+  extra_args: []
+
+selectors:
+  announcement_close:
+    - "#advertPop button.close"
+    - "#advertPop .modal-header button"
+    - "#advertPop .close"
+    - "button.closeAdvertPop"
+    - ".modal.in button.close"
+  ukey_tab:
+    - "text=U盾登录"
+    - "text=UKey登录"
+  username_tab:
+    - "text=用户名登录"
+    - "text=账号登录"
+  username_input:
+    - "input[name='username']"
+    - "input#username"
+    - "input[placeholder*='用户名']"
+    - "input[placeholder*='操作员']"
+    - ".login-input"
+  password_input:
+    - "#passwordId"
+    - "input#passwordId"
+    - "input[placeholder*='登录密码']"
+    - "input[type='password']"
+    - "input[name='password']"
+  password_input_alt:
+    - "input[name='password']"
+    - "input#password"
+    - "input[type='password']"
+  login_button:
+    - "#loginFormContent > button"
+    - "#loginFormContent button"
+    - "button:has-text('登录')"
+    - "input[type='submit']"
+    - "a:has-text('登录')"
+    - ".login-btn"
+    - "#loginBtn"
+  confirm_button:
+    - "button:has-text('确认')"
+    - "button:has-text('确定')"
+    - ".confirm-btn"
+    - "#confirmBtn"
+  logged_in:
+    - ".user-name"
+    - ".welcome"
+    - "#main-frame"
+    - ".main-content"
+    - "text=欢迎"
+    - "text=首页"
+    - "a:has-text('退出')"
+    - ".logout"
+    - ".user-info"
+  sidebar_close:
+    - ".sidebar .close"
+    - ".menu-toggle.close"
+    - ".el-drawer__close-btn"
+  survey_indicator:
+    - "text=满意度调查"
+    - "text=中信银行企业网上银行2025年度满意度调查"
+  survey_option:
+    - "text=是，同时使用多家银行的企业网银"
+  survey_submit:
+    - "button:has-text('提交')"
+    - "button:has-text('确定')"
+  survey_close:
+    - "button:has-text('关闭')"
+    - ".survey-close"
+    - ".close-btn"
+  statement_page_marker:
+    - "text=账户明细查询"
+    - "text=明细查询"
+    - "input[placeholder='起始日期']"
+    - "input[placeholder='截止日期']"
+    - "button:has-text('查询')"
+    - "text=选择日期"
+  receipt_page_marker:
+    - "text=电子回单"
+    - "text=回单查询"
+    - "input[name='startDate']"
+    - ".receipt-table"
+    - "button:has-text('打印')"
+    - "button:has-text('下载')"
+  date_other:
+    - "text=其他"
+  date_start_input:
+    - "input[name='startDate']"
+    - "input[placeholder='起始日期']"
+  date_end_input:
+    - "input[name='endDate']"
+    - "input[placeholder='截止日期']"
+  query_button_statement:
+    - "#m00102011 > div.panel-body > div > div:nth-child(3) > form > ul > li:nth-child(1) > button"
+    - "button[ng-click='qry()']"
+    - "button.ec-btn-red"
+    - "button:has-text('查询')"
+    - "#queryBtn"
+  query_button_receipt:
+    - "#m00103011 > div.panel-body > div > div.form-group.col-xs-12.clearfix > div > div > div > ul > li:nth-child(1) > button"
+    - "button[ng-click='qry()']"
+    - "button:has-text('查询')"
+    - "#queryBtn"
+  no_data:
+    - "#nothing"
+    - "text=无数据显示"
+    - "text=暂无数据"
+    - "text=未查询到"
+    - "text=暂无符合条件的查询结果"
+    - ".no-data"
+    - ".empty"
+  data_rows:
+    - "table tbody tr"
+    - ".receipt-row"
+    - ".data-row"
+  download_all_toggle:
+    - "#droparea-download-all-toggle"
+    - "button:has-text('全部下载')"
+    - "a:has-text('全部下载')"
+    - "text=全部下载"
+  download_excel_option:
+    - "#droparea-download-exc-download"
+    - "text=Excel下载"
+    - "a:has-text('Excel')"
+  download_dropdown:
+    - "#droparea-download-all-toggle"
+    - "button:has-text('全部下载')"
+    - "a:has-text('全部下载')"
+    - "text=全部下载"
+  download_pdf_option:
+    - "#queryForm > div.panel-e.clearfix > div:nth-child(2) > div.panel-left.pull-left > div > ul > li:nth-child(2) > span"
+    - "text=PDF下载"
+  download_generic:
+    - "button:has-text('下载')"
+    - "a:has-text('下载')"
+    - "#downloadBtn"
+    - ".download-btn"
+  select_all_checkbox:
+    - "th input[type='checkbox']"
+  excel_dialog_close:
+    - "button:has-text('取消')"
+    - "button:has-text('关闭')"
+    - ".el-dialog__close"
+
+dialogs: {}

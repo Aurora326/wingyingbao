@@ -1,0 +1,72 @@
+{# Shared presentation helpers: plain-language labels for finance users. #}
+
+{%- macro bank_name(code) -%}
+{%- set names = {'citic':'中信银行','cib':'兴业银行','icbc':'工商银行','nbcb':'宁波银行','njcb':'南京银行','cgb':'广发银行','mock':'模拟银行','ccb':'建设银行','bocom':'交通银行','cmb':'招商银行','cmbc':'民生银行','boc':'中国银行','abc':'农业银行','psbc':'邮储银行','shrcb':'上海农商银行','bosc':'上海银行','spdb':'浦发银行','bod':'大连银行','generic':'其他银行'} -%}
+{{- names.get(code, (code or '')|upper) -}}
+{%- endmacro -%}
+
+{%- macro bank_mark(code) -%}
+{%- set initials = {'citic':'中','cib':'兴','icbc':'工','nbcb':'宁','njcb':'南','cgb':'广','mock':'演','ccb':'建','bocom':'交','cmb':'招','cmbc':'民','boc':'中','abc':'农','psbc':'邮','shrcb':'沪','bosc':'上','spdb':'浦','bod':'大','generic':'其'} -%}
+<span class="bank-mark {{ code }}">{{ initials.get(code, (code or '?')[:1]|upper) }}</span>
+{%- endmacro -%}
+
+{%- macro task_status(status) -%}
+{%- if status == 'succeeded' -%}<span class="tag green">已完成</span>
+{%- elif status == 'failed' -%}<span class="tag red">需处理</span>
+{%- elif status == 'queued' -%}<span class="tag amber">等待中</span>
+{%- elif status == 'leased' or status == 'running' -%}<span class="tag blue">进行中</span>
+{%- else -%}<span class="tag">{{ status }}</span>{%- endif -%}
+{%- endmacro -%}
+
+{%- macro device_status(status) -%}
+{%- if status == 'online' -%}<span class="tag green">在线</span>
+{%- elif status == 'offline' -%}<span class="tag red">离线</span>
+{%- elif status == 'empty' -%}<span class="tag">空闲</span>
+{%- elif status == 'busy' -%}<span class="tag amber">使用中</span>
+{%- elif status == 'unknown' or not status -%}<span class="tag">待确认</span>
+{%- else -%}<span class="tag">{{ status }}</span>{%- endif -%}
+{%- endmacro -%}
+
+{%- macro task_type_text(kind) -%}
+{%- if kind == 'statements' -%}银行流水
+{%- elif kind == 'receipts' -%}电子回单
+{%- elif kind == 'reconciliation' -%}对账单
+{%- else -%}{{ kind }}{%- endif -%}
+{%- endmacro -%}
+
+{%- macro trigger_text(trigger) -%}
+{%- if trigger == 'manual' -%}手动
+{%- elif trigger in ('schedule', 'cron', 'auto') -%}自动
+{%- else -%}{{ trigger }}{%- endif -%}
+{%- endmacro -%}
+
+{%- macro error_text(code) -%}
+{%- set errors = {'LOGIN_FAILED':'登录失败：账号、密码或验证码未通过','SELECTOR_NOT_FOUND':'页面结构变化，未找到目标元素','AUTH_FAILED':'登录认证未通过','UKEY_NOT_FOUND':'未检测到对应的 UKey','TIMEOUT':'操作超时，银行页面响应过慢','NETWORK_ERROR':'网络连接异常','CAPTCHA_FAILED':'验证码识别失败','DOWNLOAD_FAILED':'回单下载失败','UNKNOWN':'未知错误，建议查看执行日志'} -%}
+{{- errors.get(code, code or '') -}}
+{%- endmacro -%}
+
+{%- macro match_type_text(kind) -%}
+{%- if kind == 'exact' -%}金额一致
+{%- elif kind == 'fuzzy' -%}近似匹配
+{%- elif kind == 'manual' -%}人工确认
+{%- elif kind == 'none' or not kind -%}—
+{%- else -%}{{ kind }}{%- endif -%}
+{%- endmacro -%}
+
+{%- macro schedule_text(cron) -%}
+{%- set parts = (cron or '').split() -%}
+{%- if parts|length == 5 and parts[2] == '*' and parts[3] == '*' and parts[4] == '*' -%}
+  {%- if parts[0] != '0' -%}自定义时间
+  {%- elif parts[1].startswith('*/') -%}每 {{ parts[1][2:] }} 小时
+  {%- elif ',' in parts[1] -%}每天 {% for h in parts[1].split(',') %}{{ '%02d:00'|format(h|int) }}{{ '、' if not loop.last }}{% endfor %}
+  {%- elif parts[1] == '*' -%}每小时
+  {%- else -%}每天 {{ '%02d:00'|format(parts[1]|int) }}
+  {%- endif -%}
+{%- elif cron -%}自定义计划
+{%- else -%}未设置
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro signed_money(direction, amount) -%}
+<span class="money {{ 'in' if direction == 'credit' else 'out' }}">{{ '+' if direction == 'credit' else '-' }}{{ amount | money }}</span>
+{%- endmacro -%}

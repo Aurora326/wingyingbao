@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>托管 UKey 采集平台 · 总体方案</title>
+<style>
+  :root {
+    --ink: #16374e;
+    --ink-deep: #0f2634;
+    --brass: #b98a44;
+    --paper: #f6f6f1;
+    --line: #dcdcd2;
+    --text: #1b1f1c;
+    --muted: #666e68;
+    --green: #0c7154;
+    --red: #b33a32;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "PingFang SC", "Segoe UI", sans-serif;
+    color: var(--text);
+    font-size: 9.6pt;
+    line-height: 1.75;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .cover {
+    min-height: 0;
+    padding: 24mm 24mm 16mm;
+    color: #f4f1e8;
+    background:
+      linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px),
+      linear-gradient(150deg, #0f2634 0%, #16374e 62%, #1c4767 100%);
+    background-size: 14mm 14mm, 14mm 14mm, 100% 100%;
+    page-break-after: always;
+  }
+  .cover .top { display: flex; justify-content: space-between; align-items: center; }
+  .cover .brand { display: flex; align-items: center; gap: 10px; font-size: 11pt; letter-spacing: .06em; }
+  .cover .mark {
+    width: 34px; height: 34px; border-radius: 8px; display: inline-grid; place-items: center;
+    border: 1px solid rgba(185,138,68,.65); background: #132c3b; color: #f0e2c4;
+    font-size: 11pt; font-weight: 700;
+  }
+  .cover .tag { font-family: Consolas, monospace; font-size: 7.5pt; letter-spacing: .16em; color: #8fa1ac; }
+  .cover .main { margin-top: 46mm; }
+  .cover .eyebrow { font-size: 8pt; letter-spacing: .18em; color: #b7c2c8; margin-bottom: 8mm; }
+  .cover h1 { margin: 0; font-size: 30pt; line-height: 1.3; letter-spacing: -.02em; font-weight: 700; color: #fbf8ef; }
+  .cover h2 { margin: 7mm 0 0; font-size: 12pt; line-height: 1.7; font-weight: 400; color: #b9c7cf; max-width: 145mm; }
+  .cover .rule { width: 48mm; height: 2px; background: var(--brass); margin: 9mm 0; }
+  .cover .meta { margin-top: 24mm; display: grid; grid-template-columns: 1fr 1fr; gap: 6mm 14mm; font-size: 8.5pt; color: #9fb0b9; }
+  .cover .meta b { display: block; color: #e9e4d6; font-weight: 600; font-size: 9.5pt; margin-top: 1mm; }
+  .cover .foot { margin-top: 8mm; font-size: 7.5pt; color: #71838f; letter-spacing: .04em; }
+  .page-break { page-break-before: always; }
+  .content { padding: 0; }
+  h2 {
+    margin: 0 0 4mm;
+    padding-bottom: 2.5mm;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+    font-size: 16pt;
+    line-height: 1.4;
+    letter-spacing: -.01em;
+    page-break-after: avoid;
+  }
+  h2 .no { color: var(--brass); font-family: Consolas, monospace; font-size: 11pt; margin-right: 3mm; }
+  h3 { margin: 6mm 0 2mm; color: var(--ink); font-size: 11pt; page-break-after: avoid; }
+  p { margin: 0 0 3mm; text-align: justify; }
+  ul, ol { margin: 0 0 3.5mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  strong { color: #111; }
+  .lead { font-size: 10.5pt; color: #3e4741; }
+  .muted { color: var(--muted); }
+  .callout {
+    margin: 4mm 0 5mm;
+    padding: 3.5mm 4.5mm;
+    border-left: 3px solid var(--brass);
+    background: #faf7ef;
+    color: #3d453f;
+    font-size: 9pt;
+    page-break-inside: avoid;
+  }
+  .callout.warn { border-left-color: var(--red); background: #fbeeec; }
+  .callout.good { border-left-color: var(--green); background: #e9f4ef; }
+  .callout b { color: #111; }
+  table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 8.4pt; page-break-inside: avoid; }
+  th {
+    background: #eef1f2; color: var(--ink); text-align: left; font-weight: 600;
+    padding: 2.2mm 2.6mm; border-bottom: 1px solid #cfd6d8;
+  }
+  td { padding: 2.2mm 2.6mm; border-bottom: 1px solid #ecece5; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafaf6; }
+  .diagram {
+    margin: 4mm 0 5mm;
+    padding: 4.5mm 5mm;
+    border-radius: 2mm;
+    background: #0f2634;
+    color: #e9e4d6;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 7.8pt;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    page-break-inside: avoid;
+  }
+  .diagram .b { color: #e3c58f; }
+  .diagram .g { color: #9fd8bf; }
+  .diagram .d { color: #8fa1ac; }
+  .toc { margin-top: 2mm; }
+  .toc div {
+    display: flex; justify-content: space-between; gap: 10mm;
+    padding: 1.6mm 0; border-bottom: 1px dotted #deded4; font-size: 9.2pt;
+  }
+  .toc span:first-child { color: #222; }
+  .toc span:last-child { color: var(--brass); font-family: Consolas, monospace; font-size: 8pt; }
+  .kv { display: grid; grid-template-columns: 29mm 1fr; gap: 1.5mm 5mm; font-size: 8.8pt; margin: 3mm 0 5mm; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; color: #222; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .box {
+    border: 1px solid var(--line); border-radius: 2mm; padding: 3.5mm 4mm;
+    background: #fbfbf7; page-break-inside: avoid;
+  }
+  .box h3 { margin-top: 0; }
+  .tagline { color: var(--brass); font-weight: 600; }
+  .small { font-size: 8pt; color: var(--muted); }
+  .status { color: var(--green); font-weight: 600; }
+  .warn-text { color: var(--red); font-weight: 600; }
+  .footer-note { margin-top: 8mm; padding-top: 3mm; border-top: 1px solid var(--line); font-size: 7.5pt; color: #8a908a; }
+  @media print {
+    h2, h3 { break-after: avoid; }
+    table, .callout, .diagram, .box { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="top">
+    <div class="brand"><span class="mark">MB</span><span>银行财务平台 · Treasury Console</span></div>
+    <div class="tag">INTERNAL · v1.0</div>
+  </div>
+  <div class="main">
+    <div class="eyebrow">总体方案 · 2026-10-29</div>
+    <h1>托管 UKey 采集平台</h1>
+    <div class="rule"></div>
+    <h2>一套云平台，可下沉的 Agent，三种交付形态：标准托管、BYO 自带网银服务器、私有化部署。</h2>
+  </div>
+  <div class="meta">
+    <div>方案范围<b>云平台 / 本地 Agent / MB 机柜 / 多租户</b></div>
+    <div>适用读者<b>产品、研发、运维、售前</b></div>
+    <div>核心原则<b>执行面本地，控制与数据面云上</b></div>
+    <div>当前阶段<b>P0 试点设计</b></div>
+  </div>
+  <div class="foot">本文件为内部方案，不包含客户凭据、真实账号或访问令牌。</div>
+</section>
+
+<div class="content">
+
+<h2><span class="no">00</span>文档说明</h2>
+<p class="lead">本方案把“标准托管”“客户自带网银服务器（BYO）”和“私有化部署”合并到同一套产品架构中。平台代码不分叉，差异只在于：平台部署在哪、Agent 部署在哪、UKey 归谁、凭据存哪、数据与运维边界怎么划。</p>
+
+<div class="callout good">
+  <b>结论先行：</b>推荐“云平台 + 可下沉 Agent”的架构。Agent 始终部署在 MB 机柜旁边，主动出站连云端；平台不直接连接 MB，也不直接执行 <span class="muted">mb.exe</span>。
+</div>
+
+<h3>目录</h3>
+<div class="toc">
+  <div><span>01　目标、边界与三种交付形态</span><span>01</span></div>
+  <div><span>02　总体架构与组件职责</span><span>02</span></div>
+  <div><span>03　MB 能力与设备信息获取</span><span>03</span></div>
+  <div><span>04　核心业务流程</span><span>04</span></div>
+  <div><span>05　租户、数据模型与端口绑定</span><span>05</span></div>
+  <div><span>06　Agent 设计与 Agent API</span><span>06</span></div>
+  <div><span>07　凭据、安全与合规</span><span>07</span></div>
+  <div><span>08　客户端 UKey 视图与运营后台</span><span>08</span></div>
+  <div><span>09　部署、运维与三种产品形态</span><span>09</span></div>
+  <div><span>10　分阶段实施与试点验收</span><span>10</span></div>
+  <div><span>11　风险、待定决策与下一步</span><span>11</span></div>
+</div>
+
+<p class="small">右侧数字为章节编号，不是页码。</p>
+
+<h3>版本记录</h3>
+<table>
+  <thead><tr><th style="width:14%">版本</th><th style="width:18%">日期</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>v1.0</td><td>2026-10-29</td><td>合并标准托管、BYO 自带网银服务器、私有化部署三种形态；设备信息获取改为本地 mb.exe 优先、服务商接口兜底。</td></tr>
+  </tbody>
+</table>
+<h2 class="page-break"><span class="no">01</span>目标、边界与三种交付形态</h2>
+<h3>目标</h3>
+<ul>
+  <li>客户不购买 UKey 服务器，也能使用平台；UKey 托管在我方机房。</li>
+  <li>客户已有或愿意自建网银服务器时，平台同样能接，不另做一套系统。</li>
+  <li>采集由本地 Agent 完成，结果和原件上传云端，客户通过浏览器查看。</li>
+  <li>多个客户共享 MB 机柜，但数据、端口、任务和操作严格隔离。</li>
+</ul>
+<h3>首版不做</h3>
+<ul>
+  <li>客户自助开通、在线支付、复杂计费。</li>
+  <li>跨地域多活和自动容灾。</li>
+  <li>客户直接操作 MB 机柜或访问本地 Agent。</li>
+  <li>承诺所有银行都能无人值守；按银行逐家验证。</li>
+</ul>
+
+<h3>三种交付形态</h3>
+<table>
+  <thead><tr><th style="width:17%">形态</th><th style="width:17%">平台位置</th><th style="width:17%">UKey / MB</th><th style="width:25%">适用客户</th><th>谁运维</th></tr></thead>
+  <tbody>
+    <tr><td><b>标准托管</b></td><td>我方云</td><td>我方机房</td><td>不想买服务器的小客户</td><td>我方全包</td></tr>
+    <tr><td><b>BYO</b></td><td>我方云</td><td>客户机房</td><td>已有或愿意买 MB 的客户</td><td>客户管硬件，我方管平台</td></tr>
+    <tr><td><b>私有化</b></td><td>客户机房</td><td>客户机房</td><td>银行、国企、数据不出域</td><td>客户 IT，我方支持</td></tr>
+  </tbody>
+</table>
+<div class="callout warn"><b>不建议：</b>平台部署在客户机房、UKey 放在我方机房。网络方向是反的，运维和安全边界都很难划清。</div>
+
+<h2><span class="no">02</span>总体架构与组件职责</h2>
+<div class="diagram"><span class="b">客户浏览器</span>
+    │ HTTPS
+    ▼
+<span class="b">云平台</span>（FastAPI + PostgreSQL + 对象存储）
+    ▲
+    │ <span class="g">出站 HTTPS</span>：心跳 / 领任务 / 回传 / 上传
+    │
+<span class="b">本地采集 Agent</span>（Windows）
+    │ mb.exe load_port / robot / shutdown_port
+    ▼
+<span class="b">MB 机柜 + UKey</span>
+    │
+银行网银</div>
+
+<p>Agent 可以部署在我方机房（标准托管），也可以部署在客户机房（BYO / 私有化）。云端不主动连本地，不需要客户开放入站端口。云端只负责任务、设备、数据、审计；硬件动作全部由 Agent 执行。</p>
+
+<h3>组件职责</h3>
+<table>
+  <thead><tr><th style="width:23%">组件</th><th>职责</th></tr></thead>
+  <tbody>
+    <tr><td><b>云平台 · Web/API</b></td><td>客户与运营人员访问；租户隔离、权限、审计。</td></tr>
+    <tr><td><b>云平台 · 调度器</b></td><td>按账户采集计划生成流水/回单任务。</td></tr>
+    <tr><td><b>云平台 · 任务中心</b></td><td>任务队列、租约、重试、状态机、端口锁。</td></tr>
+    <tr><td><b>云平台 · 设备中心</b></td><td>MB 机柜、端口、UKey、租户与账户绑定。</td></tr>
+    <tr><td><b>云平台 · 数据与文件</b></td><td>流水、回单、余额、对账结果；原件对象存储。</td></tr>
+    <tr><td><b>本地 Agent</b></td><td>心跳、领任务、mb.exe 控制、采集执行、结果上传。</td></tr>
+    <tr><td><b>本地 Agent · 守护</b></td><td>Windows 服务、看门狗、自动重启、日志轮转、断网缓存。</td></tr>
+    <tr><td><b>MB 机柜</b></td><td>UKey 物理托管、端口映射、机械臂按键、端口复位。</td></tr>
+  </tbody>
+</table>
+
+<h2><span class="no">03</span>MB 能力与设备信息获取</h2>
+<h3>MB 实际提供的能力</h3>
+<ul>
+  <li><b>设备标识：</b><span class="muted">ter_id</span>（机柜）+ <span class="muted">port</span>（端口）唯一标识一个 UKey。</li>
+  <li><b>设备清单：</b>银行、客户别名、证书到期、在线/离线、端口是否插着设备、PID。</li>
+  <li><b>端口控制：</b>加载、拔出、强制拔出、重启端口、重启整柜。</li>
+  <li><b>机械臂：</b>对需要物理按键确认的 UKey 执行按键动作。</li>
+</ul>
+
+<h3>当前实现与新目标</h3>
+<table>
+  <thead><tr><th style="width:22%">能力</th><th style="width:30%">当前实现</th><th>目标</th></tr></thead>
+  <tbody>
+    <tr><td>设备清单</td><td>服务商 Web 接口，F12 复刻请求，依赖登录态 token</td><td><b>本地优先</b>：Agent 用 mb.exe status 读取，平台落库</td></tr>
+    <tr><td>银行/别名/证书</td><td>服务商 Web 接口</td><td>本地能拿到的用本地；拿不到的保留平台已有值，服务商接口仅兜底</td></tr>
+    <tr><td>端口控制</td><td>本地 mb.exe</td><td>保持一致，全部由 Agent 执行</td></tr>
+  </tbody>
+</table>
+
+<div class="callout good">
+  <b>已落地的调整：</b>设备同步已改为“本地优先、服务商兜底”。平台优先执行 <span class="muted">mb.exe status --ter_id</span>，解析端口、银行、USB PID、占用状态；原有别名和证书到期保留；本地不可用或缺少元数据时才回退服务商接口。同步结果会记录来源（本地 MB / 服务商接口）。
+</div>
+
+<h3>本地 status 的实际字段</h3>
+<table>
+  <thead><tr><th style="width:26%">字段</th><th>用途</th></tr></thead>
+  <tbody>
+    <tr><td><span class="muted">usb_port_manage.usb_port_info[].usb_port</span></td><td>端口号，与平台 gf3_port 对应</td></tr>
+    <tr><td><span class="muted">bank_infos.bank_type / vendor / product</span></td><td>银行、厂商、UKey 型号；映射到 bank_code 和证书主题</td></tr>
+    <tr><td><span class="muted">dev_exists</span></td><td>端口是否插着设备；0 表示空闲</td></tr>
+    <tr><td><span class="muted">usb_share / client_ip</span></td><td>是否被采集机占用；对应“使用中”状态</td></tr>
+    <tr><td><span class="muted">usb_pid</span></td><td>设备编号，写入 external_id</td></tr>
+    <tr><td><span class="muted">port_name</span></td><td>端口备注；没有时用“银行 · N号口”生成名称</td></tr>
+  </tbody>
+</table>
+<p class="small">本地 status 不返回客户别名、证书到期时间；这些字段继续保留平台已有值，或通过服务商接口/人工维护补齐。长期应推动 MB 厂商提供本地官方 API 或 SDK，避免依赖网页登录态。</p>
+
+<h3>MB 动作与平台动作</h3>
+<table>
+  <thead><tr><th style="width:26%">时机</th><th style="width:36%">MB 命令</th><th>平台 / Agent 动作</th></tr></thead>
+  <tbody>
+    <tr><td>新机柜接入</td><td>find_ter / get_mac</td><td>登记 ter_id、位置、所属 Agent</td></tr>
+    <tr><td>盘点 UKey</td><td>status --ter_id</td><td>本地读取端口、银行、占用状态</td></tr>
+    <tr><td>任务开始</td><td>force_shutdown_port</td><td>清理上一次异常残留</td></tr>
+    <tr><td>加载 UKey</td><td>load_port --ter_id --port --user</td><td>等待系统识别 UKey</td></tr>
+    <tr><td>需要按键</td><td>robot --ter_id --port</td><td>银行流程对应步骤调用</td></tr>
+    <tr><td>任务结束</td><td>shutdown_port</td><td>无论成功失败都释放端口</td></tr>
+    <tr><td>端口卡死</td><td>force_shutdown_port</td><td>兜底并告警</td></tr>
+    <tr><td>单端口异常</td><td>restart_port</td><td>自动恢复一次</td></tr>
+    <tr><td>整柜异常</td><td>restart_ter</td><td>运营确认后执行</td></tr>
+  </tbody>
+</table>
+
+<h2><span class="no">04</span>核心业务流程</h2>
+<h3>UKey 入库与绑定</h3>
+<ol>
+  <li>客户寄送 UKey，登记客户、银行、账户、证书到期。</li>
+  <li>插入 MB 机柜指定 <span class="muted">ter_id + port</span>。</li>
+  <li>Agent 读取本地 status，平台写入或更新 UKey 设备。</li>
+  <li>绑定客户账户；一个 UKey 只服务一个租户的一个账户。</li>
+  <li>生成托管凭证：机柜位置、端口、照片、入库时间。</li>
+</ol>
+
+<h3>采集任务</h3>
+<ol>
+  <li>云端调度器按 <span class="muted">collect_cron</span> 创建任务。</li>
+  <li>任务带 <span class="muted">tenant_id</span>、账户、设备、ter_id、端口。</li>
+  <li>Agent 领取任务并锁定端口。</li>
+  <li>Agent 执行：清理残留 → load_port → 等待识别 → 浏览器与银行驱动 → 需要时 robot → 采集 → shutdown_port。</li>
+  <li>上传结果 JSON、日志、原件。</li>
+  <li>云端幂等入库，更新余额、流水、回单、任务状态。</li>
+  <li>客户查看；失败进入待办。</li>
+</ol>
+
+<h3>失败处理</h3>
+<table>
+  <thead><tr><th style="width:30%">场景</th><th>处理</th></tr></thead>
+  <tbody>
+    <tr><td>端口卡死</td><td>force_shutdown_port</td></tr>
+    <tr><td>单端口异常</td><td>restart_port</td></tr>
+    <tr><td>整柜异常</td><td>restart_ter</td></tr>
+    <tr><td>Agent 崩溃</td><td>租约过期，备用 Agent 接管；先强制释放端口</td></tr>
+    <tr><td>银行页面异常</td><td>重试 1–3 次，仍失败标记“需处理”</td></tr>
+    <tr><td>OTP / 人工确认</td><td>标记“半自动”，进入人工处理队列</td></tr>
+  </tbody>
+</table>
+
+<h2><span class="no">05</span>租户、数据模型与端口绑定</h2>
+<h3>核心表</h3>
+<table>
+  <thead><tr><th style="width:20%">表</th><th>关键字段</th></tr></thead>
+  <tbody>
+    <tr><td>tenant</td><td>名称、编码、deployment_mode、状态、套餐</td></tr>
+    <tr><td>app_user</td><td>tenant_id、role：管理员 / 财务 / 审计</td></tr>
+    <tr><td>agent</td><td>code、tenant_id（BYO 必填）、deployment_mode、机柜列表、状态、心跳</td></tr>
+    <tr><td>mb_terminal</td><td>ter_id、owner、位置、主/备 Agent、端口数、状态</td></tr>
+    <tr><td>ukey_device</td><td>tenant_id、ter_id、port、bank_code、alias、cert_expires_at、status、assigned_account_id、is_spare</td></tr>
+    <tr><td>bank_account</td><td>tenant_id、ukey_device_id、collect_cron、watermark_date</td></tr>
+    <tr><td>collection_task</td><td>tenant_id、account_id、device_id、agent_code、type、status、lease_until</td></tr>
+    <tr><td>artifact</td><td>tenant_id、object_key、kind、sha256、size</td></tr>
+    <tr><td>audit_log</td><td>tenant_id、actor、action、target、detail</td></tr>
+  </tbody>
+</table>
+
+<h3>约束</h3>
+<ul>
+  <li>一个 <span class="muted">ter_id + port</span> 同时只绑定一个 UKey。</li>
+  <li>一个 UKey 同时只服务一个账户。</li>
+  <li>一个端口同时只有一个进行中的任务。</li>
+  <li>备用端口单独标记，不参与正常调度。</li>
+  <li>所有查询必须带 <span class="muted">tenant_id</span>，不能只靠前端隐藏。</li>
+</ul>
+
+<h2><span class="no">06</span>Agent 设计与 Agent API</h2>
+<h3>Agent 是部署边界</h3>
+<ul>
+  <li>Windows 服务、开机自启、看门狗、自动重启。</li>
+  <li>安装 mb.exe、Chrome、银行驱动、AiKeyboard。</li>
+  <li>与 MB 同局域网，出站 HTTPS 到云端。</li>
+  <li>只允许访问：云端域名、MB 地址、银行域名。</li>
+  <li>一次性注册码绑定租户/机柜；支持签名升级和回滚。</li>
+  <li>断网时保留已领取任务，继续执行；新任务等恢复后再领。</li>
+</ul>
+
+<h3>Agent API（当前已实现）</h3>
+<table>
+  <thead><tr><th style="width:38%">接口</th><th>作用</th></tr></thead>
+  <tbody>
+    <tr><td>POST /api/agent/devices/report</td><td>上报 MB 设备、端口、银行与占用状态</td></tr>
+    <tr><td>POST /api/agent/tasks/claim</td><td>按 agent_code 领取本机队列任务，30 分钟租约</td></tr>
+    <tr><td>GET /api/agent/tasks/{id}/credentials</td><td>领取后单独获取账户凭据，不放在任务列表里</td></tr>
+    <tr><td>POST /api/agent/tasks/{id}/result</td><td>回传执行结果、日志与原件（base64）</td></tr>
+  </tbody>
+</table>
+<div class="callout warn"><b>注意：</b>Agent 只主动出站访问平台，平台不连客户内网；令牌通过 <span class="muted">PLATFORM_AGENT_TOKEN_MAP</span> 绑定到具体 agent_code，一个令牌不能领取其他 Agent 的任务。回传原件单文件上限 20MB、单任务上限 60MB。</div>
+
+<h2><span class="no">07</span>凭据、安全与合规</h2>
+<h3>凭据两种模式</h3>
+<table>
+  <thead><tr><th style="width:24%">模式</th><th>做法</th><th style="width:30%">适用</th></tr></thead>
+  <tbody>
+    <tr><td><b>云端托管（默认）</b></td><td>密码/PIN 加密存云端 KMS，Agent 执行时取一次性凭据</td><td>标准托管；体验好，支持远程排障</td></tr>
+    <tr><td><b>本地保管</b></td><td>凭据加密存采集盒子本地，云端只发任务、不收密码</td><td>BYO / 私有化；强合规客户</td></tr>
+  </tbody>
+</table>
+
+<h3>必做安全项</h3>
+<ul>
+  <li>云端 HTTPS、Secure Cookie、CSRF、登录限流、会话过期、MFA。</li>
+  <li>Agent Token / 证书，支持轮换；可选 mTLS。</li>
+  <li>Agent 出站白名单；不开放入站。</li>
+  <li>云端按租户加密；KMS/信封加密。</li>
+  <li>每次凭据解密、端口加载/释放、人工操作都写审计。</li>
+  <li>银行授权书、数据处理协议、数据保留/删除策略。</li>
+  <li>本地机柜：锁柜、门禁、监控、UPS、备用端口、UKey 进出登记。</li>
+</ul>
+
+<h2><span class="no">08</span>客户端 UKey 视图与运营后台</h2>
+<div class="two-col">
+  <div class="box">
+    <h3>客户可见</h3>
+    <ul>
+      <li>银行、账户尾号、户名</li>
+      <li>托管位置：我方机房 / 客户机房</li>
+      <li>状态：在线 / 离线 / 维护中</li>
+      <li>证书到期时间</li>
+      <li>最近采集、最近插拔/按键</li>
+      <li>操作记录</li>
+      <li>“申请更换”“报障”</li>
+    </ul>
+  </div>
+  <div class="box">
+    <h3>运营可见</h3>
+    <ul>
+      <li>ter_id、端口、PID、Agent</li>
+      <li>端口占用、异常状态</li>
+      <li>restart_port / restart_ter / force_shutdown_port</li>
+      <li>物理位置、备用端口</li>
+      <li>设备离线、证书到期、任务失败率</li>
+      <li>Agent 心跳、队列积压</li>
+    </ul>
+  </div>
+</div>
+<p class="small">客户不需要访问 MB 后台。平台提供“托管 UKey”页面，把技术细节收敛为客户能理解的状态和记录。</p>
+
+<h2><span class="no">09</span>部署、运维与三种产品形态</h2>
+<h3>部署拓扑</h3>
+<table>
+  <thead><tr><th style="width:18%">形态</th><th style="width:30%">云端</th><th style="width:28%">本地</th><th>网络</th></tr></thead>
+  <tbody>
+    <tr><td><b>标准托管</b></td><td>FastAPI + PostgreSQL + MinIO/S3 + Nginx</td><td>MB 机柜 + 采集机</td><td>本地出站 443</td></tr>
+    <tr><td><b>BYO</b></td><td>同一套云平台</td><td>客户 MB + 采集盒子（Windows 迷你主机）</td><td>客户出站 443</td></tr>
+    <tr><td><b>私有化</b></td><td>无</td><td>平台 + Agent + PostgreSQL + MinIO</td><td>客户内网 / 离线</td></tr>
+  </tbody>
+</table>
+
+<h3>采集盒子</h3>
+<p>BYO 场景建议提供预配置的 Windows 迷你主机：Agent、mb.exe、Chrome、银行驱动、AiKeyboard、看门狗全部预装。客户只需提供电源、网口，把 UKey 插进机柜。比在客户 IT 机器上装软件更可控，也更容易远程支持。</p>
+
+<h3>运营与支持边界</h3>
+<table>
+  <thead><tr><th style="width:18%">形态</th><th style="width:30%">硬件 / 物理</th><th style="width:28%">平台 / Agent</th><th>SLA 重点</th></tr></thead>
+  <tbody>
+    <tr><td>标准托管</td><td>我方</td><td>我方</td><td>全链路</td></tr>
+    <tr><td>BYO</td><td>客户</td><td>我方</td><td>平台与 Agent；不含客户网络/硬件</td></tr>
+    <tr><td>私有化</td><td>客户</td><td>客户 IT，我方支持</td><td>License 与版本支持</td></tr>
+  </tbody>
+</table>
+
+<h2><span class="no">10</span>分阶段实施与试点验收</h2>
+<h3>实施阶段</h3>
+<table>
+  <thead><tr><th style="width:18%">阶段</th><th style="width:18%">时间</th><th>交付</th></tr></thead>
+  <tbody>
+    <tr><td><b>P0 标准托管试点</b></td><td>2–3 周</td><td>Agent API、独立 Agent、MB 端口控制、单客户云端平台、结果上传</td></tr>
+    <tr><td><b>P1 产品化</b></td><td>4–6 周</td><td>租户隔离、BYO 采集盒子、注册码、运营后台、对象存储、监控告警、备份</td></tr>
+    <tr><td><b>P2 规模化</b></td><td>6–8 周</td><td>多 Agent、备用机柜、自动升级、SLA 监控、计费</td></tr>
+    <tr><td><b>P3 私有化</b></td><td>4–6 周</td><td>离线安装包、License、本地对象存储、备份、实施手册</td></tr>
+  </tbody>
+</table>
+<p class="small">每接一家新银行，另算 1–3 周，取决于 UKey、OTP、页面稳定性和是否需要 robot 按键。按 2 名工程师 + 0.5 名运维估算，实际取决于银行数量。</p>
+
+<h3>P0 只做四件事</h3>
+<ol>
+  <li>把 Worker 从平台进程拆成独立 Agent。</li>
+  <li>增加 /api/agent/*。</li>
+  <li>把 MB 的 ter_id + port 绑定到账户，任务开始/结束走 load_port / shutdown_port，异常走 force_shutdown_port / restart_port。</li>
+  <li>选 1–2 家真实银行，验证采集、按键、证书、PIN。</li>
+</ol>
+
+<h3>试点验收标准</h3>
+<ul>
+  <li>1 个客户、1 台 MB、2 家银行。</li>
+  <li>定时任务成功率 ≥ 95%。</li>
+  <li>端口释放率 100%，无残留映射。</li>
+  <li>Agent 重启后能继续领任务。</li>
+  <li>端口卡死可通过 force_shutdown_port 恢复。</li>
+  <li>设备离线、证书到期、任务失败都有告警。</li>
+  <li>客户只能看到自己的数据。</li>
+  <li>记录每家银行的 UKey 按键、PIN、OTP 限制。</li>
+</ul>
+
+<h2><span class="no">11</span>风险、待定决策与下一步</h2>
+<h3>关键风险</h3>
+<table>
+  <thead><tr><th style="width:30%">风险</th><th>应对</th></tr></thead>
+  <tbody>
+    <tr><td>厂商 Web 接口 token 过期/改版</td><td>设备库存改为 Agent 本地上报，云端缓存；服务商接口仅兜底</td></tr>
+    <tr><td>MB 机械臂不兼容某些 UKey</td><td>按银行逐一验证 robot 动作</td></tr>
+    <tr><td>银行 OTP / 人工确认</td><td>定义“半自动”流程，不承诺全自动</td></tr>
+    <tr><td>单台 MB / Agent 故障影响多客户</td><td>备用端口、备用采集机、租约接管</td></tr>
+    <tr><td>租户隔离漏洞</td><td>统一 tenant_id、自动化隔离测试、代码审查</td></tr>
+    <tr><td>客户本地网络限制出站</td><td>提供私有化部署 SKU</td></tr>
+    <tr><td>凭据泄露</td><td>KMS、短期凭据、审计、最小权限</td></tr>
+  </tbody>
+</table>
+
+<h3>需要先定的决策</h3>
+<ol>
+  <li>云端默认共享多租户，还是每客户独立实例？</li>
+  <li>BYO 客户用采集盒子，还是允许装在他们自己的 Windows 机器？</li>
+  <li>凭据默认放云端 KMS，还是本地保管？</li>
+  <li>首批做哪几家银行？</li>
+  <li>断网时本地是否继续执行已领取任务？</li>
+  <li>三种形态的 SLA、硬件归属和收费边界。</li>
+</ol>
+
+<div class="callout good">
+  <b>当前落地状态（2026-10-29）：</b>设备同步已改为本地优先：平台优先执行 mb.exe status，解析端口、银行、PID、占用状态；原有别名和证书保留，本地不可用时回退服务商接口。已在真实 MB 上验证 29 台设备同步，来源标记为“本地 MB”。客户侧设备上报通道和任务下发通道已实现：Agent 主动领取本机任务、单独获取凭据、执行后回传结果与原件；令牌按 agent_code 绑定。测试 96 passed / 2 skipped。
+</div>
+
+<h3>建议下一步</h3>
+<p>先做 P0 标准托管试点：1 个客户、1 台 MB、1 台采集机、2 家银行。把 Agent API、独立 Agent、MB 端口控制、结果上传跑通，再投入租户隔离和 BYO 盒子。这样既能验证最关键的银行/UKey 兼容性，也不会一开始就陷入多租户、私有化和 BYO 三条线同时开工。</p>
+
+<div class="footer-note">托管 UKey 采集平台 · 总体方案 v1.0 · 2026-10-29 · 内部资料</div>
+</div>
+</body>
+</html>

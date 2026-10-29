@@ -1,0 +1,111 @@
+{
+  "result": true,
+  "data": {
+    "cmd": "get_ter_status",
+    "code": 0,
+    "data": {
+      "head": {
+        "protocol": "mb_usbshare_20191024",
+        "code_type": "response",
+        "cmd": "ter_status",
+        "source_topic": "123",
+        "random": "9876543210",
+        "result": "s"
+      },
+      "data": [
+        {
+          "product_code": "T002",
+          "product_name": "usb机器人",
+          "product_rename": "MBITUSB",
+          "ter_id": "068330001533",
+          "ter_version": "4.0.0.3",
+          "ter_version_detail": "4.0.0.3_20250320_Beta_63",
+          "ter_type": "MB_2303",
+          "module_manage": {"wifi_support": "0"},
+          "eth_manage": {
+            "intranet_delay": "4.00 ms",
+            "external_delay": "14.28 ms",
+            "ip_type": "0",
+            "ter_mac": "48:AB:BD:DD:E5:BB",
+            "ip_address": "192.168.254.101",
+            "netmask": "255.255.255.0",
+            "gateway": "192.168.254.1",
+            "dns": "114.114.114.114"
+          },
+          "robotarm_manage": {
+            "robotarm_num": "30",
+            "robotarm_info": [
+              {"port_num": "1", "robot_arm_version": "MB_ROBOT_ARM_1.6", "robotarm_status": "0", "robotarm_with_dev_ports": "1"},
+              {"port_num": "2", "robot_arm_version": "MB_ROBOT_ARM_1.6", "robotarm_status": "0", "robotarm_with_dev_ports": "1"},
+              {"port_num": "3", "robot_arm_version": "MB_ROBOT_ARM_1.6", "robotarm_status": "0", "robotarm_with_dev_ports": "0"}
+            ]
+          },
+          "usb_port_manage": {
+            "usb_port_num": "30",
+            "without_dev_port_num": "1",
+            "without_dev_ports": "3;",
+            "usb_port_info": [
+              {
+                "usb_port": "1",
+                "dev_exists": "1",
+                "port_power": "1",
+                "bank_infos": {"bank_type": "ICBC", "vendor": "Usbdisk ", "product": "Composite Token ", "revision": "1.00", "disk_size": "156 KB"},
+                "usb_vid": "1ea8",
+                "usb_pid": "d001",
+                "usb_app": "4",
+                "oper_id": "anyone",
+                "user": "15711668178",
+                "usb_share": "0",
+                "usb_share_mode": "0",
+                "client_ip": "",
+                "port_name": ""
+              },
+              {
+                "usb_port": "2",
+                "dev_exists": "1",
+                "port_power": "0",
+                "bank_infos": {"bank_type": "CCB", "vendor": "TENDYRON", "product": "U-DISK          ", "revision": "1.10", "disk_size": "1024 KB"},
+                "usb_vid": "1780",
+                "usb_pid": "0401",
+                "usb_app": "4",
+                "usb_share": "1",
+                "usb_share_mode": "0",
+                "client_ip": "192.168.254.120",
+                "port_name": ""
+              },
+              {
+                "usb_port": "3",
+                "dev_exists": "0",
+                "port_power": "0",
+                "bank_infos": {"bank_type": "BOC", "vendor": "FEITIAN", "product": "KeyPod SE", "revision": "1.00", "disk_size": "0 KB"},
+                "usb_vid": "096e",
+                "usb_pid": "",
+                "usb_app": "0",
+                "usb_share": "0",
+                "usb_share_mode": "0",
+                "client_ip": "",
+                "port_name": ""
+              },
+              {
+                "usb_port": "4",
+                "dev_exists": "1",
+                "port_power": "0",
+                "bank_infos": {"bank_type": "BANKOFDALIAN", "vendor": "FT      ", "product": "is3kkeyc16cc0c6 ", "revision": "1.00", "disk_size": "2080 KB"},
+                "usb_vid": "096e",
+                "usb_pid": "0713",
+                "usb_app": "4",
+                "usb_share": "0",
+                "usb_share_mode": "0",
+                "client_ip": "",
+                "port_name": "大连银行(复核)"
+              }
+            ]
+          },
+          "on_ip_white_list": "1",
+          "zlib_support": "0",
+          "M_OR_S": "Slave"
+        }
+      ]
+    }
+  }
+}

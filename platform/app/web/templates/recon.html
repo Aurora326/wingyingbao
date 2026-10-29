@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% from "_ui.html" import match_type_text %}
+{% block title %}智能对账 · 银行财务平台{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">账务</div>
+    <h1>智能对账</h1>
+    <div class="sub">把银行流水和公司内部单据自动配对，帮你快速找出对不上的记录。</div>
+  </div>
+  <div class="head-meta">
+    <span class="chip"><i class="dot"></i>已导入 {{ docs | length }} 条内部单据</span>
+  </div>
+</div>
+
+<div class="steps">
+  <section class="step-card">
+    <div class="step-head">
+      <span class="step-no">1</span>
+      <span class="step-tag">准备</span>
+    </div>
+    <h3>导入内部单据</h3>
+    <p>上传付款单、报销单等 Excel 或 CSV，每行一笔，至少包含金额和日期。</p>
+    <form onsubmit="importDocs(event)" enctype="multipart/form-data">
+      <label class="file-drop">
+        <input type="file" name="file" accept=".xlsx,.xls,.csv" required>
+        <svg class="ico"><use href="#i-upload"/></svg>
+        <span>选择 Excel / CSV 文件</span>
+      </label>
+      <button class="primary" type="submit">导入单据</button>
+    </form>
+  </section>
+
+  <section class="step-card">
+    <div class="step-head">
+      <span class="step-no">2</span>
+      <span class="step-tag">核对</span>
+    </div>
+    <h3>选择期间开始对账</h3>
+    <p>系统会把这段时间的银行流水和内部单据逐笔比对。</p>
+    <form onsubmit="createReconBatch(event)">
+      <div class="form-grid">
+        <div class="field"><label>从</label><input type="date" name="period_start" required></div>
+        <div class="field"><label>到</label><input type="date" name="period_end" required></div>
+        <div class="field full"><label>批次名称（选填）</label><input name="name" placeholder="如 10 月对账"></div>
+      </div>
+      <button class="primary" type="submit">开始对账</button>
+    </form>
+  </section>
+
+  <section class="step-card">
+    <div class="step-head">
+      <span class="step-no">3</span>
+      <span class="step-tag">收尾</span>
+    </div>
+    <h3>处理对不上的记录</h3>
+    {% if batches %}
+    <div class="step-stat">
+      <b class="{{ 'text-warn' if batches[0].unmatched_count else '' }}">{{ batches[0].unmatched_count }}</b>
+      <span>笔还没对上</span>
+    </div>
+    <p>最近一次对账为「{{ batches[0].name or ('批次 #' ~ batches[0].id) }}」，可进入明细逐笔确认或忽略。</p>
+    <a class="btn primary" href="/recon?batch_id={{ batches[0].id }}">去处理差异</a>
+    {% else %}
+    <div class="step-stat"><b>0</b><span>笔待处理</span></div>
+    <p>完成一次对账后，这里会显示还需要处理的记录。</p>
+    <button class="primary" disabled>暂无可处理批次</button>
+    {% endif %}
+  </section>
+</div>
+
+<div class="section-head">
+  <div>
+    <h2>对账记录</h2>
+    <p>每次对账的结果都会保存在这里，可随时查看或导出</p>
+  </div>
+</div>
+
+<div class="panel">
+  {% if batches %}
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>批次</th><th>期间</th><th>结果</th><th>匹配情况</th><th class="num">差额</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for b in batches %}
+      <tr>
+        <td>
+          <b>{{ b.name or ('对账批次 #' ~ b.id) }}</b>
+          <div class="cell-sub">编号 #{{ b.id }}</div>
+        </td>
+        <td class="muted nowrap">{{ b.period_start | dt }} 至 {{ b.period_end | dt }}</td>
+        <td><span class="tag {{ 'green' if b.status == 'done' else 'amber' }}">{{ '已完成' if b.status == 'done' else '进行中' }}</span></td>
+        <td>
+          已匹配 <b>{{ b.matched_count }}</b> 笔
+          <span class="muted">· 未匹配 <b class="{{ 'text-danger' if b.unmatched_count else '' }}">{{ b.unmatched_count }}</b> 笔</span>
+        </td>
+        <td class="num">{{ b.diff_amount | money }}</td>
+        <td class="right nowrap">
+          <a class="btn small" href="/recon?batch_id={{ b.id }}">查看明细</a>
+          <a class="btn small" href="/api/recon/batches/{{ b.id }}/export">导出</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <div class="empty">还没有对账记录。先导入内部单据，再选择期间开始对账</div>
+  {% endif %}
+</div>
+
+{% if batch_id %}
+{% set ns = namespace(matched=0, unmatched=0, ignored=0, diff=0) %}
+{% for item in items %}
+  {% if item.status == 'matched' %}{% set ns.matched = ns.matched + 1 %}
+  {% elif item.status == 'ignored' %}{% set ns.ignored = ns.ignored + 1 %}
+  {% else %}{% set ns.unmatched = ns.unmatched + 1 %}{% endif %}
+  {% if item.diff_amount %}{% set ns.diff = ns.diff + item.diff_amount | float %}{% endif %}
+{% endfor %}
+<div class="stat-row">
+  <div class="stat">
+    <span class="k">已对上</span>
+    <span class="v green">{{ ns.matched }}</span>
+    <span class="f">银行流水与内部单据一致</span>
+  </div>
+  <div class="stat">
+    <span class="k">待处理</span>
+    <span class="v {{ 'amber' if ns.unmatched else '' }}">{{ ns.unmatched }}</span>
+    <span class="f">需要人工确认或忽略</span>
+  </div>
+  <div class="stat">
+    <span class="k">已忽略</span>
+    <span class="v">{{ ns.ignored }}</span>
+    <span class="f">确认无需对应单据</span>
+  </div>
+  <div class="stat">
+    <span class="k">差额合计</span>
+    <span class="v">{{ ns.diff | money }}</span>
+    <span class="f">未匹配记录的金额差</span>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>批次 #{{ batch_id }} 明细</h2>
+      <div class="panel-sub">逐笔核对银行流水与内部单据</div>
+    </div>
+    <a class="more" href="/recon">返回全部批次 <svg class="ico"><use href="#i-arrow"/></svg></a>
+  </div>
+  {% if items %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>状态</th><th>银行流水</th><th>内部单据</th><th>匹配方式</th><th class="num">差额</th><th></th></tr></thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>
+          {% if item.status == 'matched' %}<span class="tag green">已对上</span>
+          {% elif item.status == 'ignored' %}<span class="tag">已忽略</span>
+          {% else %}<span class="tag red">待处理</span>{% endif %}
+        </td>
+        <td>
+          {% if item.statement %}
+            <b>{{ item.statement.counterparty or '—' }}</b>
+            <div class="cell-sub">{{ item.statement.date | dt }} · {{ '收入' if item.statement.direction == 'credit' else '支出' }} {{ item.statement.amount | money }}</div>
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
+        <td>
+          {% if item.doc %}
+            <b>{{ item.doc.counterparty or item.doc.doc_no }}</b>
+            <div class="cell-sub">{{ item.doc.date | dt }} · {{ item.doc.amount | money }}</div>
+          {% else %}
+            <span class="muted">未对应</span>
+            {% if item.candidates %}
+            <div class="cell-sub">
+              可能是：
+              {% for c in item.candidates %}{{ c.counterparty or c.doc_no or c.internal_doc_id }}（{{ c.amount | money }}）{{ '；' if not loop.last }}{% endfor %}
+            </div>
+            {% endif %}
+          {% endif %}
+        </td>
+        <td class="muted">{{ match_type_text(item.match_type) }}</td>
+        <td class="num">{{ item.diff_amount | money }}</td>
+        <td class="right nowrap">
+          {% if item.status == 'unmatched' and item.statement %}
+            <select id="doc-{{ item.id }}" style="min-width:170px;">
+              <option value="">选择对应的内部单据</option>
+              {% for d in docs %}
+              <option value="{{ d.id }}">{{ d.doc_date | dt }} · {{ d.counterparty or d.doc_no }} · {{ d.amount | money }}</option>
+              {% endfor %}
+            </select>
+            <button class="small primary" onclick="confirmReconItem({{ item.id }}, 'doc-{{ item.id }}')">确认对上</button>
+            <button class="small" onclick="ignoreReconItem({{ item.id }})">忽略</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <div class="empty">这个批次没有明细</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

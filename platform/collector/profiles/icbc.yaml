@@ -1,0 +1,125 @@
+bank_code: icbc
+display_name: 工商银行
+
+urls:
+  login: https://corporbank-simp.icbc.com.cn/frame/web/index.html
+  statement: ""
+  receipt: ""
+
+file_prefix:
+  statement: 工商银行_银行流水
+  receipt: 工商银行_电子回单
+
+options:
+  headless: false
+  page_timeout: 30
+  window: [1750, 950]
+  # 不最大化，保持固定尺寸，坐标兜底才可复现
+  maximize: false
+  chrome_path: ""
+  aikeyboard_path: C:\wangyingbao\keyboard\AiKeyboard.exe
+  extension_path: C:\Users\Worker\AppData\Local\Google\Chrome\User Data\Default\Extensions\ebfkjhegjojpombijlnbkmjoabfgohkb\1.0.5.1_0
+  auth_timeout: 240
+  # 弹窗间隙轮询登录态，登录成功立刻退出；这个空闲值只作为兜底
+  auth_idle_timeout: 15
+  login_check_interval: 1.5
+  login_page_wait: 2.5
+  # 点完 U盾登录后证书弹窗可能延迟出现，等足 10 秒再判定
+  cert_wait: 10
+  cert_settle: 0.5
+  pin_settle: 0.3
+  chrome_scan_interval: 1.0
+  login_wait: 10
+  download_timeout: 60
+  # 回单走异步生成，提交后最多等这么久去「文件异步下载」取件
+  async_wait: 120
+  date_click_other: false
+  archive_by_month: true
+  retention_months: 2
+  login_button_selector: "#app > div > div:nth-child(3) > div > div > div.banner_wrap > div > div.banner_login > div > div.tab-content > div > button"
+  login_button_ratio: [0.70, 0.46]
+  pin_input_ratio: [0.50, 0.44]
+  cert_confirm_ratio: [0.71, 0.87]
+  cert_row_ratio: [0.57, 0.36]
+  pin_field_ratio: [0.47, 0.68]
+  pin_confirm_ratio: [0.25, 0.87]
+  pin_close_timeout: 12
+  sidebar_close_click: [600, 400]
+  extra_args: []
+
+selectors:
+  logged_in:
+    - "text=退出"
+    - ".logout"
+    - "text=工作台"
+    - "text=账户管理"
+    - ".account-info"
+    - ".user-name"
+  logged_in_strict:
+    - "text=退出"
+    - ".logout"
+    - "text=工作台"
+  page_marker:
+    - "input#datepicker1-beginDate"
+    - "input[id*='beginDate']"
+    - "#qryBtn"
+  statement_nav:
+    - "span.nav:text-is('账户管理')"
+  statement_menu:
+    # 左侧菜单项带 hide 类，但 JS 点击有效
+    - "span.menu_item_title:text-is('明细查询')"
+    - "a.menu_item:has-text('明细查询')"
+  receipt_nav:
+    - "span.nav:text-is('账户管理')"
+  receipt_menu:
+    - "span.menu_item_title:text-is('电子回单')"
+    - "a.menu_item:has-text('电子回单')"
+  date_start_input:
+    - "#datepicker1-beginDate"
+    - "input[id*='beginDate']"
+  date_end_input:
+    - "#datepicker1-endDate"
+    - "input[id*='endDate']"
+  query_button:
+    - "#qryBtn"
+  no_data:
+    - "text=对不起！没有符合条件的结果！"
+    - "text=没有符合条件的结果"
+    - "text=无数据显示"
+    - "text=暂无数据"
+    - "text=未查询到"
+    - "text=暂无符合条件的查询结果"
+    - ".no-data"
+    - ".empty"
+  data_rows:
+    - "table tbody tr"
+    - ".data-row"
+  download_button:
+    - "button:text-is('下载')"
+    - "div.ebankc-mcp-btns > button:nth-child(4)"
+    - "a:text-is('下载')"
+    - "button:has-text('下载')"
+  excel_option:
+    # 下载浮层里的按钮直接绑了 detailDownXlsx()，按 onclick 匹配最稳
+    - "button[onclick*='detailDownXlsx']"
+    - "button[onclick*='detailDownXls']"
+    - "button:has-text('EXCEL（.xlsx）')"
+    - "text=EXCEL（.xlsx）"
+  pdf_option:
+    # 「下载回单信息」区块的 PDF 按钮 id 是 pdf（「下载明细」那块是 pdfBtn）
+    - "button#pdf"
+  async_nav:
+    - "span.nav:text-is('客户服务')"
+  async_menu:
+    - "span.menu_item_title:text-is('文件异步下载')"
+    - "a.menu_item:has-text('文件异步下载')"
+    - "text=文件异步下载"
+  confirm_button:
+    - "button:has-text('确定')"
+    - "button:has-text('确认')"
+  excel_dialog_close:
+    - "button:has-text('取消')"
+    - "button:has-text('关闭')"
+    - ".el-dialog__close"
+
+dialogs: {}

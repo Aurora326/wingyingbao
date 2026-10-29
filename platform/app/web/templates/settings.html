@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}系统设置 · 银行财务平台{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">配置</div>
+    <h1>系统设置</h1>
+    <div class="sub">查看系统运行状态和操作记录；技术参数默认收起，日常使用无需关心。</div>
+  </div>
+</div>
+
+<div class="status-grid">
+  <div class="status-card">
+    <span class="status-ico {{ 'green' if settings.enable_worker else 'gray' }}"><svg class="ico"><use href="#i-clock"/></svg></span>
+    <div class="status-text">
+      <span>自动采集服务</span>
+      <b>{{ '运行中' if settings.enable_worker else '已停止' }}</b>
+    </div>
+    <span class="tag {{ 'green' if settings.enable_worker else 'red' }}">{{ '正常' if settings.enable_worker else '未启用' }}</span>
+  </div>
+
+  <div class="status-card">
+    <span class="status-ico {{ 'green' if settings.enable_scheduler else 'gray' }}"><svg class="ico"><use href="#i-refresh"/></svg></span>
+    <div class="status-text">
+      <span>定时采集计划</span>
+      <b>{{ '运行中' if settings.enable_scheduler else '已停止' }}</b>
+    </div>
+    <span class="tag {{ 'green' if settings.enable_scheduler else 'red' }}">{{ '正常' if settings.enable_scheduler else '未启用' }}</span>
+  </div>
+
+  <div class="status-card">
+    <span class="status-ico blue"><svg class="ico"><use href="#i-key"/></svg></span>
+    <div class="status-text">
+      <span>已接入 UKey</span>
+      <b>{{ devices | length }} 台</b>
+    </div>
+    <a class="tag blue" href="/devices" style="text-decoration:none">去管理</a>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>账户安全</h2>
+      <div class="panel-sub">平台如何保管你的银行登录信息</div>
+    </div>
+  </div>
+  <div class="security-note">
+    <span class="security-ico"><svg class="ico"><use href="#i-shield"/></svg></span>
+    <div>
+      <b>银行密码和 UKey PIN 都已加密保存</b>
+      <p>登录信息使用 Fernet 加密存储，只有在采集任务执行时才会临时解密，磁盘上不会出现明文密码。操作记录会保留每一次修改。</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>操作记录</h2>
+      <div class="panel-sub">最近 {{ logs | length }} 条系统操作，点击「详情」可查看原始字段</div>
+    </div>
+  </div>
+  {% if logs %}
+  <div class="table-scroll">
+  <table class="log-table">
+    <thead><tr><th>时间</th><th>操作</th><th>对象</th><th>发生了什么</th></tr></thead>
+    <tbody>
+      {% for log in logs %}
+      {% set details = log | audit_details %}
+      <tr>
+        <td class="when">{{ log.created_at.strftime('%m-%d %H:%M') if log.created_at else '—' }}</td>
+        <td>
+          <b>{{ log.action | audit_action }}</b>
+          <div class="cell-sub">{{ log.actor | audit_actor }}</div>
+        </td>
+        <td class="muted nowrap">{{ log | audit_target }}</td>
+        <td class="summary">
+          {{ log | audit_summary }}
+          {% if details %}
+          <details class="log-detail">
+            <summary>详情</summary>
+            <dl class="log-kv">
+              {% for key, value in details %}
+              <dt>{{ key }}</dt><dd>{{ value }}</dd>
+              {% endfor %}
+            </dl>
+          </details>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <div class="empty">还没有操作记录</div>
+  {% endif %}
+</div>
+
+<details class="tech standalone">
+  <summary>技术信息（供 IT 人员使用）</summary>
+  <div class="tech-body">
+    <table class="kv">
+      <tbody>
+        <tr><th>数据存放位置</th><td class="mono">{{ settings.data_dir }}</td></tr>
+        <tr><th>数据库</th><td class="mono">{{ settings.db_url or '本地文件数据库' }}</td></tr>
+        <tr><th>服务监听地址</th><td class="mono">{{ settings.host }}:{{ settings.port }}</td></tr>
+        <tr><th>采集程序</th><td class="mono">{{ settings.gf3_exe }}</td></tr>
+        <tr><th>采集解释器</th><td class="mono">{{ settings.collector_python or '与平台相同' }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+{% endblock %}

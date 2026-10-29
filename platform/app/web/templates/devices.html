@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% from "_ui.html" import bank_name, device_status %}
+{% block title %}采集设备 · 银行财务平台{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">配置</div>
+    <h1>采集设备</h1>
+    <div class="sub">查看执行采集任务的电脑、UKey 所在机柜与端口编号。设备状态优先从本地 mb.exe 读取，本地不可用时回退到服务商接口。</div>
+  </div>
+  <div class="head-meta">
+    <button class="small" onclick="syncRobotDevices()">
+      <svg class="ico" style="width:13px;height:13px"><use href="#i-refresh"/></svg>同步设备
+    </button>
+    <button class="small primary" onclick="openDeviceModal()">
+      <svg class="ico" style="width:13px;height:13px"><use href="#i-plus"/></svg>手动添加
+    </button>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat">
+    <span class="k">采集电脑</span>
+    <span class="v">{{ stats.agents }}</span>
+    <span class="f">在线 {{ stats.agents_online }} 台</span>
+  </div>
+  <div class="stat">
+    <span class="k">UKey 设备</span>
+    <span class="v">{{ stats.devices }}</span>
+    <span class="f">已绑定 {{ stats.bound }} 个账户</span>
+  </div>
+  <div class="stat">
+    <span class="k">在线设备</span>
+    <span class="v green">{{ stats.devices_online }}</span>
+    <span class="f">可立即执行采集</span>
+  </div>
+  <div class="stat">
+    <span class="k">60 天内证书到期</span>
+    <span class="v {{ 'amber' if stats.expiring else '' }}">{{ stats.expiring }}</span>
+    <span class="f">{% if stats.expiring %}建议尽快更换 UKey{% else %}近期没有到期设备{% endif %}</span>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>采集电脑</h2>
+      <div class="panel-sub">负责运行采集程序的机器，心跳正常才能接取任务</div>
+    </div>
+  </div>
+  {% if agents %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>名称</th><th>状态</th><th>最近心跳</th><th>设备数</th><th>支持能力</th></tr></thead>
+    <tbody>
+      {% for ag in agents %}
+      <tr>
+        <td>
+          <b>{{ ag.name }}</b>
+          <div class="cell-sub mono">{{ ag.code }} · {{ ag.hostname or '未上报主机名' }} · {{ ag.ip or '未上报 IP' }}</div>
+        </td>
+        <td>{% if ag.status == 'online' %}<span class="tag green">在线</span>{% else %}<span class="tag red">离线</span>{% endif %}</td>
+        <td class="muted nowrap">{{ ag.last_heartbeat | dt }}</td>
+        <td>{{ ag.device_count }}</td>
+        <td class="muted">{{ ag.capabilities.backends | join(' / ') if ag.capabilities and ag.capabilities.backends else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <div class="empty">还没有登记采集电脑</div>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>设备明细</h2>
+      <div class="panel-sub">UKey 的机柜端口、终端编号和执行机，供技术人员排查使用</div>
+    </div>
+    <span class="filter-count">显示 <b id="device-count-visible">{{ devices | length }}</b> / {{ devices | length }} 台</span>
+  </div>
+  <div class="device-bar">
+    <div class="search-box">
+      <svg class="ico"><use href="#i-search"/></svg>
+      <input id="device-search" placeholder="搜索设备名称、银行、位置或设备编号" oninput="filterDeviceRows(this.value)">
+    </div>
+  </div>
+
+  {% if devices %}
+  <div class="table-scroll">
+  <table id="device-table">
+    <thead><tr><th>设备</th><th>银行</th><th>类型</th><th>机柜 / 端口</th><th>终端编号</th><th>设备编号</th><th>执行机</th><th>状态</th><th>心跳</th></tr></thead>
+    <tbody>
+      {% for d in devices %}
+      <tr data-search="{{ d.name }} {{ bank_name(d.bank_code) }} {{ d.gf3 }} {{ d.agent_name }} {{ d.ter_id }} {{ d.pid }}">
+        <td><b>{{ d.name }}</b></td>
+        <td>{{ bank_name(d.bank_code) }}</td>
+        <td class="mono">{{ d.backend }}</td>
+        <td class="mono">{{ d.gf3 }}</td>
+        <td class="mono muted">{{ d.ter_id or '—' }}</td>
+        <td class="mono muted">{{ d.pid or '—' }}</td>
+        <td class="muted">{{ d.agent_name }}</td>
+        <td>{{ device_status(d.status) }}</td>
+        <td class="muted nowrap">{{ d.last_heartbeat | dt }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <div class="empty">
+      还没有同步到 UKey 设备
+      <div class="empty-actions"><button class="btn small" onclick="syncRobotDevices()">从本地 MB 同步</button></div>
+    </div>
+  {% endif %}
+</div>
+
+<div class="modal" id="device-modal" role="dialog" aria-modal="true" aria-labelledby="device-modal-title">
+  <div class="box form-box">
+    <div class="head">
+      <div>
+        <strong id="device-modal-title">手动添加 UKey 设备</strong>
+        <div class="modal-sub">通常无需手动添加，建议先点击「同步设备」</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('device-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <form onsubmit="submitDeviceForm(event)">
+      <div class="form-grid">
+        <div class="field"><label>设备名称</label><input name="name" id="device-name" required placeholder="如 中信UKey-01"></div>
+        <div class="field">
+          <label>银行</label>
+          <select name="bank_code">
+            <option value="citic">中信银行</option>
+            <option value="cib">兴业银行</option>
+            <option value="icbc">工商银行</option>
+            <option value="nbcb">宁波银行</option>
+            <option value="njcb">南京银行</option>
+            <option value="cgb">广发银行</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>机柜类型</label>
+          <select name="backend">
+            <option value="gf3">本地 USB 机柜</option>
+            <option value="mb">远程机柜</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>所在采集电脑</label>
+          <select name="agent_code">
+            {% for ag in agents %}<option value="{{ ag.code }}">{{ ag.name }}（{{ ag.code }}）</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>机柜编号</label><input name="gf3_cabinet" value="1" type="number" min="1"></div>
+        <div class="field"><label>端口</label><input name="gf3_port" value="1" type="number" min="1" max="30"></div>
+        <div class="field"><label>终端编号（远程机柜）</label><input name="ter_id" placeholder="如 068330001517"></div>
+        <div class="field"><label>远程机柜账号</label><input name="mb_user" placeholder="选填"></div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" onclick="closeModal('device-modal')">取消</button>
+        <button class="primary" type="submit">添加设备</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

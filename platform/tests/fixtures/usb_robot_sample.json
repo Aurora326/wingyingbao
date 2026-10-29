@@ -1,0 +1,56 @@
+{
+  "result": "s",
+  "response": {
+    "usbtotal": "3",
+    "usbdata": [
+      {
+        "robotarm_with_dev_ports": "1",
+        "robotarm_status": "0",
+        "pid": "d001",
+        "ter_id": "068330001533",
+        "port_num": "1",
+        "offline": "1",
+        "end_time": "2027-07-30",
+        "record_time": "2026-05-22 15:14:05",
+        "alias_name": "测试企业A(制单)",
+        "bank_infos": {
+          "product": "Composite Token ",
+          "bank_type": "中国工商银行(ICBC)",
+          "vendor": "Usbdisk "
+        }
+      },
+      {
+        "robotarm_with_dev_ports": "1",
+        "robotarm_status": "0",
+        "pid": "0401",
+        "ter_id": "068330001533",
+        "port_num": "2",
+        "offline": "1",
+        "end_time": "2027-07-30",
+        "record_time": "2026-05-22 15:14:05",
+        "alias_name": "测试企业B(复核)",
+        "bank_infos": {
+          "product": "U-DISK",
+          "bank_type": "中国建设银行(CCB)",
+          "vendor": "TENDYRON"
+        }
+      },
+      {
+        "robotarm_with_dev_ports": "0",
+        "robotarm_status": "0",
+        "pid": "1001",
+        "ter_id": "068330001533",
+        "port_num": "20",
+        "offline": "1",
+        "end_time": "",
+        "record_time": "",
+        "alias_name": "",
+        "bank_infos": {
+          "product": "KeyPod SE",
+          "bank_type": "中信银行(CNCB)",
+          "vendor": "FEITIAN"
+        }
+      }
+    ]
+  }
+}

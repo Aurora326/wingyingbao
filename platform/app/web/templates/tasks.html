@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% from "_ui.html" import bank_name, bank_mark, task_status, task_type_text, trigger_text, error_text %}
+{% block title %}自动采集 · 银行财务平台{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">工作台</div>
+    <h1>自动采集</h1>
+    <div class="sub">系统会按计划自动登录每家银行，把流水和回单取回来。这里能看到每次采集的结果。</div>
+  </div>
+  <div class="head-meta">
+    <span class="chip"><i class="dot"></i>共 {{ stats.total }} 条采集记录</span>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat">
+    <span class="k">全部任务</span>
+    <span class="v">{{ stats.total }}</span>
+    <span class="f">历次流水与回单采集</span>
+  </div>
+  <div class="stat">
+    <span class="k">进行中</span>
+    <span class="v {{ 'amber' if stats.running else '' }}">{{ stats.running }}</span>
+    <span class="f">等待或正在执行</span>
+  </div>
+  <div class="stat">
+    <span class="k">已完成</span>
+    <span class="v green">{{ stats.succeeded }}</span>
+    <span class="f">数据已正常入库</span>
+  </div>
+  <div class="stat">
+    <span class="k">需处理</span>
+    <span class="v {{ 'red' if stats.failed else '' }}">{{ stats.failed }}</span>
+    <span class="f">{% if stats.failed %}建议查看原因后重试{% else %}没有失败任务{% endif %}</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <a class="{{ 'active' if not status }}" href="/tasks">全部</a>
+  <a class="{{ 'active' if status == 'queued' }}" href="/tasks?status=queued">等待中</a>
+  <a class="{{ 'active' if status == 'leased' }}" href="/tasks?status=leased">进行中</a>
+  <a class="{{ 'active' if status == 'succeeded' }}" href="/tasks?status=succeeded">已完成</a>
+  <a class="{{ 'active' if status == 'failed' }}" href="/tasks?status=failed">需处理</a>
+</div>
+
+<div class="panel">
+  {% if tasks %}
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>时间</th><th>账户</th><th>采集内容</th><th>覆盖日期</th><th>结果</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for t in tasks %}
+      <tr>
+        <td class="nowrap">
+          <b>{% if t.created_at %}{{ t.created_at.strftime('%m-%d %H:%M') }}{% else %}—{% endif %}</b>
+          <div class="cell-sub">{{ trigger_text(t.trigger) }} · 任务 #{{ t.id }} · {{ '本机' if t.agent_code in ('', 'local') else t.agent_code }}</div>
+        </td>
+        <td>
+          <div class="acct-cell">
+            {{ bank_mark(t.bank_code) }}
+            <div>
+              <b>{{ bank_name(t.bank_code) }}</b>
+              <span class="cell-sub">尾号 {{ t.account[-4:] }}</span>
+            </div>
+          </div>
+        </td>
+        <td>{{ task_type_text(t.type) }}</td>
+        <td class="muted nowrap">{{ t.start_date | dt }} 至 {{ t.end_date | dt }}</td>
+        <td>
+          {{ task_status(t.status) }}
+          {% if t.status == 'failed' %}
+          <div class="cell-sub">{{ error_text(t.error_code) }}</div>
+          {% endif %}
+        </td>
+        <td class="right nowrap">
+          <button class="small" onclick="showLog({{ t.id }})">查看记录</button>
+          {% if t.status in ('failed', 'succeeded') %}
+          <button class="small" onclick="retryTask({{ t.id }})">重新采集</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <div class="empty">
+      {% if status %}这个状态下还没有采集记录{% else %}还没有采集记录。添加银行账户后，系统会自动开始{% endif %}
+      <div class="empty-actions">
+        <a class="btn small" href="/accounts">管理银行账户</a>
+        {% if status %}<a class="btn small" href="/tasks">查看全部记录</a>{% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

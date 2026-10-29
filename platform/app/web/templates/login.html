@@ -1,0 +1,63 @@
+<!doctype html>
+{% set asset_v = '20261029-5' %}
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 · 银行财务平台</title>
+  <link rel="stylesheet" href="/static/app.css?v={{ asset_v }}">
+</head>
+<body class="login-page">
+<div class="login-wrap">
+  <section class="login-brand">
+    <div class="login-logo">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="#132c3b"/>
+        <rect x="0.6" y="0.6" width="30.8" height="30.8" rx="7.4" fill="none" stroke="#b98a44" stroke-opacity=".55"/>
+        <path d="M9.5 21.5v-5M14.5 21.5v-9M19.5 21.5v-6M24.5 21.5v-11" stroke="#f0e2c4" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8 25h16" stroke="#b98a44" stroke-width="1" stroke-linecap="round" opacity=".7"/>
+      </svg>
+      银行财务平台
+    </div>
+
+    <div class="login-copy">
+      <div class="rule"></div>
+      <h2>把每一家银行的账，<br>放在一个地方看清楚</h2>
+      <p>系统会自动登录网银，把流水、回单和余额取回来。你每天只需要打开首页，看看有没有需要处理的事。</p>
+      <div class="login-points">
+        <div><b>自动</b>采集流水回单</div>
+        <div><b>一处</b>看全部余额</div>
+        <div><b>加密</b>保管登录信息</div>
+      </div>
+    </div>
+
+    <div class="login-foot">© 2026 银行财务平台 · 内部系统，仅限授权人员访问</div>
+  </section>
+
+  <section class="login-side">
+    <form class="login-card" method="post" action="/login">
+      <div class="eyebrow">内部系统</div>
+      <h1>欢迎回来</h1>
+      <div class="lead">登录后即可查看今天的资金情况</div>
+      {% if error %}<div class="error">{{ error }}</div>{% endif %}
+      <div class="field">
+        <label for="login-username">用户名</label>
+        <input id="login-username" name="username" autocomplete="username" placeholder="请输入用户名" required autofocus>
+      </div>
+      <div class="field">
+        <label for="login-password">密码</label>
+        <div class="password-wrap">
+          <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="请输入密码" required>
+          <button class="password-toggle" type="button" onclick="togglePassword('login-password', this)" aria-label="显示密码">显示</button>
+        </div>
+      </div>
+      <button class="primary" type="submit">登录</button>
+      <div class="login-note">
+        <svg class="ico"><use href="#i-lock"/></svg>登录行为会记录在操作日志中
+      </div>
+    </form>
+  </section>
+</div>
+<script src="/static/ui.js?v={{ asset_v }}"></script>
+</body>
+</html>

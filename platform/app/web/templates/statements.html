@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% from "_ui.html" import bank_name, bank_mark, signed_money %}
+{% block title %}银行流水 · 银行财务平台{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">账务</div>
+    <h1>银行流水</h1>
+    <div class="sub">所有银行账户的交易明细，可以按账户、日期和关键词筛选。</div>
+  </div>
+  <div class="head-meta">
+    <span class="chip"><i class="dot"></i>共 {{ data.total }} 条记录</span>
+  </div>
+</div>
+
+<div class="panel filter-panel">
+  <div class="filter-top">
+    <div class="quick-ranges">
+      <button type="button" class="range-chip" data-range="7" onclick="quickRange('7')">近 7 天</button>
+      <button type="button" class="range-chip" data-range="30" onclick="quickRange('30')">近 30 天</button>
+      <button type="button" class="range-chip" data-range="month" onclick="quickRange('month')">本月</button>
+      <button type="button" class="range-chip" data-range="all" onclick="quickRange('all')">全部时间</button>
+    </div>
+    <span class="filter-count">当前显示第 {{ data.page }} 页 · 每页 {{ data.size }} 条</span>
+  </div>
+  <form class="inline" method="get" action="/statements" data-filter-form>
+    <div class="field">
+      <label>账户</label>
+      <select name="account_id">
+        <option value="">全部账户</option>
+        {% for a in accounts %}
+        <option value="{{ a.id }}" {{ 'selected' if filters.account_id == a.id }}>{{ bank_name(a.bank_code) }} · 尾号 {{ a.account_no[-4:] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field"><label>开始日期</label><input type="date" name="date_from" value="{{ filters.date_from }}"></div>
+    <div class="field"><label>结束日期</label><input type="date" name="date_to" value="{{ filters.date_to }}"></div>
+    <div class="field">
+      <label>收支方向</label>
+      <select name="direction">
+        <option value="" {{ 'selected' if not filters.direction }}>全部</option>
+        <option value="credit" {{ 'selected' if filters.direction == 'credit' }}>只看收入</option>
+        <option value="debit" {{ 'selected' if filters.direction == 'debit' }}>只看支出</option>
+      </select>
+    </div>
+    <div class="field grow"><label>关键词</label><input name="q" value="{{ filters.q }}" placeholder="对方户名、摘要或流水号"></div>
+    <div class="filter-actions">
+      <button class="primary" type="submit">查询</button>
+      <a class="btn" href="/statements">重置</a>
+    </div>
+  </form>
+</div>
+
+{% if data['items'] %}
+{% set sums = namespace(credit=0, debit=0) %}
+{% for row in data['items'] %}
+  {% if row.direction == 'credit' %}{% set sums.credit = sums.credit + row.amount | float %}
+  {% else %}{% set sums.debit = sums.debit + row.amount | float %}{% endif %}
+{% endfor %}
+<div class="stat-row">
+  <div class="stat">
+    <span class="k">本页收入</span>
+    <span class="v green">+{{ sums.credit | money }}</span>
+    <span class="f">当前页 {{ data['items'] | length }} 笔中的收入</span>
+  </div>
+  <div class="stat">
+    <span class="k">本页支出</span>
+    <span class="v red">-{{ sums.debit | money }}</span>
+    <span class="f">当前页 {{ data['items'] | length }} 笔中的支出</span>
+  </div>
+  <div class="stat">
+    <span class="k">本页净额</span>
+    <span class="v">{{ (sums.credit - sums.debit) | money }}</span>
+    <span class="f">收入减支出</span>
+  </div>
+  <div class="stat">
+    <span class="k">筛选结果</span>
+    <span class="v">{{ data.total }}</span>
+    <span class="f">第 {{ data.page }} 页 · 共 {{ ((data.total + data.size - 1) // data.size) or 1 }} 页</span>
+  </div>
+</div>
+{% endif %}
+
+<div class="panel">
+  {% if data['items'] %}
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>日期</th><th>账户</th><th>对方</th><th>摘要</th><th class="num">金额</th><th class="num">余额</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for row in data['items'] %}
+      <tr>
+        <td class="nowrap">
+          <b>{{ row.txn_date | dt }}</b>
+          {% if row.txn_time %}<div class="cell-sub">{{ row.txn_time }}</div>{% endif %}
+        </td>
+        <td>
+          <div class="acct-cell">
+            {{ bank_mark(row.bank_code) }}
+            <div>
+              <b>{{ bank_name(row.bank_code) }}</b>
+              <span class="cell-sub">尾号 {{ row.account[-4:] }}</span>
+            </div>
+          </div>
+        </td>
+        <td>
+          <b>{{ row.counterparty_name or '—' }}</b>
+          {% if row.counterparty_account %}<div class="cell-sub mono">{{ row.counterparty_account }}</div>{% endif %}
+        </td>
+        <td class="muted">{{ row.summary or '—' }}</td>
+        <td class="num">{{ signed_money(row.direction, row.amount) }}</td>
+        <td class="num muted">{{ row.balance | money }}</td>
+        <td class="right nowrap">
+          {% if row.receipt_id %}
+          <a class="btn small" href="/receipts?q={{ row.serial_no }}">回单</a>
+          {% endif %}
+          {% if row.artifact_id %}
+          <a class="btn small" href="/api/artifacts/{{ row.artifact_id }}/download">原文件</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="pager">
+    <span>第 {{ data.page }} 页 · 每页 {{ data.size }} 条 · 共 {{ data.total }} 条</span>
+    <span class="spacer"></span>
+    {% set qs = 'account_id=' ~ (filters.account_id or '') ~ '&date_from=' ~ filters.date_from ~ '&date_to=' ~ filters.date_to ~ '&q=' ~ filters.q ~ '&direction=' ~ filters.direction %}
+    {% if data.page > 1 %}<a class="btn small" href="/statements?page={{ data.page - 1 }}&{{ qs }}">上一页</a>{% endif %}
+    {% if data.page * data.size < data.total %}<a class="btn small" href="/statements?page={{ data.page + 1 }}&{{ qs }}">下一页</a>{% endif %}
+  </div>
+  {% else %}
+    <div class="empty">
+      没有找到符合条件的流水，换个日期范围试试
+      <div class="empty-actions">
+        <a class="btn small" href="/statements">清除筛选</a>
+        <a class="btn small" href="/tasks">去采集</a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
