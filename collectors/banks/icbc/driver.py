@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import io
 import time
 from contextlib import contextmanager
 
@@ -689,7 +690,7 @@ class IcbcDriver(BankDriver):
             page.wait_for_timeout(800)
         return False
 
-    def _download(self, ctx: RunContext, page, root, kind: str, account: str, retries: int = 1) -> CollectResult:
+    def _download(self, ctx: RunContext, page, root, kind: str, account: str, retries: int = 1, validator=None) -> CollectResult:
         timeout = int(self.option("download_timeout", 60))
         before = flow.snapshot_downloads(ctx)
         started = time.time()
@@ -726,6 +727,11 @@ class IcbcDriver(BankDriver):
                 return self._download(ctx, page, root, kind, account, retries=retries - 1)
             return CollectResult(error_code=ErrorCode.DOWNLOAD_FAILED, message="下载内容为 HTML 页面")
 
+        if validator is not None and not validator(found):
+            ctx.log("下载到的文件只有表头，按查询结果为空处理")
+            found.unlink(missing_ok=True)
+            return CollectResult(no_data=True)
+
         archived = archive_file(
             found,
             ctx.archive_root / ("statements" if kind == "statement" else "receipts"),
@@ -735,6 +741,31 @@ class IcbcDriver(BankDriver):
         )
         ctx.log(f"{'流水' if kind == 'statement' else '回单'}已归档: {archived}")
         return CollectResult(files=[archived])
+
+    # 流水导出表的表头关键字：查询为空时工行照样下载一个只有标记行和表头的表
+    STATEMENT_HEADER_KEYS = ("交易时间", "摘要")
+
+    def _statement_file_has_rows(self, path) -> bool:
+        """表头之后没有任何数据行，就说明这次查询是空的。"""
+        try:
+            from openpyxl import load_workbook
+
+            # 下载下来的是无后缀的 GUID 文件，openpyxl 会按扩展名拒绝，改用流读取
+            with open(path, "rb") as handle:
+                workbook = load_workbook(io.BytesIO(handle.read()), data_only=True)
+            rows = [
+                row
+                for row in workbook.active.iter_rows(values_only=True)
+                if any(cell not in (None, "") for cell in row)
+            ]
+            workbook.close()
+        except Exception:  # noqa: BLE001
+            return True  # 读不出来的格式按有数据处理，别把正常结果吞掉
+        for index, row in enumerate(rows):
+            cells = {str(cell) for cell in row if cell is not None}
+            if all(key in cells for key in self.STATEMENT_HEADER_KEYS):
+                return len(rows) > index + 1
+        return True
 
     def collect_statements(self, ctx: RunContext, session: BrowserSession, account: str, start: str, end: str) -> CollectResult:
         page = session.page
@@ -747,7 +778,9 @@ class IcbcDriver(BankDriver):
         if not flow.has_data(root, self):
             ctx.log("查询结果为空")
             return CollectResult(no_data=True)
-        return self._download(ctx, page, root, "statement", account)
+        return self._download(
+            ctx, page, root, "statement", account, validator=self._statement_file_has_rows
+        )
 
     @staticmethod
     def receipt_date_range(start: str, end: str, today: dt.date | None = None) -> tuple[str, str] | None:

@@ -250,3 +250,49 @@ def test_icbc_receipt_date_range_excludes_today():
     assert IcbcDriver.receipt_date_range("2026-10-01", "2026-10-29", today) == ("2026-10-01", "2026-10-28")
     assert IcbcDriver.receipt_date_range("2026-10-29", "2026-10-29", today) is None
     assert IcbcDriver.receipt_date_range("2026-09-01", "2026-10-20", today) == ("2026-09-01", "2026-10-20")
+
+
+def _driver_without_profile():
+    from banks.icbc.driver import IcbcDriver
+
+    return IcbcDriver.__new__(IcbcDriver)
+
+
+def _write_statement(path, with_data: bool) -> None:
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(["[HISTORYDETAIL]"])
+    sheet.append(["交易时间", "摘要", "转入金额", "转出金额", "余额", "对方单位"])
+    if with_data:
+        sheet.append(["2026-04-10 22:12:54", "跨行汇款手续费", "", "4.50", "253,494.06", ""])
+    workbook.save(path)
+
+
+def test_icbc_statement_without_rows_is_empty(tmp_path):
+    """查询为空时工行照样下载一个只有标记行和表头的表，必须判成空，不能当有数据。"""
+    driver = _driver_without_profile()
+    empty = tmp_path / "empty.xlsx"
+    _write_statement(empty, with_data=False)
+    assert driver._statement_file_has_rows(empty) is False
+
+    filled = tmp_path / "filled.xlsx"
+    _write_statement(filled, with_data=True)
+    assert driver._statement_file_has_rows(filled) is True
+
+
+def test_icbc_unreadable_statement_file_is_treated_as_data(tmp_path):
+    """读不出来的格式按有数据处理，避免把正常结果吞掉。"""
+    driver = _driver_without_profile()
+    broken = tmp_path / "broken.xlsx"
+    broken.write_bytes(b"not a spreadsheet")
+    assert driver._statement_file_has_rows(broken) is True
+
+
+def test_icbc_empty_statement_without_suffix_is_detected(tmp_path):
+    """浏览器下载下来的是无后缀的 GUID 文件名，按扩展名读会被拒，必须仍能判空。"""
+    driver = _driver_without_profile()
+    target = tmp_path / "ee95571e-0024-4f78-b5ea-043a4ab480da"
+    _write_statement(target, with_data=False)
+    assert driver._statement_file_has_rows(target) is False
