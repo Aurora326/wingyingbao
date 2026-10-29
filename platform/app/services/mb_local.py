@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 from app.config import settings
 from app.services.usb_robot import RobotDevice, bank_code_from_name, cabinet_from_ter_id
-from collector.core.mb import MbController, MbError
+from app.services.device.mb import MbController, MbError
 
 
 class MbLocalError(RuntimeError):

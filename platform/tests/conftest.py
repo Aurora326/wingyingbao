@@ -2,8 +2,13 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
+
+# 采集程序是独立项目，测试里要 import bankcore 得先把它挂到路径上
+COLLECTORS_ROOT = Path(__file__).resolve().parents[2] / "collectors"
+sys.path.insert(0, str(COLLECTORS_ROOT))
 
 TEST_DATA_DIR = Path(tempfile.mkdtemp(prefix="bank_platform_test_"))
 os.environ["PLATFORM_DATA_DIR"] = str(TEST_DATA_DIR)

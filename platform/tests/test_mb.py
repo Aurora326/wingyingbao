@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.models import BankAccount, Enterprise, UkeyDevice
 from app.services.executor import _build_task_payload
 from app.services.scheduler import enqueue_task
-from collector.core.mb import MbController, MbError
+from bankcore.mb import MbController, MbError
 
 
 class FakeProc:
@@ -31,7 +31,7 @@ def test_mb_commands_build_expected_arguments(tmp_path, monkeypatch):
         calls.append(cmd)
         return FakeProc()
 
-    monkeypatch.setattr("collector.core.mb.subprocess.run", fake_run)
+    monkeypatch.setattr("bankcore.mb.subprocess.run", fake_run)
     exe = _exe(tmp_path)
     controller = MbController(exe=str(exe), ter_id="068330001533", port=24, user="15711668178")
 
@@ -67,7 +67,7 @@ def test_mb_command_failure_raises(tmp_path, monkeypatch):
     def fake_run(cmd, **kwargs):
         return FakeProc(returncode=1, stdout="", stderr="port busy")
 
-    monkeypatch.setattr("collector.core.mb.subprocess.run", fake_run)
+    monkeypatch.setattr("bankcore.mb.subprocess.run", fake_run)
     controller = MbController(exe=str(_exe(tmp_path)), ter_id="068330001533", port=1, user="u")
     with pytest.raises(MbError, match="port busy"):
         controller.connect()
@@ -77,7 +77,7 @@ def test_mb_result_false_raises(tmp_path, monkeypatch):
     def fake_run(cmd, **kwargs):
         return FakeProc(stdout='{"result": false, "error": "errcode -1005"}')
 
-    monkeypatch.setattr("collector.core.mb.subprocess.run", fake_run)
+    monkeypatch.setattr("bankcore.mb.subprocess.run", fake_run)
     controller = MbController(exe=str(_exe(tmp_path)), ter_id="068330001533", port=1, user="u")
     with pytest.raises(MbError, match="-1005"):
         controller.connect()
@@ -120,7 +120,7 @@ def test_payload_carries_mb_identity(db):
 
 
 def test_executor_releases_mb_device(monkeypatch):
-    import collector.core.mb as mb_module
+    import app.services.device.mb as mb_module
     from app.services import executor
 
     calls: list[tuple[str, dict]] = []
@@ -143,7 +143,7 @@ def test_executor_releases_mb_device(monkeypatch):
 
 
 def test_unimplemented_banks_are_registered_but_rejected():
-    from collector.drivers.registry import get_driver, list_banks
+    from bankcore.drivers.registry import get_driver, list_banks
 
     codes = {bank["code"] for bank in list_banks()}
     assert {"citic", "cib", "nbcb", "njcb", "cgb", "mock"} <= codes

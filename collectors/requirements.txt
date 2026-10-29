@@ -1,0 +1,6 @@
+playwright>=1.44
+pyautogui>=0.9.54
+pygetwindow>=0.0.9
+pywinauto>=0.6.9
+pyyaml>=6.0
+openpyxl>=3.1

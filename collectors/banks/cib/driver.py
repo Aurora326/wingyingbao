@@ -3,12 +3,12 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from collector.core import flow, ui
-from collector.core.archive import archive_file
-from collector.core.browser import BrowserSession
-from collector.core.download import HTML_SUFFIXES
-from collector.core.result import CollectResult, ErrorCode
-from collector.drivers.base import BankDriver, RunContext
+from bankcore import flow, ui
+from bankcore.archive import archive_file
+from bankcore.browser import BrowserSession
+from bankcore.download import HTML_SUFFIXES
+from bankcore.result import CollectResult, ErrorCode
+from bankcore.drivers.base import BankDriver, RunContext
 
 
 class CibDriver(BankDriver):

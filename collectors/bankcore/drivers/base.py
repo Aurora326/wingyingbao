@@ -6,12 +6,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from collector.core.browser import BrowserSession
-from collector.core.gf3 import Gf3Controller
-from collector.core.mb import MbController
-from collector.core.pin import PinInjector
-from collector.core.profile import BankProfile
-from collector.core.result import CollectResult, ErrorCode
+from bankcore.browser import BrowserSession
+from bankcore.gf3 import Gf3Controller
+from bankcore.mb import MbController
+from bankcore.pin import PinInjector
+from bankcore.profile import BankProfile
+from bankcore.result import CollectResult, ErrorCode
 
 
 @dataclass

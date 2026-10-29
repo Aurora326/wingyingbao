@@ -50,6 +50,10 @@ class Settings:
     collectors_file: Path = Path(
         os.getenv("PLATFORM_COLLECTORS_FILE") or str(BASE_DIR / "collectors.yaml")
     )
+    # 采集程序的源码目录（仓库里与 platform 平级），源码模式下的工作目录
+    collectors_root: Path = Path(
+        os.getenv("PLATFORM_COLLECTORS_ROOT") or str(BASE_DIR.parent / "collectors")
+    )
     usb_robot_base_url: str = os.getenv("PLATFORM_USB_ROBOT_BASE_URL", "https://www.mbiai.com")
     usb_robot_token: str = os.getenv("PLATFORM_USB_ROBOT_TOKEN", "")
     usb_robot_user_no: str = os.getenv("PLATFORM_USB_ROBOT_USER_NO", "")

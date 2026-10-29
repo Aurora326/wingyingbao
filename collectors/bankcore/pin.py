@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from collector.core import ui
+from bankcore import ui
 
 AIKEYBOARD_CANDIDATES = [
     Path(r"C:\wangyingbao\keyboard\AiKeyboard.exe"),

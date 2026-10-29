@@ -17,7 +17,7 @@ from app.config import settings
 from app.db import SessionLocal
 from app.models import AppUser, AuditLog, BankAccount, CollectionTask
 from app.services import security
-from collector.drivers.registry import list_banks
+from app.services.banks import list_banks
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))

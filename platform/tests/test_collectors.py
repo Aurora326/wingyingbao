@@ -11,10 +11,10 @@ from app.services import collectors
 def test_no_registry_means_source_mode():
     """开发机不配清单：直接用本仓库源码跑，改了就地生效。"""
     cmd = collectors.resolve("icbc", python_exec="python.exe", registry={})
-    assert cmd.argv == ["python.exe", "-m", "collector.run_task"]
+    assert cmd.argv == ["python.exe", "-m", "bankcore.run_task"]
     assert cmd.mode == "source"
     assert cmd.origin == "default"
-    assert cmd.cwd == collectors.settings.base_dir
+    assert cmd.cwd == collectors.settings.collectors_root
 
 
 def test_registry_points_to_exe(tmp_path):
@@ -28,8 +28,8 @@ def test_registry_points_to_exe(tmp_path):
 
 
 def test_string_command_is_split():
-    cmd = collectors.resolve("icbc", registry={"icbc": {"command": "python -m collector.run_task"}})
-    assert cmd.argv == ["python", "-m", "collector.run_task"]
+    cmd = collectors.resolve("icbc", registry={"icbc": {"command": "python -m bankcore.run_task"}})
+    assert cmd.argv == ["python", "-m", "bankcore.run_task"]
 
 
 def test_unconfigured_bank_falls_back_to_source():
@@ -50,11 +50,11 @@ def test_missing_registry_returns_empty(tmp_path):
 
 
 def test_describe_reports_entry_and_mtime(tmp_path):
-    entry = tmp_path / "collector" / "run_task.py"
+    entry = tmp_path / "bankcore" / "run_task.py"
     entry.parent.mkdir()
     entry.write_text("")
     cmd = collectors.CollectorCommand(
-        [sys.executable, "-m", "collector.run_task"], tmp_path, "source", "default"
+        [sys.executable, "-m", "bankcore.run_task"], tmp_path, "source", "default"
     )
     text = collectors.describe(cmd, tmp_path / "task.json")
     assert "run_task.py mtime=" in text

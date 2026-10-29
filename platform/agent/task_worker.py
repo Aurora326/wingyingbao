@@ -131,7 +131,7 @@ def execute_task(task: dict, args) -> dict:
     )
     try:
         proc = subprocess.run(
-            [args.collector_python, "-m", "collector.run_task", "--task", str(task_path)],
+            [args.collector_python, "-m", "bankcore.run_task", "--task", str(task_path)],
             cwd=str(args.collector_root),
             capture_output=True,
             text=True,
@@ -235,7 +235,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--collector-root",
-        default=os.getenv("PLATFORM_COLLECTOR_ROOT", str(REPO_ROOT)),
+        default=os.getenv("PLATFORM_COLLECTOR_ROOT", str(REPO_ROOT / "collectors")),
     )
     parser.add_argument(
         "--work-dir",

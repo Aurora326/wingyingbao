@@ -4,12 +4,12 @@ import datetime as dt
 import time
 from contextlib import contextmanager
 
-from collector.core import flow, ui, windows_ui
-from collector.core.archive import archive_file
-from collector.core.browser import BrowserSession
-from collector.core.download import HTML_SUFFIXES
-from collector.core.result import CollectResult, ErrorCode
-from collector.drivers.base import BankDriver, RunContext
+from bankcore import flow, ui, windows_ui
+from bankcore.archive import archive_file
+from bankcore.browser import BrowserSession
+from bankcore.download import HTML_SUFFIXES
+from bankcore.result import CollectResult, ErrorCode
+from bankcore.drivers.base import BankDriver, RunContext
 
 
 class IcbcDriver(BankDriver):

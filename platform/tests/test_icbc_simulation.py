@@ -14,11 +14,11 @@ from pathlib import Path
 
 import pytest
 
-from collector.core import flow
-from collector.core.browser import BrowserSession
-from collector.core.profile import BankProfile
-from collector.drivers.base import RunContext
-from collector.drivers.icbc import IcbcDriver
+from bankcore import flow
+from bankcore.browser import BrowserSession
+from bankcore.profile import BankProfile
+from bankcore.drivers.base import RunContext
+from banks.icbc.driver import IcbcDriver
 
 LOGIN_HTML = """<!doctype html><meta charset="utf-8">
 <title>中国工商银行企业网上银行</title>
@@ -299,7 +299,7 @@ def _context(tmp_path: Path, driver: IcbcDriver) -> RunContext:
 
 
 def _patch_popups(monkeypatch, driver: IcbcDriver, script: PopupScript) -> None:
-    import collector.drivers.icbc as icbc_module
+    import banks.icbc.driver as icbc_module
 
     def fake_find_hwnd(titles):
         # 密码弹窗是原生窗口；证书弹窗是 Chrome 内置的，find_hwnd 找不到
@@ -489,7 +489,7 @@ def test_receipts_query_signature_matches():
     import textwrap
     import ast
 
-    from collector.drivers.icbc import IcbcDriver
+    from banks.icbc.driver import IcbcDriver
 
     expected = len(inspect.signature(IcbcDriver._query).parameters) - 1  # 去掉 self
     tree = ast.parse(textwrap.dedent(inspect.getsource(IcbcDriver.collect_receipts)))

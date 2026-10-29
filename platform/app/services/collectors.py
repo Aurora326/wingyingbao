@@ -2,7 +2,7 @@
 
 开发机和客户机跑的是同一个契约 —— 平台在命令行末尾追加 ``--task <task.json>``，
 采集程序把结果写到 task.json 里的 result_path。所以「开发者模式」不是第二套代码，
-只是清单里那行命令用 ``python -m collector.run_task`` 而不是编好的 exe；
+只是清单里那行命令用 ``python -m bankcore.run_task`` 而不是编好的 exe；
 没有清单文件时默认就是源码模式。
 """
 from __future__ import annotations
@@ -53,7 +53,9 @@ def resolve(bank_code: str, python_exec: str = "", registry: dict | None = None)
     command = entry.get("command")
     if not command:
         python = python_exec or settings.collector_python or sys.executable
-        return CollectorCommand([python, "-m", "collector.run_task"], settings.base_dir, "source", "default")
+        return CollectorCommand(
+            [python, "-m", "bankcore.run_task"], settings.collectors_root, "source", "default"
+        )
     argv = _as_argv(command)
     cwd = Path(entry.get("cwd") or settings.base_dir)
     mode = "exe" if argv[0].lower().endswith(".exe") else "source"
@@ -67,7 +69,7 @@ def describe(command: CollectorCommand, task_file: Path) -> str:
         f"cwd={command.cwd}",
         f"来源={command.origin}/{command.mode}",
     ]
-    stamp = command.cwd / "collector" / "run_task.py"
+    stamp = command.cwd / "bankcore" / "run_task.py"
     if not stamp.is_file():
         stamp = Path(command.argv[0])
     if stamp.is_file():

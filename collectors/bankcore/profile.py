@@ -5,7 +5,12 @@ from pathlib import Path
 
 import yaml
 
-PROFILE_DIR = Path(__file__).resolve().parent.parent / "profiles"
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def default_profile_path(bank_code: str) -> Path:
+    """每家银行的适配配置放在自己的目录里：banks/<code>/profiles/<code>.yaml"""
+    return ROOT / "banks" / bank_code / "profiles" / f"{bank_code}.yaml"
 
 
 @dataclass
@@ -14,7 +19,7 @@ class BankProfile:
 
     @classmethod
     def load(cls, bank_code: str, path: str | Path | None = None) -> "BankProfile":
-        target = Path(path) if path else PROFILE_DIR / f"{bank_code}.yaml"
+        target = Path(path) if path else default_profile_path(bank_code)
         if not target.exists():
             return cls({})
         return cls(yaml.safe_load(target.read_text(encoding="utf-8")) or {})

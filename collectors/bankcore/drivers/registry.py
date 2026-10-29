@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from collector.core.profile import BankProfile
-from collector.drivers.base import BankDriver
+from bankcore.profile import BankProfile
+from bankcore.drivers.base import BankDriver
 
 
 @dataclass(frozen=True)
@@ -19,13 +19,13 @@ class BankEntry:
 
 
 BANKS: tuple[BankEntry, ...] = (
-    BankEntry("citic", "中信银行", "collector.drivers.citic", "CiticDriver"),
-    BankEntry("cib", "兴业银行", "collector.drivers.cib", "CibDriver"),
-    BankEntry("icbc", "工商银行", "collector.drivers.icbc", "IcbcDriver"),
+    BankEntry("citic", "中信银行", "banks.citic.driver", "CiticDriver"),
+    BankEntry("cib", "兴业银行", "banks.cib.driver", "CibDriver"),
+    BankEntry("icbc", "工商银行", "banks.icbc.driver", "IcbcDriver"),
     BankEntry("nbcb", "宁波银行财资云"),
     BankEntry("njcb", "南京银行"),
     BankEntry("cgb", "广发银行"),
-    BankEntry("mock", "模拟银行", "collector.drivers.mock", "MockDriver"),
+    BankEntry("mock", "模拟银行", "banks.mock.driver", "MockDriver"),
 )
 
 _REGISTRY: dict[str, BankEntry] = {entry.code: entry for entry in BANKS}

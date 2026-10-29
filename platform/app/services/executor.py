@@ -251,7 +251,7 @@ def _release_device(payload: dict) -> None:
     if not port:
         return
     if backend == "mb":
-        from collector.core.mb import MbController
+        from app.services.device.mb import MbController
 
         try:
             MbController(
@@ -263,7 +263,7 @@ def _release_device(payload: dict) -> None:
         except Exception:
             pass
     elif backend == "gf3":
-        from collector.core.gf3 import Gf3Controller
+        from app.services.device.gf3 import Gf3Controller
 
         try:
             Gf3Controller(exe=payload.get("gf3_exe", "gf3"), cabinet=int(payload.get("gf3_cabinet") or 1)).disconnect(port)

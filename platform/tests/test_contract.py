@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.services import collectors
-from collector import run_task as collector_entry
+from bankcore import run_task as collector_entry
 
 
 def test_contract_versions_match():

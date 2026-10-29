@@ -10,12 +10,12 @@ from pathlib import Path
 
 import pytest
 
-from collector.core import flow
-from collector.core.archive import archive_file
-from collector.core.browser import BrowserSession, extract_crx, extension_id, extension_installed
-from collector.core.download import HTML_SUFFIXES, DownloadWatcher, is_candidate, is_html, newest_since
-from collector.core.pin import PinInjector
-from collector.core.profile import BankProfile
+from bankcore import flow
+from bankcore.archive import archive_file
+from bankcore.browser import BrowserSession, extract_crx, extension_id, extension_installed
+from bankcore.download import HTML_SUFFIXES, DownloadWatcher, is_candidate, is_html, newest_since
+from bankcore.pin import PinInjector
+from bankcore.profile import BankProfile
 
 
 class FakeLocator:
@@ -228,9 +228,9 @@ def test_pin_injector_prefers_aikeyboard(tmp_path, monkeypatch):
 def test_prepare_only_touches_gf3_backend(monkeypatch):
     import logging
 
-    import collector.drivers.base as base
-    from collector.drivers.base import RunContext
-    from collector.drivers.mock import MockDriver
+    import bankcore.drivers.base as base
+    from bankcore.drivers.base import RunContext
+    from banks.mock.driver import MockDriver
 
     calls: list[tuple[str, int]] = []
 
@@ -291,9 +291,9 @@ def test_prepare_only_touches_gf3_backend(monkeypatch):
 def test_prepare_rejects_mb_without_ter_id(monkeypatch):
     import logging
 
-    import collector.drivers.base as base
-    from collector.drivers.base import RunContext
-    from collector.drivers.mock import MockDriver
+    import bankcore.drivers.base as base
+    from bankcore.drivers.base import RunContext
+    from banks.mock.driver import MockDriver
 
     monkeypatch.setattr(base, "MbController", lambda **kwargs: None)
     ctx = RunContext(
@@ -323,7 +323,7 @@ def test_browser_accepts_extension_directory(tmp_path):
 
 
 def test_pin_press_uses_aikeyboard(monkeypatch, tmp_path):
-    from collector.core.pin import PinInjector
+    from bankcore.pin import PinInjector
 
     exe = tmp_path / "AiKeyboard.exe"
     exe.write_bytes(b"")
@@ -336,8 +336,8 @@ def test_pin_press_uses_aikeyboard(monkeypatch, tmp_path):
         calls.append(cmd)
         return FakeProc()
 
-    monkeypatch.setattr("collector.core.pin.subprocess.run", fake_run)
-    monkeypatch.setattr("collector.core.pin.time.sleep", lambda seconds: None)
+    monkeypatch.setattr("bankcore.pin.subprocess.run", fake_run)
+    monkeypatch.setattr("bankcore.pin.time.sleep", lambda seconds: None)
     injector = PinInjector("198310gao", str(exe))
     assert injector.press("enter")
     assert calls[-1] == [str(exe), "send", "-k", "Enter"]
@@ -379,11 +379,11 @@ def test_archive_sniffs_guid_temp_files(tmp_path):
 
 
 def test_profiles_cover_driver_selectors():
-    base = Path(__file__).resolve().parent.parent / "collector"
+    base = Path(__file__).resolve().parents[2] / "collectors" / "banks"
     core_keys = {"date_start_input", "date_end_input", "no_data", "confirm_button", "logged_in"}
     for bank in ("citic", "cib", "icbc"):
         profile = BankProfile.load(bank)
-        source = (base / "drivers" / f"{bank}.py").read_text(encoding="utf-8")
+        source = (base / bank / "driver.py").read_text(encoding="utf-8")
         keys = set(re.findall(r'sel\("([a-z0-9_]+)"\)', source)) | core_keys
         missing = [key for key in sorted(keys) if not profile.selectors(key)]
         assert not missing, f"{bank}.yaml 缺少选择器: {missing}"

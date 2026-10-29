@@ -3,16 +3,23 @@
 # 平台只往命令行末尾追加 --task <task.json>，采集程序把结果写到 task.json 里的 result_path。
 # 开发机和客户机用的是同一个契约，区别只在这份清单里的 command 指向源码还是 exe。
 #
-# 开发机：不需要这个文件。没配清单时平台默认用源码模式跑本仓库的 collector，
-#         改完代码直接重跑任务即可，不用打包。
-# 客户机：复制成 collectors.yaml，把 command 换成编好的 exe。
+# 契约要点：
+#   - task.json   ：银行代码、账号、区间、工作目录、归档根目录、result_path、contract_version
+#   - result.json ：contract_version / task_id / ok / error_code / message / no_data / files
+#   - 退出码      ：0 成功，非 0 失败
+#   - 密钥        ：不写进 task.json，由平台通过环境变量传入
+#                   BANK_USERNAME / BANK_PASSWORD / BANK_PIN
+#
+# 开发机：不需要这个文件。没配清单时平台默认用源码模式，在 collectors/ 目录下跑
+#         python -m bankcore.run_task，改完代码直接重跑任务即可，不用打包。
+# 客户机：复制成 collectors.yaml，把 command 换成编好的 exe，cwd 换成它所在目录。
 
 # icbc:
 #   # python 写成列表最稳妥；写成一行字符串也可以，会按空格拆分
 #   command: ["D:\\collectors\\icbc\\icbc-collector.exe"]
 #   cwd: D:\collectors\icbc
 
-# 开发机上只想覆盖某一家银行时（cwd 需要能 import 到 collector 包）
+# 开发机上只想覆盖某一家银行时（cwd 要能 import 到 bankcore）
 # icbc:
-#   command: ["python", "-m", "collector.run_task"]
-#   cwd: C:\wangyingbao\platform
+#   command: ["python", "-m", "bankcore.run_task"]
+#   cwd: C:\wangyingbao\collectors

@@ -10,10 +10,10 @@ import sys
 import traceback
 from pathlib import Path
 
-from collector.core.archive import cleanup_old_archives
-from collector.core.result import CollectResult, ErrorCode
-from collector.drivers.base import RunContext
-from collector.drivers.registry import get_driver
+from bankcore.archive import cleanup_old_archives
+from bankcore.result import CollectResult, ErrorCode
+from bankcore.drivers.base import RunContext
+from bankcore.drivers.registry import get_driver
 
 # 与 app/services/collectors.py 的 CONTRACT_VERSION 对应。两侧独立发版，
 # 版本不一致时平台会在任务日志里点出来。
