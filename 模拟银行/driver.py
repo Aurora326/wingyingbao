@@ -3,9 +3,9 @@ from __future__ import annotations
 import datetime as dt
 from pathlib import Path
 
-from bankcore.browser import BrowserSession
-from bankcore.result import CollectResult
-from bankcore.drivers.base import BankDriver, RunContext
+from common.collect.browser import BrowserSession
+from common.collect.result import CollectResult
+from common.collect.base import BankDriver, RunContext
 
 HEADERS = [
     "交易日期",

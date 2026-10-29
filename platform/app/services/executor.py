@@ -298,7 +298,7 @@ def run_task(task_id: int) -> None:
         log_text = ""
         lock = BusLock(settings.bus_lock_path)
         try:
-            command = collectors.resolve(payload["bank_code"], settings.collector_python)
+            command = collectors.resolve(payload["bank_code"])
             log_text = collectors.describe(command, task_file)
             if not command.cwd.is_dir():
                 raise FileNotFoundError(f"采集程序目录不存在: {command.cwd}")
@@ -318,8 +318,8 @@ def run_task(task_id: int) -> None:
         except subprocess.TimeoutExpired:
             result = {"error_code": "TIMEOUT", "message": "采集子进程超时"}
             log_text += "\n采集子进程超时"
-        except FileNotFoundError as exc:
-            # 清单指向的目录/程序不存在属于部署问题，重试无用
+        except (collectors.CollectorNotConfigured, FileNotFoundError) as exc:
+            # 清单没配、或指向的目录/程序不存在，属于部署问题，重试无用
             result = {"error_code": "UNKNOWN", "message": str(exc)}
             log_text += f"\n{exc}"
         except Exception as exc:  # noqa: BLE001

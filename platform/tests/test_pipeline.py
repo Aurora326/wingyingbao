@@ -11,7 +11,23 @@ from app.services.scheduler import enqueue_task
 from tests.test_parsers import REAL_CIB_RECEIPT
 
 
-def test_mock_task_end_to_end(db):
+def _use_mock_collector(monkeypatch):
+    """测试里显式声明模拟银行的采集程序，平台本身不猜路径。"""
+    import sys
+
+    from app.services import collectors
+    from bank_loader import bank_dir
+
+    monkeypatch.setattr(
+        collectors,
+        "load_registry",
+        lambda path: {"mock": {"command": [sys.executable, "run_task.py"], "cwd": str(bank_dir("mock"))}},
+    )
+
+
+
+def test_mock_task_end_to_end(db, monkeypatch):
+    _use_mock_collector(monkeypatch)
     from app.seed import seed
 
     seed(db)
@@ -39,7 +55,8 @@ def test_mock_task_end_to_end(db):
     assert len(rows_after) == 3, "重复采集不应产生重复流水"
 
 
-def test_mock_receipts_are_idempotent(db):
+def test_mock_receipts_are_idempotent(db, monkeypatch):
+    _use_mock_collector(monkeypatch)
     from app.seed import seed
 
     seed(db)

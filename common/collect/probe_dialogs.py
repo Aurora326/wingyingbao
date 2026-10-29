@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 
-from bankcore import windows_ui
+from common.collect import windows_ui
 
 
 def main() -> None:

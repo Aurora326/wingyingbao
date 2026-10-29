@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.models import BankAccount, Enterprise, UkeyDevice
 from app.services.executor import _build_task_payload
 from app.services.scheduler import enqueue_task
-from bankcore.mb import MbController, MbError
+from common.collect.mb import MbController, MbError
 
 
 class FakeProc:
@@ -31,7 +31,7 @@ def test_mb_commands_build_expected_arguments(tmp_path, monkeypatch):
         calls.append(cmd)
         return FakeProc()
 
-    monkeypatch.setattr("bankcore.mb.subprocess.run", fake_run)
+    monkeypatch.setattr("common.cabinet_controller.subprocess.run", fake_run)
     exe = _exe(tmp_path)
     controller = MbController(exe=str(exe), ter_id="068330001533", port=24, user="15711668178")
 
@@ -67,7 +67,7 @@ def test_mb_command_failure_raises(tmp_path, monkeypatch):
     def fake_run(cmd, **kwargs):
         return FakeProc(returncode=1, stdout="", stderr="port busy")
 
-    monkeypatch.setattr("bankcore.mb.subprocess.run", fake_run)
+    monkeypatch.setattr("common.cabinet_controller.subprocess.run", fake_run)
     controller = MbController(exe=str(_exe(tmp_path)), ter_id="068330001533", port=1, user="u")
     with pytest.raises(MbError, match="port busy"):
         controller.connect()
@@ -77,7 +77,7 @@ def test_mb_result_false_raises(tmp_path, monkeypatch):
     def fake_run(cmd, **kwargs):
         return FakeProc(stdout='{"result": false, "error": "errcode -1005"}')
 
-    monkeypatch.setattr("bankcore.mb.subprocess.run", fake_run)
+    monkeypatch.setattr("common.cabinet_controller.subprocess.run", fake_run)
     controller = MbController(exe=str(_exe(tmp_path)), ter_id="068330001533", port=1, user="u")
     with pytest.raises(MbError, match="-1005"):
         controller.connect()
@@ -142,13 +142,12 @@ def test_executor_releases_mb_device(monkeypatch):
     assert calls[0][1]["port"] == 1
 
 
-def test_unimplemented_banks_are_registered_but_rejected():
-    from bankcore.drivers.registry import get_driver, list_banks
+def test_unconfigured_bank_is_rejected():
+    """没配采集程序的银行要明确报错并提示怎么加，而不是回退到某个默认程序。"""
+    from app.services import collectors
+    from app.services.banks import BANK_NAMES
 
-    codes = {bank["code"] for bank in list_banks()}
-    assert {"citic", "cib", "nbcb", "njcb", "cgb", "mock"} <= codes
+    assert {"citic", "cib", "icbc", "nbcb", "njcb", "cgb", "ccb", "nb", "mock"} <= set(BANK_NAMES)
 
-    with pytest.raises(NotImplementedError):
-        get_driver("njcb")
-    with pytest.raises(KeyError):
-        get_driver("not-a-bank")
+    with pytest.raises(collectors.CollectorNotConfigured):
+        collectors.resolve("njcb", registry={})

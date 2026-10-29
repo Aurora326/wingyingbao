@@ -10,10 +10,10 @@ import sys
 import traceback
 from pathlib import Path
 
-from bankcore.archive import cleanup_old_archives
-from bankcore.result import CollectResult, ErrorCode
-from bankcore.drivers.base import RunContext
-from bankcore.drivers.registry import get_driver
+from common.collect.archive import cleanup_old_archives
+from common.collect.result import CollectResult, ErrorCode
+from common.collect.base import BankDriver, RunContext
+from common.collect.profile import BankProfile
 
 # 与 app/services/collectors.py 的 CONTRACT_VERSION 对应。两侧独立发版，
 # 版本不一致时平台会在任务日志里点出来。
@@ -52,14 +52,13 @@ def build_logger(log_path: Path, extra_path: Path | None = None) -> logging.Logg
     return logger
 
 
-def execute(task: dict) -> CollectResult:
+def execute(task: dict, driver: BankDriver) -> CollectResult:
     bank_code = task["bank_code"]
     work_dir = Path(task["work_dir"])
     work_dir.mkdir(parents=True, exist_ok=True)
     extra_log = Path(task["log_path"]) if task.get("log_path") else None
     logger = build_logger(work_dir / "collector.log", extra_log)
 
-    driver = get_driver(bank_code, task.get("profile_path"))
     ctx = RunContext(
         task=task,
         profile=driver.profile,
@@ -126,15 +125,17 @@ def execute(task: dict) -> CollectResult:
         logger.info("采集结束")
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="统一银行采集任务执行器")
+def main(driver_cls, profile_path=None) -> int:
+    """各银行自己的入口调用它，只传自己的驱动类；平台不认任何银行清单。"""
+    parser = argparse.ArgumentParser(description="银行采集任务执行器")
     parser.add_argument("--task", required=True, help="任务 JSON 文件路径")
     args = parser.parse_args()
 
     task_path = Path(args.task)
     task = json.loads(task_path.read_text(encoding="utf-8"))
     apply_credentials(task)
-    result = execute(task)
+    profile = BankProfile.load(task["bank_code"], profile_path or task.get("profile_path"))
+    result = execute(task, driver_cls(profile))
 
     result_path = Path(task.get("result_path") or (task_path.parent / "result.json"))
     result_path.parent.mkdir(parents=True, exist_ok=True)
@@ -147,6 +148,3 @@ def main() -> int:
     result_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return 0 if result.ok else 1
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())

@@ -14,11 +14,13 @@ from pathlib import Path
 
 import pytest
 
-from bankcore import flow
-from bankcore.browser import BrowserSession
-from bankcore.profile import BankProfile
-from bankcore.drivers.base import RunContext
-from banks.icbc.driver import IcbcDriver
+from common.collect import flow
+from common.collect.browser import BrowserSession
+from common.collect.profile import BankProfile
+from common.collect.base import RunContext
+from bank_loader import load_driver_module, profile_path
+
+IcbcDriver = load_driver_module("icbc").IcbcDriver
 
 LOGIN_HTML = """<!doctype html><meta charset="utf-8">
 <title>中国工商银行企业网上银行</title>
@@ -263,7 +265,7 @@ def site():
 
 
 def _driver(site: MockIcbcSite, **option_overrides) -> IcbcDriver:
-    profile = BankProfile.load("icbc")
+    profile = BankProfile.load("icbc", profile_path("icbc"))
     profile.data = copy.deepcopy(profile.data)
     profile.data["urls"]["login"] = f"{site.base_url}/login"
     profile.data["options"].update(
@@ -299,7 +301,7 @@ def _context(tmp_path: Path, driver: IcbcDriver) -> RunContext:
 
 
 def _patch_popups(monkeypatch, driver: IcbcDriver, script: PopupScript) -> None:
-    import banks.icbc.driver as icbc_module
+    icbc_module = load_driver_module("icbc")
 
     def fake_find_hwnd(titles):
         # 密码弹窗是原生窗口；证书弹窗是 Chrome 内置的，find_hwnd 找不到
@@ -488,8 +490,6 @@ def test_receipts_query_signature_matches():
     import inspect
     import textwrap
     import ast
-
-    from banks.icbc.driver import IcbcDriver
 
     expected = len(inspect.signature(IcbcDriver._query).parameters) - 1  # 去掉 self
     tree = ast.parse(textwrap.dedent(inspect.getsource(IcbcDriver.collect_receipts)))

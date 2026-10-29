@@ -15,7 +15,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from device_report import load_env, log
+from device_report import load_env, log, sleep_until_next, stop_requested
 
 AGENT_VERSION = "task-worker/1.0"
 BASE_DIR = Path(__file__).resolve().parent
@@ -131,7 +131,7 @@ def execute_task(task: dict, args) -> dict:
     )
     try:
         proc = subprocess.run(
-            [args.collector_python, "-m", "bankcore.run_task", "--task", str(task_path)],
+            [args.collector_python, "-m", "common.collect.run_task", "--task", str(task_path)],
             cwd=str(args.collector_root),
             capture_output=True,
             text=True,
@@ -253,9 +253,11 @@ def main() -> int:
     log(f"任务 Agent 启动：{args.agent_code} → {args.url}，版本 {AGENT_VERSION}")
     if args.once:
         return 0 if run_once(args) == 0 else 1
-    while True:
+    while not stop_requested():
         run_once(args)
-        time.sleep(max(5, args.interval))
+        sleep_until_next(max(5, args.interval))
+    log("收到停止指令，任务执行退出")
+    return 0
 
 
 if __name__ == "__main__":

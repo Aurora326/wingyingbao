@@ -5,8 +5,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-from bankcore import ui
-from bankcore.download import DownloadWatcher, newest_since, snapshot
+from common.collect import ui
+from common.collect.download import DownloadWatcher, newest_since, snapshot
 
 
 def close_popups(scope: Any, driver) -> None:

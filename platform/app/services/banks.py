@@ -12,15 +12,13 @@ BANK_NAMES = {
     "citic": "中信银行",
     "cib": "兴业银行",
     "icbc": "工商银行",
-    "nbcb": "宁波银行财资云",
     "njcb": "南京银行",
+    "nb": "宁波银行",
+    "nbcb": "宁波银行财资云",
     "cgb": "广发银行",
+    "ccb": "建设银行",
     "mock": "模拟银行",
 }
-
-
-def _has_source(bank_code: str) -> bool:
-    return (settings.collectors_root / "banks" / bank_code / "driver.py").exists()
 
 
 def list_banks(registry: dict | None = None) -> list[dict]:
@@ -29,6 +27,6 @@ def list_banks(registry: dict | None = None) -> list[dict]:
 
         registry = collectors.load_registry(settings.collectors_file)
     return [
-        {"code": code, "name": name, "implemented": code in registry or _has_source(code)}
+        {"code": code, "name": name, "implemented": code in registry}
         for code, name in BANK_NAMES.items()
     ]
