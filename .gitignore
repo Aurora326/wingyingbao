@@ -41,6 +41,12 @@ config.yaml
 *.mp4
 *.zip
 
+# 本地工具二进制（m2 UKey 工具、键盘工具等，不入库）
+*.exe
+*.dll
+*.msu
+*.db
+
 # 编辑器与系统
 .idea/
 .vscode/
