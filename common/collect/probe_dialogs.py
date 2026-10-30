@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 
-from common.collect import windows_ui
+from common import windows_ui
 
 
 def main() -> None:

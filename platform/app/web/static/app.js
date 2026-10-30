@@ -347,6 +347,49 @@ document.addEventListener("DOMContentLoaded", () => {
   if (bank) filterAccountDevices(bank.value);
 });
 
+function initTaskAutoRefresh() {
+  const statsBox = document.getElementById("task-stats");
+  const tableBox = document.getElementById("task-table");
+  if (!statsBox || !tableBox) return;
+
+  const status = new URLSearchParams(window.location.search).get("status") || "";
+  let refreshing = false;
+
+  const refresh = async () => {
+    if (refreshing || document.hidden) return;
+    if (document.querySelector(".modal.open")) return;
+    refreshing = true;
+    const scrollY = window.scrollY;
+    try {
+      const query = status ? `?status=${encodeURIComponent(status)}` : "";
+      const response = await fetch(`/tasks/partial${query}`, {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      if (!response.ok) return;
+      const doc = new DOMParser().parseFromString(await response.text(), "text/html");
+      for (const id of ["task-total-chip", "task-stats", "task-table"]) {
+        const next = doc.getElementById(id);
+        const current = document.getElementById(id);
+        if (next && current) current.replaceWith(next);
+      }
+      if (window.scrollY !== scrollY) window.scrollTo(0, scrollY);
+    } catch (error) {
+      // 网络抖动时保持当前内容，下一轮继续
+    } finally {
+      refreshing = false;
+    }
+  };
+
+  window.setInterval(refresh, 5000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refresh();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", initTaskAutoRefresh);
+
+
 async function createReconBatch(event) {
   event.preventDefault();
   const form = event.target;

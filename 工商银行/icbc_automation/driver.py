@@ -5,7 +5,8 @@ import io
 import time
 from contextlib import contextmanager
 
-from common.collect import flow, ui, windows_ui
+from common import windows_ui
+from common.collect import flow, ui
 from common.collect.archive import archive_file
 from common.collect.browser import BrowserSession
 from common.collect.download import HTML_SUFFIXES

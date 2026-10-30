@@ -3,9 +3,12 @@
 广发银行企业网银自动采集主程序
 """
 import sys
+from pathlib import Path
+# 将项目根目录加入 sys.path，确保能引用 common 模块
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+
 import time
 import argparse
-from pathlib import Path
 from typing import List
 
 from logger import setup_logger
@@ -14,7 +17,6 @@ from browser import CGBBrowser
 from statement_collector import StatementCollector
 from receipt_collector import ReceiptCollector
 from run_recorder import RunRecorder
-from captcha_recognizer import init_recognizer
 
 logger = setup_logger()
 
@@ -25,72 +27,19 @@ class CGBAutomation:
     def __init__(self, config_path: str = None):
         self.config: Config = load_config(config_path)
         # 使用配置的日志设置重新初始化logger
-        # 如果没有配置log_path，使用按日期命名的路径
         log_path = self.config.runtime.log_path
         if not log_path:
             from datetime import datetime
             today = datetime.now().strftime("%Y%m%d")
             log_path = f"./logs/cgb_automation_{today}.log"
         global logger
-        # 传递日志保留天数配置
         logger = setup_logger(
             self.config.runtime.log_level, 
             log_path,
             self.config.runtime.log_retention_days
         )
         self.browser: CGBBrowser = None
-        
-        # 初始化验证码识别器（如果配置了百度OCR）
-        self.captcha_recognizer = None
-        if self.config.ocr.enabled and self.config.ocr.api_key and self.config.ocr.secret_key:
-            self.captcha_recognizer = init_recognizer(
-                api_key=self.config.ocr.api_key,
-                secret_key=self.config.ocr.secret_key
-            )
-            logger.info("已启用百度OCR验证码自动识别")
-        else:
-            # 创建不带API Key的识别器（纯手动模式）
-            self.captcha_recognizer = init_recognizer()
 
-    def _try_auto_enter_pin(self):
-        """尝试自动输入 PIN（主线程中执行）"""
-        pin = self.config.credentials.pin
-        logger.info(f"[_try_auto_enter_pin] 被调用，配置的 PIN: {repr(pin)}")
-        
-        if not pin:
-            logger.warning("未配置 PIN，跳过自动输入")
-            return
-            
-        logger.info(f"即将自动输入 PIN: {pin}")
-        logger.info("如果 PIN 不正确，请立即点击密码框按 Ctrl+C 取消自动输入")
-        
-        # 等待页面完全加载
-        logger.info("等待 3 秒让页面加载完成...")
-        time.sleep(3)
-        
-        # 先尝试 AiKeyboard 方法
-        logger.info("尝试使用 AiKeyboard 输入 PIN...")
-        try:
-            result = self.browser.auto_enter_pin_by_clicking(pin)
-            if result:
-                logger.info("AiKeyboard 输入 PIN 成功")
-                return
-            else:
-                logger.warning("AiKeyboard 输入返回失败")
-        except Exception as e:
-            logger.error(f"AiKeyboard 输入失败: {e}")
-        
-        # 备选：使用 Playwright 方法
-        logger.info("尝试使用 Playwright 输入 PIN...")
-        try:
-            result = self.browser.auto_enter_pin(pin)
-            if result:
-                logger.info("Playwright 输入 PIN 成功")
-            else:
-                logger.warning("Playwright 输入返回失败")
-        except Exception as e:
-            logger.error(f"Playwright 输入失败: {e}")
-        
     def run(self, collect_statements: bool = True, collect_receipts: bool = True) -> dict:
         """
         执行采集任务
@@ -131,14 +80,47 @@ class CGBAutomation:
         logger.info("采集任务计划:")
         logger.info(f"  - 银行流水: {'启用' if collect_statements else '跳过'}")
         logger.info(f"  - 电子回单: {'启用' if collect_receipts else '跳过'}")
+        
+        # 打印机柜配置
+        cabinet_config = self.config.get_cabinet_config()
+        logger.info("-" * 50)
+        logger.info("机柜配置信息:")
+        logger.info(f"  - 控制器类型: {cabinet_config.type}")
+        logger.info(f"  - 手动模式: {'是' if cabinet_config.manual_mode else '否'}")
+        if cabinet_config.type == 'mb':
+            logger.info(f"  - 机柜编号(ter_id): {cabinet_config.ter_id or '(未设置)'}")
+            logger.info(f"  - 端口号(port): {cabinet_config.port}")
+            logger.info(f"  - 用户名(user): {cabinet_config.user}")
+            logger.info(f"  - mb.exe路径: {cabinet_config.mb_path}")
+        elif cabinet_config.type == 'gf3':
+            logger.info(f"  - 产品ID: {cabinet_config.product_id}")
+            logger.info(f"  - gf3.exe路径: {cabinet_config.gf3_path}")
         logger.info("=" * 50)
         
         for attempt in range(max_retries):
             try:
                 logger.info(f"开始采集任务（尝试 {attempt + 1}/{max_retries}）...")
                 
+                # 步骤0: 先插入 U 盾（如果启用机柜）
+                cabinet_config = self.config.get_cabinet_config()
+                if cabinet_config.type != "mock" and not cabinet_config.manual_mode:
+                    logger.info("=" * 50)
+                    logger.info("步骤0: 插入 U 盾...")
+                    from cabinet_controller import create_cabinet_controller
+                    controller = create_cabinet_controller(cabinet_config)
+                    if controller:
+                        ukey_result = controller.connect()
+                        if ukey_result:
+                            logger.info("✓ U 盾插入命令执行成功")
+                        else:
+                            logger.warning("✗ U 盾插入命令执行失败")
+                        # 不管成功与否，等待10秒让系统识别U盾
+                        logger.info("等待 10 秒让系统识别 U 盾...")
+                        time.sleep(10)
+                    logger.info("=" * 50)
+                
                 # 启动浏览器
-                self.browser = CGBBrowser(self.config.browser, self.config.credentials, self.config.mb)
+                self.browser = CGBBrowser(self.config.browser, self.config.credentials, cabinet_config=cabinet_config)
                 self.browser.start()
                 
                 # 导航到登录页
@@ -162,18 +144,18 @@ class CGBAutomation:
                 if not login_success:
                     logger.info("未检测到登录状态，尝试自动登录...")
                     
-                    # 尝试 Key盾登录（包含用户名、密码、验证码）
+                    # 尝试登录（包含用户名、密码、验证码）
                     if self.config.credentials.username and self.config.credentials.password:
-                        logger.info("尝试使用 Key盾登录...")
+                        logger.info("尝试使用用户名密码登录...")
                         try:
-                            login_success = self.browser.login(recognizer=self.captcha_recognizer)
+                            login_success = self.browser.login()
                             if login_success:
                                 time.sleep(3)
                                 if self.browser._check_login_success():
-                                    logger.info("✓ Key盾登录成功！")
+                                    logger.info("✓ 登录成功！")
                                     login_success = True
                         except Exception as e:
-                            logger.error(f"Key盾登录异常: {e}")
+                            logger.error(f"登录异常: {e}")
                 
                 # 如果自动登录失败，进入半自动模式等待用户操作
                 if not login_success:
@@ -192,6 +174,10 @@ class CGBAutomation:
                     login_success = True
                 else:
                     logger.info("登录成功！")
+                
+                # 登录成功后，处理对账单弹窗
+                logger.info("检查并关闭对账单弹窗...")
+                self.browser._handle_reconciliation_popup()
                 
                 # 采集流水
                 if collect_statements:
@@ -246,11 +232,15 @@ class CGBAutomation:
             
             finally:
                 if self.browser:
-                    # 清理MB机柜（拔出UKey）
-                    if hasattr(self.browser, 'mb_robot') and self.browser.mb_robot:
-                        logger.info("清理MB机柜...")
-                        self.browser.mb_robot.cleanup()
-                    self.browser.close()
+                    # 清理机柜（拔出U盾）
+                    if hasattr(self.browser, 'cabinet_controller') and self.browser.cabinet_controller:
+                        logger.info("步骤9: 拔出 U 盾...")
+                        try:
+                            self.browser.cabinet_controller.close()
+                            logger.info("✓ U 盾已拔出")
+                        except Exception as e:
+                            logger.warning(f"拔出 U 盾时出错: {e}")
+                    self.browser.close(kill_all_chrome=True)
                     self.browser = None
         
         # 如果成功，记录结果
@@ -313,7 +303,7 @@ def main():
     parser.add_argument(
         "-c", "--config",
         default=None,
-        help="配置文件路径 (默认: 自动查找 config.json 或 config.yaml)"
+        help="配置文件路径 (默认: 自动查找 config.ini 或 config.yaml)"
     )
     
     parser.add_argument(
@@ -341,7 +331,7 @@ def main():
         automation = CGBAutomation(args.config)
     except FileNotFoundError as e:
         print(f"错误: {e}")
-        print("请创建 config.json 或 config.yaml 配置文件")
+        print("请创建 config.ini 或 config.yaml 配置文件")
         sys.exit(1)
     
     # 确定采集类型
@@ -364,4 +354,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n用户手动中断程序")
+        try:
+            from loguru import logger as loguru_logger
+            loguru_logger.complete()
+        except Exception:
+            pass
+        sys.exit(130)

@@ -8,3 +8,5 @@ access_token.conf
 .pytest_cache/
 venv/
 .venv/
+/build/
+/dist/

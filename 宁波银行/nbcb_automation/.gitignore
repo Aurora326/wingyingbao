@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# 运行时生成的文件
+records/
+chrome_user_data/
+access_token.conf
+
+# 敏感配置文件（建议将实际配置文件备份，使用示例配置）
+# config.ini
+# config.yaml
+# config.json
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# 下载的文件
+downloads/

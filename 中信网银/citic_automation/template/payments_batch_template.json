@@ -1,0 +1,68 @@
+{
+  "sheet": "Sheet2",
+  "start_row": 6,
+  "clear_until_row": 3006,
+  "clear_columns": 12,
+  "columns": [
+    {
+      "column": 1,
+      "field": "payment_method",
+      "default_config": "payment_method",
+      "default": "跨行转账"
+    },
+    {
+      "column": 2,
+      "field": "payer_account",
+      "default_config": "payer_account",
+      "transform": "payer_account_no"
+    },
+    {
+      "column": 3,
+      "field": "currency",
+      "default_config": "currency",
+      "default": "人民币"
+    },
+    {
+      "column": 4,
+      "field": "payee_account"
+    },
+    {
+      "column": 5,
+      "field": "payee_name"
+    },
+    {
+      "column": 6,
+      "field": ["payee_account_no", "payee_account_number"]
+    },
+    {
+      "column": 7,
+      "field": "payee_bank_code",
+      "default_config": "payee_bank_code"
+    },
+    {
+      "column": 8,
+      "field": "payee_branch",
+      "default_config": "payee_branch"
+    },
+    {
+      "column": 9,
+      "field": "amount",
+      "transform": "amount"
+    },
+    {
+      "column": 10,
+      "field": "purpose",
+      "default_config": "purpose"
+    },
+    {
+      "column": 11,
+      "field": "remark",
+      "default_config": "remark"
+    },
+    {
+      "column": 12,
+      "field": ["reconcile_no", "cst_bsn_seq_no", "对账编号"],
+      "default_config": "reconcile_no"
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "sheet": "Sheet1",
+  "start_row": 2,
+  "clear_until_row": 3002,
+  "clear_columns": 15,
+  "columns": [
+    {
+      "column": 1,
+      "field": "_seq",
+      "default": ""
+    },
+    {
+      "column": 2,
+      "field": "payer_account",
+      "default_config": "payer_account"
+    },
+    {
+      "column": 3,
+      "field": "payer_name",
+      "default_config": "payer_name"
+    },
+    {
+      "column": 4,
+      "field": "payee_bank_type",
+      "default_config": "payee_bank_type",
+      "default": "02"
+    },
+    {
+      "column": 5,
+      "field": "payee_account"
+    },
+    {
+      "column": 6,
+      "field": "payee_name"
+    },
+    {
+      "column": 7,
+      "field": "payee_branch",
+      "default_config": "payee_branch"
+    },
+    {
+      "column": 8,
+      "field": "payee_bank_code",
+      "default_config": "payee_bank_code"
+    },
+    {
+      "column": 9,
+      "field": "serial_no",
+      "default_config": "serial_no"
+    },
+    {
+      "column": 10,
+      "field": "amount",
+      "transform": "amount"
+    },
+    {
+      "column": 11,
+      "field": "purpose",
+      "default_config": "purpose"
+    },
+    {
+      "column": 12,
+      "field": "remark",
+      "default_config": "remark"
+    },
+    {
+      "column": 13,
+      "field": "notify",
+      "default_config": "notify",
+      "default": "0"
+    },
+    {
+      "column": 14,
+      "field": "payee_phone",
+      "default_config": "payee_phone"
+    },
+    {
+      "column": 15,
+      "field": "notify_msg",
+      "default_config": "notify_msg"
+    }
+  ]
+}

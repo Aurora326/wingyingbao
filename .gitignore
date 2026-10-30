@@ -1,0 +1,50 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# 虚拟环境与打包依赖
+venv/
+.venv/
+env/
+ENV/
+build_venv/
+.pylibs/
+
+# 打包产物
+build/
+dist/
+dist_archive/
+发布版/
+*.spec
+
+# 浏览器运行时数据（体积大、含登录态）
+chrome_user_data/
+chrome_portable/
+
+# 运行数据与日志
+logs/
+*.log
+records/
+downloads/
+temp/
+debug/
+
+# 敏感配置（真实凭证不入库，请提交 *.example 模板）
+access_token.conf
+.env
+config.ini
+config.json
+config.yaml
+
+# 媒体与归档
+*.mp4
+*.zip
+
+# 编辑器与系统
+.idea/
+.vscode/
+.commandcode/
+_legacy_backup/
+Thumbs.db
+.DS_Store

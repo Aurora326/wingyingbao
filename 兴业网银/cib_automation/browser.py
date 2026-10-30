@@ -153,8 +153,8 @@ class CIBBrowser:
 
         # 获取屏幕分辨率用于最大化
         # 使用固定窗口大小，避免全屏导致某些元素定位问题
-        window_width = 1366
-        window_height = 768
+        window_width = 1750
+        window_height = 950
         
         launch_options = {
             "headless": self.config.headless,
@@ -212,7 +212,7 @@ class CIBBrowser:
 
         # 尝试最大化窗口
         try:
-            self.page.evaluate("window.moveTo(0, 0); window.resizeTo(screen.width, screen.height);")
+            self.page.evaluate("(s) => { window.moveTo(0, 0); window.resizeTo(s[0], s[1]); }", [window_width, window_height])
             logger.info(f"浏览器窗口已设置为 {screen_width}x{screen_height}")
         except Exception as e:
             logger.debug(f"窗口最大化设置失败: {e}")

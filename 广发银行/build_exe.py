@@ -24,12 +24,15 @@ def build():
     print("安装 PyInstaller...")
     subprocess.run([sys.executable, "-m", "pip", "install", "pyinstaller"], check=True)
     
+    project_root = str(base_dir.parent.resolve())
+
     # 构建命令
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--name", "CGB_Automation",
         "--onefile",
         "--windowed",
+        "--paths", project_root,
         "--add-data", f"{cgb_dir / 'config.ini'};.",
         "--add-data", f"..\\keyboard;keyboard",
         "--hidden-import", "playwright",
@@ -64,7 +67,7 @@ def create_spec():
     spec_content = '''# -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('config.ini', '.'), ('../../keyboard', 'keyboard'), ('logger.py', '.'), ('config_loader.py', '.'), ('browser.py', '.'), ('statement_collector.py', '.'), ('receipt_collector.py', '.'), ('run_recorder.py', '.')]
+datas = [('config.ini', '.'), ('../../keyboard', 'keyboard'), ('../../common', 'common'), ('logger.py', '.'), ('config_loader.py', '.'), ('browser.py', '.'), ('statement_collector.py', '.'), ('receipt_collector.py', '.'), ('run_recorder.py', '.')]
 binaries = []
 hiddenimports = ['playwright', 'loguru', 'yaml', 'pyautogui', 'pygetwindow', 'pyscreeze', 'pymsgbox', 'pytweening', 'mouseinfo', 'rubicon-objc']
 tmp_ret = collect_all('playwright')
@@ -73,7 +76,7 @@ datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 a = Analysis(
     ['main.py'],
-    pathex=[],
+    pathex=['C:/wangyingbao'],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,

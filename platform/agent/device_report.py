@@ -32,6 +32,19 @@ def log(message: str) -> None:
     print(f"[{dt.datetime.now():%Y-%m-%d %H:%M:%S}] {message}", flush=True)
 
 
+def stop_requested() -> bool:
+    path = os.getenv("PLATFORM_AGENT_STOP_FILE", "").strip()
+    return bool(path and Path(path).exists())
+
+
+def sleep_until_next(seconds: int) -> None:
+    end = time.time() + max(1, seconds)
+    while time.time() < end:
+        if stop_requested():
+            return
+        time.sleep(min(1.0, end - time.time()))
+
+
 def local_ip() -> str:
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -222,9 +235,11 @@ def main() -> int:
     if args.once:
         return run_once(args)
     log(f"Agent 启动：{args.agent_code} → {args.url}，间隔 {args.interval}s")
-    while True:
+    while not stop_requested():
         run_once(args)
-        time.sleep(max(30, args.interval))
+        sleep_until_next(max(30, args.interval))
+    log("收到停止指令，设备上报退出")
+    return 0
 
 
 if __name__ == "__main__":

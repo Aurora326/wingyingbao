@@ -1,0 +1,18 @@
+{
+  "task_id": 0,
+  "bank_code": "icbc",
+  "account_no": "坚果赋能",
+  "type": "statements",
+  "start_date": "2026-09-29",
+  "end_date": "2026-10-29",
+  "work_dir": "work",
+  "archive_root": "artifacts",
+  "result_path": "work/result.json",
+  "log_path": "work/collector.log",
+  "device_backend": "mb",
+  "ter_id": "068330001533",
+  "gf3_port": 1,
+  "mb_exe": "C:\\wangyingbao\\m2\\mb.exe",
+  "mb_user": "15711668178",
+  "options": {}
+}

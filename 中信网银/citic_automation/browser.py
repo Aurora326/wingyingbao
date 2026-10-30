@@ -160,8 +160,8 @@ class CITICBrowser:
                 self.extension_dir = None
 
         # 使用固定窗口大小
-        window_width = 1380
-        window_height = 900
+        window_width = 1750
+        window_height = 950
         
         launch_options = {
             "headless": self.config.headless,
@@ -233,7 +233,7 @@ class CITICBrowser:
 
         # 尝试最大化窗口
         try:
-            self.page.evaluate("window.moveTo(0, 0); window.resizeTo(screen.width, screen.height);")
+            self.page.evaluate("(s) => { window.moveTo(0, 0); window.resizeTo(s[0], s[1]); }", [window_width, window_height])
             logger.info("浏览器窗口已最大化")
         except Exception as e:
             logger.debug(f"窗口最大化设置失败: {e}")

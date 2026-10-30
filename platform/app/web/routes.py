@@ -16,7 +16,7 @@ from app.api import tasks as tasks_api
 from app.config import settings
 from app.db import SessionLocal
 from app.models import AppUser, AuditLog, BankAccount, CollectionTask
-from app.services import security
+from app.services import collectors, security
 from app.services.banks import list_banks
 
 router = APIRouter()
@@ -182,19 +182,16 @@ def dashboard_page(request: Request):
     )
 
 
-@router.get("/tasks")
-def tasks_page(request: Request, status: str = ""):
-    with SessionLocal() as db:
-        items = tasks_api.list_tasks(status=status or None, limit=100, db=db)["items"]
-        accounts = accounts_api.list_accounts(db)["items"]
-        status_counts = dict(
-            db.execute(
-                select(CollectionTask.status, func.count(CollectionTask.id)).group_by(CollectionTask.status)
-            ).all()
-        )
-        last_task = db.execute(
-            select(CollectionTask).order_by(CollectionTask.id.desc()).limit(1)
-        ).scalars().first()
+def _task_list_context(db, status: str) -> dict:
+    items = tasks_api.list_tasks(status=status or None, limit=100, db=db)["items"]
+    status_counts = dict(
+        db.execute(
+            select(CollectionTask.status, func.count(CollectionTask.id)).group_by(CollectionTask.status)
+        ).all()
+    )
+    last_task = db.execute(
+        select(CollectionTask).order_by(CollectionTask.id.desc()).limit(1)
+    ).scalars().first()
     stats = {
         "total": sum(status_counts.values()),
         "running": sum(status_counts.get(key, 0) for key in ("queued", "leased", "running")),
@@ -202,11 +199,23 @@ def tasks_page(request: Request, status: str = ""):
         "failed": status_counts.get("failed", 0),
         "last": last_task,
     }
-    return templates.TemplateResponse(
-        request=request,
-        name="tasks.html",
-        context={"page": "tasks", "tasks": items, "accounts": accounts, "status": status, "stats": stats},
-    )
+    return {"tasks": items, "status": status, "stats": stats}
+
+
+@router.get("/tasks")
+def tasks_page(request: Request, status: str = ""):
+    with SessionLocal() as db:
+        context = _task_list_context(db, status)
+        context["accounts"] = accounts_api.list_accounts(db)["items"]
+    context.update(page="tasks")
+    return templates.TemplateResponse(request=request, name="tasks.html", context=context)
+
+
+@router.get("/tasks/partial")
+def tasks_partial(request: Request, status: str = ""):
+    with SessionLocal() as db:
+        context = _task_list_context(db, status)
+    return templates.TemplateResponse(request=request, name="tasks_partial.html", context=context)
 
 
 @router.get("/statements")
@@ -351,6 +360,8 @@ def settings_page(request: Request):
             "page": "settings",
             "logs": logs,
             "devices": devices,
+            "collectors": collectors.status_rows(),
+            "collectors_file": str(settings.collectors_file),
             "settings": settings,
         },
     )

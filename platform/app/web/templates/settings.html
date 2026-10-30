@@ -38,6 +38,36 @@
   </div>
 </div>
 
+
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>采集程序</h2>
+      <div class="panel-sub">平台按这里的配置调用各家银行的采集程序 · 配置文件 <span class="mono">{{ collectors_file }}</span></div>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>银行</th><th>命令</th><th>工作目录</th><th>状态</th></tr></thead>
+    <tbody>
+      {% for c in collectors %}
+      <tr>
+        <td>
+          <b>{{ c.name }}</b>
+          <div class="cell-sub mono">{{ c.code }}</div>
+        </td>
+        <td class="mono">{{ c.command or '—' }}</td>
+        <td class="mono">{{ c.cwd or '—' }}</td>
+        <td>
+          {% if c.state == 'ready' %}<span class="tag green">就绪</span>
+          {% elif c.state == 'unconfigured' %}<span class="tag gray">未配置</span>
+          {% else %}<span class="tag red">{{ c.detail }}</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
 <div class="panel">
   <div class="panel-head">
     <div>

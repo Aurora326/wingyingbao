@@ -1,0 +1,53 @@
+{% from "_ui.html" import bank_name, bank_mark, task_status, task_type_text, trigger_text, error_text %}
+<div class="panel">
+  {% if tasks %}
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>时间</th><th>账户</th><th>采集内容</th><th>覆盖日期</th><th>结果</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for t in tasks %}
+      <tr>
+        <td class="nowrap">
+          <b>{% if t.created_at %}{{ t.created_at.strftime('%m-%d %H:%M') }}{% else %}—{% endif %}</b>
+          <div class="cell-sub">{{ trigger_text(t.trigger) }} · 任务 #{{ t.id }} · {{ '本机' if t.agent_code in ('', 'local') else t.agent_code }}</div>
+        </td>
+        <td>
+          <div class="acct-cell">
+            {{ bank_mark(t.bank_code) }}
+            <div>
+              <b>{{ bank_name(t.bank_code) }}</b>
+              <span class="cell-sub">尾号 {{ t.account[-4:] }}</span>
+            </div>
+          </div>
+        </td>
+        <td>{{ task_type_text(t.type) }}</td>
+        <td class="muted nowrap">{{ t.start_date | dt }} 至 {{ t.end_date | dt }}</td>
+        <td>
+          {{ task_status(t.status) }}
+          {% if t.status == 'failed' %}
+          <div class="cell-sub">{{ error_text(t.error_code) }}</div>
+          {% endif %}
+        </td>
+        <td class="right nowrap">
+          <button class="small" onclick="showLog({{ t.id }})">查看记录</button>
+          {% if t.status in ('failed', 'succeeded') %}
+          <button class="small" onclick="retryTask({{ t.id }})">重新采集</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <div class="empty">
+      {% if status %}这个状态下还没有采集记录{% else %}还没有采集记录。添加银行账户后，系统会自动开始{% endif %}
+      <div class="empty-actions">
+        <a class="btn small" href="/accounts">管理银行账户</a>
+        {% if status %}<a class="btn small" href="/tasks">查看全部记录</a>{% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>

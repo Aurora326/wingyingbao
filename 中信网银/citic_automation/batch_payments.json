@@ -1,0 +1,29 @@
+{
+  "contract_name": "云·铁品牌 广告视频制作服务委托协议",
+  "contract_no": "",
+  "party_a": "上海浦东上源通房产置业有限公司",
+  "party_a_rep": "施海熔",
+  "party_b": "上海北燕广告传播有限公司",
+  "party_b_rep": "刘妮娜",
+  "sign_date": "2026年3月12日",
+  "total_amount": 60000.0,
+  "total_amount_cn": "人民币陆万元整",
+  "currency": "CNY",
+  "payment_plan": [
+    {
+      "installment": 1,
+      "condition": "乙方交付视频成片并开具增值税专用发票后15日内",
+      "percentage": "100%",
+      "amount": 60000.0,
+      "amount_cn": "人民币陆万元整"
+    }
+  ],
+  "payee_info": {
+    "account_name": "上海北燕广告传播有限公司",
+    "bank_name": "中国建设银行股份有限公司上海邯郸路支行",
+    "account_number": "31050184420000000665"
+  },
+  "service_content": "云·铁品牌项目广告视频制作服务（高清三维视频，4K分辨率，MP4格式，60秒）",
+  "project_period": "45个工作日",
+  "remark_suggestion": "广告视频制作费"
+}

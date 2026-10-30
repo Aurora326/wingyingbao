@@ -1,0 +1,140 @@
+115 INFO: PyInstaller: 6.21.0, contrib hooks: 2026.6
+115 INFO: Python: 3.12.10
+164 INFO: Platform: Windows-10-10.0.19045-SP0
+164 INFO: Python environment: C:\Users\openerp\AppData\Local\Programs\Python\Python312
+164 INFO: wrote C:\wangyingbao\Äş²¨ÒøĞĞ²Æ×ÊÔÆ\nbcb_automation\Äş²¨ÒøĞĞ²É¼¯³ÌĞò.spec
+167 INFO: Removing temporary files and cleaning cache in C:\Users\openerp\AppData\Local\pyinstaller
+177 INFO: Module search paths (PYTHONPATH):
+['C:\\wangyingbao\\Äş²¨ÒøĞĞ²Æ×ÊÔÆ\\nbcb_automation',
+ 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\python312.zip',
+ 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\DLLs',
+ 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib',
+ 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312',
+ 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages',
+ 'C:\\wangyingbao\\Äş²¨ÒøĞĞ²Æ×ÊÔÆ\\nbcb_automation',
+ 'C:\\wangyingbao']
+505 INFO: Appending 'datas' from .spec
+520 INFO: checking Analysis
+520 INFO: Building Analysis because Analysis-00.toc is non existent
+520 INFO: Looking for Python shared library...
+520 INFO: Using Python shared library: C:\Users\openerp\AppData\Local\Programs\Python\Python312\python312.dll
+520 INFO: Running Analysis Analysis-00.toc
+520 INFO: Target bytecode optimization level: 0
+520 INFO: Initializing module dependency graph...
+522 INFO: Initializing module graph hook caches...
+548 INFO: Analyzing modules for base_library.zip ...
+1554 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+2141 INFO: Processing standard module hook 'hook-math.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+3234 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+4384 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+5768 INFO: Caching module dependency graph...
+5791 INFO: Analyzing C:\wangyingbao\Äş²¨ÒøĞĞ²Æ×ÊÔÆ\nbcb_automation\main.py
+5914 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+6110 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+6567 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+7667 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+8265 INFO: Processing standard module hook 'hook-playwright.sync_api.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\playwright\\_impl\\__pyinstaller'
+8854 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+9413 INFO: Processing pre-find-module-path hook 'hook-tkinter.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+9416 INFO: TclTkInfo: initializing cached Tcl/Tk info...
+9682 INFO: Processing standard module hook 'hook-_tkinter.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+9863 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+10250 INFO: Processing standard module hook 'hook-webbrowser.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+C:\Users\openerp\AppData\Local\Programs\Python\Python312\Lib\site-packages\pyautogui\_pyautogui_x11.py:284: SyntaxWarning: invalid escape sequence '\e'
+  '\e': _display.keysym_to_keycode(Xlib.XK.string_to_keysym('Escape')),
+11356 INFO: Analyzing hidden import 'requests'
+11381 INFO: Processing standard module hook 'hook-urllib3.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+11534 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+11537 INFO: SetuptoolsInfo: initializing cached setuptools info...
+12042 INFO: Setuptools: 'backports' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.backports'!
+12056 INFO: Processing standard module hook 'hook-setuptools.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+12104 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+12172 INFO: Processing pre-safe-import-module hook 'hook-jaraco.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+12174 INFO: Setuptools: 'jaraco' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco'!
+12191 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+12193 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.more_itertools'!
+12357 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+12592 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+12893 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+12895 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+13706 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+13707 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.tomli'!
+14405 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+14406 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.wheel'!
+15108 INFO: Processing standard module hook 'hook-certifi.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+15222 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+15466 INFO: Analyzing hidden import 'common.captcha_solver'
+15474 INFO: Processing module hooks (post-graph stage)...
+15765 INFO: Processing standard module hook 'hook-_tkinter.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+15778 INFO: Performing binary vs. data reclassification (1349 entries)
+25445 INFO: Looking for ctypes DLLs
+25473 INFO: Analyzing run-time hooks ...
+25476 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+25487 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+25497 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+25507 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+25519 INFO: Including run-time hook 'pyi_rth__tkinter.py' from 'C:\\Users\\openerp\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+25557 INFO: Creating base_library.zip...
+25573 INFO: Looking for dynamic libraries
+26325 INFO: Extra DLL search directories (AddDllDirectory): []
+26325 INFO: Extra DLL search directories (PATH): []
+26801 INFO: Warnings written to C:\wangyingbao\Äş²¨ÒøĞĞ²Æ×ÊÔÆ\nbcb_automation\build\Äş²¨ÒøĞĞ²É¼¯³ÌĞò\warn-Äş²¨ÒøĞĞ²É¼¯³ÌĞò.txt
+26843 INFO: Graph cross-reference written to C:\wangyingbao\Äş²¨ÒøĞĞ²Æ×ÊÔÆ\nbcb_automation\build\Äş²¨ÒøĞĞ²É¼¯³ÌĞò\xref-Äş²¨ÒøĞĞ²É¼¯³ÌĞò.html
+26917 INFO: checking PYZ
+26917 INFO: Building PYZ because PYZ-00.toc is non existent
+26917 INFO: Building PYZ (ZlibArchive) C:\wangyingbao\Äş²¨ÒøĞĞ²Æ×ÊÔÆ\nbcb_automation\build\Äş²¨ÒøĞĞ²É¼¯³ÌĞò\PYZ-00.pyz
+27381 INFO: Building PYZ (ZlibArchive) C:\wangyingbao\Äş²¨ÒøĞĞ²Æ×ÊÔÆ\nbcb_automation\build\Äş²¨ÒøĞĞ²É¼¯³ÌĞò\PYZ-00.pyz completed successfully.
+27445 INFO: checking PKG
+27445 INFO: Building PKG because PKG-00.toc is non existent
+27446 INFO: Building PKG (CArchive) Äş²¨ÒøĞĞ²É¼¯³ÌĞò.pkg
+73389 INFO: Building PKG (CArchive) Äş²¨ÒøĞĞ²É¼¯³ÌĞò.pkg completed successfully.
+73406 INFO: Bootloader C:\Users\openerp\AppData\Local\Programs\Python\Python312\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\run.exe
+73406 INFO: checking EXE
+73406 INFO: Building EXE because EXE-00.toc is non existent
+73406 INFO: Building EXE from EXE-00.toc
+73406 INFO: Copying bootloader EXE to C:\wangyingbao\Äş²¨ÒøĞĞ²Æ×ÊÔÆ\nbcb_automation\dist\Äş²¨ÒøĞĞ²É¼¯³ÌĞò.exe
+73487 INFO: Copying icon to EXE
+73530 INFO: Copying 0 resources to EXE
+73531 INFO: Embedding manifest in EXE
+73566 INFO: Appending PKG archive to EXE
+73793 INFO: Fixing EXE headers
+74921 INFO: Building EXE from EXE-00.toc completed successfully.
+74939 INFO: Build complete! The results are available in: C:\wangyingbao\Äş²¨ÒøĞĞ²Æ×ÊÔÆ\nbcb_automation\dist
+============================================================
+å¼€å§‹æ‰“åŒ…å®æ³¢é“¶è¡Œé‡‡é›†ç¨‹åºï¼ˆå« Chromium æµè§ˆå™¨ï¼‰...
+============================================================
+[OK] Chromium å¯æ‰§è¡Œæ–‡ä»¶: C:\Users\openerp\AppData\Local\ms-playwright\chromium-1228\chrome-win64\chrome.exe
+[OK] Chromium ç›®å½•: C:\Users\openerp\AppData\Local\ms-playwright\chromium-1228\chrome-win64
+[OK] æ‰¾åˆ° Chromium: C:\Users\openerp\AppData\Local\ms-playwright\chromium-1228\chrome-win64
+============================================================
+æ¸…ç†æ—§æ„å»ºæ–‡ä»¶...
+============================================================
+[OK] å·²åˆ é™¤ç›®å½•: build
+[OK] å·²åˆ é™¤ç›®å½•: dist
+[OK] å·²åˆ é™¤ç›®å½•: __pycache__
+[OK] å·²åˆ é™¤æ–‡ä»¶: å®æ³¢é“¶è¡Œé‡‡é›†ç¨‹åº.spec
+[OK] å°† Chromium æ‰“åŒ…è¿›ç¨‹åºï¼ˆçº¦ 150MBï¼‰
+
+æ‰§è¡Œæ‰“åŒ…å‘½ä»¤...
+C:\Users\openerp\AppData\Local\Programs\Python\Python312\python.exe -m PyInstaller --name=å®æ³¢é“¶è¡Œé‡‡é›†ç¨‹åº --console --onefile --clean --noconfirm --add-data=config.ini;. --paths=C:\wangyingbao --paths=C:\wangyingbao\å®æ³¢é“¶è¡Œè´¢èµ„äº‘\nbcb_automation --hidden-import=playwright --hidden-import=playwright.sync_api --hidden-import=loguru --hidden-import=pyautogui --hidden-import=PIL --hidden-import=requests --hidden-import=yaml --hidden-import=browser --hidden-import=config_loader --hidden-import=logger --hidden-import=login_manager --hidden-import=pin_inputter --hidden-import=popup_handler --hidden-import=run_recorder --hidden-import=statement_collector --hidden-import=receipt_collector --hidden-import=offline_statement_importer --hidden-import=cabinet_controller --hidden-import=common.base_browser --hidden-import=common.captcha_solver --hidden-import=common.config_loader --hidden-import=common.download_helper --hidden-import=common.keyboard_helper --hidden-import=common.logger --hidden-import=common.run_recorder --hidden-import=common.cabinet_controller --exclude-module=matplotlib --exclude-module=numpy --exclude-module=pandas main.py --add-data C:\Users\openerp\AppData\Local\ms-playwright\chromium-1228\chrome-win64;chromium
+
+============================================================
+[OK] PyInstaller æ‰“åŒ…å®Œæˆï¼
+[OK] è¾“å‡ºæ–‡ä»¶: dist/å®æ³¢é“¶è¡Œé‡‡é›†ç¨‹åº.exe
+============================================================
+
+============================================================
+å¼€å§‹åˆ¶ä½œå‘å¸ƒåŒ…...
+============================================================
+[OK] å¤åˆ¶å¯æ‰§è¡Œæ–‡ä»¶: dist/å®æ³¢é“¶è¡Œé‡‡é›†ç¨‹åº.exe
+[OK] å¤åˆ¶ config.ini
+[OK] å¤åˆ¶ access_token.conf
+[OK] å¤åˆ¶ AiKeyboard å®Œæ•´å·¥å…·ç›®å½•åˆ° tools/
+[OK] å¤åˆ¶ MB æœºæŸœå®Œæ•´å·¥å…·ç›®å½•åˆ° tools/
+[OK] åˆ›å»ºå¯åŠ¨è„šæœ¬: å¯åŠ¨ç¨‹åº.bat
+[OK] åˆ›å»ºä½¿ç”¨è¯´æ˜: ä½¿ç”¨è¯´æ˜.txt
+
+============================================================
+[OK] å‘å¸ƒåŒ…å·²åˆ›å»º: dist/å®æ³¢é“¶è¡Œé‡‡é›†ç¨‹åº_v20260728.zip
+[OK] æ–‡ä»¶å¤§å°: 242.7 MB
+============================================================

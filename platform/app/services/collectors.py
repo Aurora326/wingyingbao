@@ -52,7 +52,10 @@ def load_registry(path: Path) -> dict:
 
 def _as_argv(command) -> list[str]:
     if isinstance(command, str):
-        return shlex.split(command)
+        # Windows 路径里的反斜杠会被 posix 模式的 shlex 当成转义吃掉，
+        # 所以用 posix=False，再手工去掉引号
+        parts = shlex.split(command, posix=False)
+        return [part[1:-1] if len(part) >= 2 and part[0] == part[-1] == '"' else part for part in parts if part]
     return [str(part) for part in command]
 
 
@@ -84,3 +87,43 @@ def describe(command: CollectorCommand, task_file: Path) -> str:
         modified = dt.datetime.fromtimestamp(stamp.stat().st_mtime)
         fields.append(f"{stamp.name} mtime={modified:%Y-%m-%d %H:%M:%S}")
     return " | ".join(fields)
+
+
+def _entry_file(argv: list[str], cwd: Path) -> Path | None:
+    """从命令行里找出实际的程序文件（python run_task.py / xxx.exe）。"""
+    for part in argv:
+        if part.lower().endswith((".py", ".exe")):
+            path = Path(part)
+            return path if path.is_absolute() else cwd / path
+    return None
+
+
+def status_rows(registry: dict | None = None) -> list[dict]:
+    """界面用：每家银行配了哪个采集程序、当前能不能跑。"""
+    from app.services.banks import BANK_NAMES
+
+    if registry is None:
+        registry = load_registry(settings.collectors_file)
+    rows: list[dict] = []
+    for code, name in BANK_NAMES.items():
+        entry = registry.get(code) or {}
+        command = entry.get("command")
+        if not command:
+            rows.append(
+                {"code": code, "name": name, "command": "", "cwd": "", "state": "unconfigured", "detail": "未配置"}
+            )
+            continue
+
+        argv = _as_argv(command)
+        cwd = Path(entry.get("cwd") or settings.base_dir)
+        row = {"code": code, "name": name, "command": " ".join(argv), "cwd": str(cwd)}
+        if not cwd.is_dir():
+            row.update(state="missing", detail="工作目录不存在")
+        else:
+            target = _entry_file(argv, cwd)
+            if target is not None and not target.is_file():
+                row.update(state="missing", detail=f"入口不存在: {target.name}")
+            else:
+                row.update(state="ready", detail="就绪")
+        rows.append(row)
+    return rows

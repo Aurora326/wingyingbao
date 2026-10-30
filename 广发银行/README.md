@@ -4,130 +4,133 @@
 
 ## 功能特性
 
-- 🔐 支持 UKey 证书登录
-- 📊 自动采集银行流水（Excel格式）
-- 🧾 自动采集电子回单（PDF格式）
+- 🔐 支持 Key盾/UKey 证书登录
+- 🤖 支持多供应商机柜（MB机柜、GF3/USB-HUB、模拟机等）
+- ⌨️ 使用 AiKeyboard 安全输入密码（防键盘记录）
+- 📊 自动采集银行流水（Excel 格式：xls/xlsx）
+- 🧾 自动采集电子回单（PDF 格式）
 - 📅 支持自定义日期范围
 - 📁 自动按年月归档文件
 - 🧹 自动清理过期数据
 - 📝 完整的日志记录
 - 🔄 支持失败重试
+- 📦 支持打包为独立可执行文件（含 Chromium 浏览器）
 
 ## 项目结构
 
 ```
 广发银行/
-├── cgb_automation/          # 主程序目录
-│   ├── main.py             # 主程序入口
-│   ├── browser.py          # 浏览器自动化
+├── cgb_automation/              # 主程序目录
+│   ├── main.py                 # 主程序入口
+│   ├── browser.py              # 浏览器管理器（继承自 BaseBrowser）
+│   ├── login_manager.py        # 登录流程管理（Mixin）
+│   ├── pin_inputter.py         # PIN 自动输入（Mixin）
+│   ├── popup_handler.py        # 弹窗处理（Mixin）
 │   ├── statement_collector.py  # 流水采集
 │   ├── receipt_collector.py    # 回单采集
-│   ├── config_loader.py    # 配置加载
-│   ├── logger.py           # 日志配置
-│   ├── run_recorder.py     # 运行记录
-│   ├── config.ini          # 配置文件
-│   ├── requirements.txt    # 依赖清单
-│   ├── downloads/          # 下载目录
-│   │   ├── statements/     # 流水文件
-│   │   └── receipts/       # 回单文件
-│   ├── logs/               # 日志目录
-│   └── records/            # 运行记录
-├── build_exe.py            # 打包脚本
-└── README.md               # 说明文档
+│   ├── captcha_recognizer.py   # 验证码识别
+│   ├── config.ini              # 配置文件
+│   ├── requirements.txt        # 依赖清单
+│   ├── build_exe.py            # 打包脚本（含 Chromium）
+│   ├── downloads/              # 下载目录
+│   │   ├── statements/         # 流水文件
+│   │   └── receipts/           # 回单文件
+│   ├── logs/                   # 日志目录
+│   └── records/                # 运行记录
+├── common/                      # 公共共享模块
+│   ├── base_browser.py         # 浏览器基础类（生命周期管理）
+│   ├── keyboard_helper.py      # AiKeyboard 封装
+│   ├── download_helper.py      # 下载监控工具
+│   ├── config_loader.py        # 配置加载
+│   ├── logger.py               # 日志配置
+│   ├── cabinet_controller.py   # 机柜控制器（支持多供应商）
+│   └── run_recorder.py         # 运行记录
+└── README.md                   # 说明文档
 ```
 
 ## 安装要求
 
-- Python 3.8+
-- Windows 操作系统
-- Chrome 或 Edge 浏览器
-- 广发银行 UKey 数字证书
+- Python 3.11+（开发环境）
+- Windows 10/11 操作系统
+- 广发银行 Key盾/UKey 数字证书
+- Chrome 浏览器（或使用打包版内置 Chromium）
 
 ## 快速开始
 
-### 1. 安装依赖
+### 方式一：使用打包的可执行文件（推荐）
+
+无需安装 Python，直接在目标机器运行：
+
+1. **下载发布包** `广发银行采集程序_vYYYYMMDD.zip`
+2. **解压后配置** `config.ini`，填入账号密码
+3. **双击运行** `启动程序.bat`
+
+发布包已包含：
+- ✅ Chromium 浏览器（无需额外安装 Chrome）
+- ✅ AiKeyboard.exe（安全键盘输入工具）
+- ✅ mb.exe（MB 机柜控制工具，如需要）
+
+### 方式二：从源码运行
+
+#### 1. 安装依赖
 
 ```bash
 cd 广发银行/cgb_automation
+
+# 创建虚拟环境
+python -m venv venv
+.\venv\Scripts\activate
+
+# 安装依赖
 pip install -r requirements.txt
+
+# 安装 Playwright 浏览器
 playwright install chromium
 ```
 
-### 2. 配置登录信息
+#### 2. 配置登录信息
 
-广发银行支持两种登录方式：
-
-#### 方式一：Key盾登录（推荐）
-使用 UKey 数字证书登录，**无需处理验证码**，更安全可靠。
+编辑 `config.ini`：
 
 ```ini
 [credentials]
-; Key盾登录只需配置 pin
-pin = 你的UKey密码
-
-[collection.statements]
-enabled = true
-start_date = 2026-01-01
-end_date = 2026-03-16
-```
-
-#### 方式二：免Key登录 + 百度OCR自动识别（推荐）
-使用用户名和密码登录，配合百度OCR自动识别验证码，实现全自动登录。
-
-```ini
-[credentials]
-; 免Key登录需要配置 username 和 password
 username = 你的用户名
-password = 你的密码
-
-[ocr]
-; 启用百度OCR自动识别验证码
-enabled = true
-api_key = 你的百度API Key
-secret_key = 你的百度Secret Key
-fallback_manual = true  ; 自动识别失败时允许手动输入
+password = 你的登录密码
+pin = 你的Key盾密码
 
 [collection.statements]
 enabled = true
+file_format = xls          # 支持 xls 或 xlsx
 start_date = 2026-01-01
-end_date = 2026-03-16
+end_date = 2026-03-23
+
+[collection.receipts]
+enabled = false            # 回单下载（如有问题可禁用）
+
+[browser]
+headless = false           # 是否无头模式（调试用 false）
+
+[cabinet]
+type = mb                  # 机柜类型: mb|gf3|mock|other
+manual_mode = false        # 手动模式（用户自己按OK键）
+
+# MB机柜配置
+mb_path = C:\waicai\wangyingbao\m2\mb.exe
+ter_id = 068330001533
+port = 20
+user = 15711668178
+
+# GF3机柜配置（好周岛等USB-HUB）
+# gf3_path = gf3.exe
+# product_id = 1
+# port = 1
 ```
 
-**获取百度OCR API Key：**
-1. 访问 [百度AI开放平台](https://ai.baidu.com/tech/ocr/general)
-2. 注册/登录百度账号
-3. 创建应用，获取 API Key 和 Secret Key
-4. 每月有免费调用额度（5万次），足够日常使用
-
-#### 方式三：免Key登录 + 手动输入验证码
-如果不使用百度OCR，也可以手动输入验证码。
-
-```ini
-[credentials]
-; 免Key登录需要配置 username 和 password
-username = 你的用户名
-password = 你的密码
-
-[ocr]
-; 不启用自动识别
-enabled = false
-
-[collection.statements]
-enabled = true
-start_date = 2026-01-01
-end_date = 2026-03-16
-```
-
-### 3. 运行程序
+#### 3. 运行程序
 
 ```bash
 python main.py
 ```
-
-**登录方式说明：**
-- **Key盾登录**：全自动，无需人工干预
-- **免Key + 百度OCR**：全自动，验证码自动识别
-- **免Key + 手动输入**：程序会弹出验证码输入框
 
 ## 使用说明
 
@@ -142,74 +145,105 @@ python main.py -c custom.ini      # 使用自定义配置
 
 ### 配置文件说明
 
-配置文件支持 INI、JSON 和 YAML 格式，默认优先使用 `config.ini`。
-
-#### 主要配置项
-
 | 配置项 | 说明 | 默认值 |
 |--------|------|--------|
-| credentials.pin | UKey PIN 码 | - |
+| credentials.username | 登录用户名 | - |
+| credentials.password | 登录密码 | - |
+| credentials.pin | Key盾 PIN 码 | - |
 | collection.statements.enabled | 是否启用流水采集 | true |
-| collection.receipts.enabled | 是否启用回单采集 | true |
-| collection.statements.start_date | 查询开始日期 | - |
-| collection.statements.end_date | 查询结束日期 | - |
+| collection.statements.file_format | 文件格式 (xls/xlsx) | xls |
+| collection.receipts.enabled | 是否启用回单采集 | false |
 | browser.headless | 无头模式 | false |
+| cabinet.type | 机柜类型 (mb/gf3/mock/other) | mb |
+| cabinet.manual_mode | 手动模式（不控制机柜） | false |
 
 ## 打包为可执行文件
 
+如需重新打包（包含 Chromium 浏览器）：
+
 ```bash
-cd 广发银行
-python build_exe.py
+cd 广发银行/cgb_automation
+.\venv\Scripts\python build_exe.py
 ```
 
-打包后的文件位于 `cgb_automation/dist/CGB_Automation.exe`
+打包完成后在 `dist/` 目录生成：
+- `广发银行采集程序.exe` - 可执行文件（约 250MB，含 Chromium）
+- `广发银行采集程序_vYYYYMMDD.zip` - 完整发布包
 
-## 注意事项
+## 登录流程说明
 
-1. **首次使用**：需要先安装浏览器驱动 `playwright install chromium`
-2. **UKey 驱动**：确保已安装广发银行 UKey 驱动程序
-3. **安全设置**：首次运行可能需要允许浏览器控件安装
-4. **窗口焦点**：运行过程中不要最小化浏览器窗口
+### Key盾登录流程
+
+1. 程序自动打开广发银行登录页面
+2. 用户名自动填充（浏览器记忆）
+3. 使用 **AiKeyboard** 安全输入登录密码
+4. JavaScript 点击登录按钮
+5. 弹出 Key盾密码输入框
+6. 使用 **AiKeyboard** 输入 Key盾 PIN 码
+7. 点击确认按钮
+8. （如启用机柜控制）自动点击物理 Key盾 OK 键
+9. 登录成功，开始采集
+
+### 安全特性
+
+- **AiKeyboard 安全输入**：使用独立进程模拟键盘输入，防止密码被恶意程序截取
+- **JavaScript 点击**：避免使用坐标点击，适配不同分辨率（参数化传参，避免字符串注入）
+- **多供应商机柜支持**：支持 MB机柜、GF3/USB-HUB机柜（好周岛等）
+- **BaseBrowser 基类**：`common/base_browser.py` 统一 5 家银行的浏览器生命周期（启动/关闭/进程清理）
+- **Mixin 架构**：`browser.py` 专注银行差异化逻辑，`login_manager` / `pin_inputter` / `popup_handler` 各负其责
+- **下载双保险**：优先使用 Playwright `expect_download()` 监听下载，失败自动回退到文件轮询
+- **公共模块复用**：`common/keyboard_helper.py`、`common/download_helper.py`、`common/config_loader.py`、`common/logger.py`、`common/cabinet_controller.py`、`common/run_recorder.py` 统一维护
 
 ## 故障排除
 
+### 登录按钮点击无响应
+- 检查浏览器窗口是否被最小化
+- 查看日志确认坐标或 JavaScript 点击是否正常
+- 确保页面已完全加载
+
+### Key盾弹窗未处理
+- 检查 `pin` 是否配置正确
+- 确认 Key盾驱动已安装
+- 查看日志确认弹窗检测逻辑
+
+### 机柜控制失败
+- 检查 `cabinet.type` 是否配置正确（mb/gf3/mock/other）
+- 确认对应机柜的参数配置正确（ter_id/port 或 gf3_path 等）
+- 检查网络连接和机柜服务状态
+- 查看日志确认机柜类型是否正确识别
+
+### 下载文件格式问题
+- 广发银行默认下载 xlsx 格式
+- 如需 xls 格式，程序会自动修改文件扩展名
+- 注意：实际为 xlsx 格式但扩展名为 xls，Excel 可以正常打开
+
 ### 验证码相关问题
-#### 验证码弹窗没有显示
-- 确保使用的是免Key登录（配置了 username 和 password）
-- 检查是否正确安装了 tkinter（通常Python自带）
-- 查看日志确认是否成功截图
-
-#### 验证码输入后登录失败
-- 验证码可能已过期，点击验证码图片刷新后重新输入
-- 检查用户名和密码是否正确
-- 如果多次失败，可以手动完成登录
-
-#### 百度OCR识别失败
-- 检查 API Key 和 Secret Key 是否正确
-- 确认百度账号有可用额度
-- 查看日志中的具体错误信息
-- 识别失败时会自动切换到手动输入模式
-
-#### 不想处理验证码怎么办？
-- **推荐使用 Key盾登录**：配置 `pin` 即可，无需验证码
-- 或**使用百度OCR自动识别**：全自动处理
-- 或使用扫码登录：等待程序进入半自动模式后手动扫码
-
-### 无法检测到登录成功
-- 检查 UKey 是否已正确插入
-- 确认 UKey 密码是否正确
-- 查看日志文件了解详细错误信息
-
-### 下载失败
-- 检查网络连接
-- 确认账户是否有足够权限
-- 尝试增大页面超时时间
-
-### 日期设置失败
-- 不同版本的网银界面可能略有差异
-- 可以尝试手动设置日期后重新运行
+- 当前版本使用 Key盾登录**无需验证码**
+- 如需免 Key 登录，可配置百度 OCR 自动识别
 
 ## 更新日志
+
+### v1.4.0 (2026-04-17)
+- 提取 `BaseBrowser` 到 `common/base_browser.py`，统一 5 家银行浏览器生命周期管理
+- 重构 `browser.py` 为 Mixin 架构（`login_manager.py` + `pin_inputter.py` + `popup_handler.py`）
+- 下载监控升级：主路径使用 Playwright `expect_download()`，失败自动回退文件轮询
+- 提取公共模块 `common/keyboard_helper.py`、`common/download_helper.py`、`common/config_loader.py`、`common/logger.py`、`common/cabinet_controller.py`、`common/run_recorder.py`
+- 修复 BOM 配置文件解析问题（统一使用 `utf-8-sig`）
+- 页面加载等位置使用 Playwright 显式等待替代硬编码 `time.sleep()`
+- 退出时强制清理所有 `chrome.exe` 进程
+
+### v1.2.0 (2026-04-13)
+- 新增多供应商机柜支持（抽象层+适配器模式）
+- 支持 MB机柜、GF3/USB-HUB机柜（好周岛等）、模拟机柜
+- 配置文件统一为 `[cabinet]` 段，通过 `type` 字段切换供应商
+
+### v1.1.0 (2026-03-23)
+- 新增 AiKeyboard 安全密码输入
+- 新增 MB 机柜机器人支持（物理 Key盾自动操作）
+- 支持打包为独立可执行文件（含 Chromium）
+- 优化登录流程，使用 JavaScript 点击避免坐标问题
+- 新增 xls/xlsx 格式支持
+- 清理项目结构，移除多余文件
 
 ### v1.0.0
 - 初始版本发布

@@ -77,7 +77,7 @@ class BaseBrowser:
         return Path(__file__).parent
 
     def _get_window_size(self) -> tuple:
-        return (1800, 850)
+        return (1750, 950)
 
     def _get_extra_launch_args(self) -> list:
         return [
