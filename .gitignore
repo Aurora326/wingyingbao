@@ -48,3 +48,4 @@ config.yaml
 _legacy_backup/
 Thumbs.db
 .DS_Store
+.git_bak_20261030/
