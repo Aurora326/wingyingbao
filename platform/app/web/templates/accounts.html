@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_ui.html" import bank_name, bank_mark, schedule_text, device_status %}
+{% from "_ui.html" import bank_name, bank_mark, schedule_text, device_status, collect_mode_text %}
 {% block title %}账户与 UKey · 银行财务平台{% endblock %}
 {% block content %}
 <div class="page-head">
@@ -93,6 +93,7 @@
           </b>
         </div>
         <div><span>采集计划</span><b>{{ schedule_text(a.collect_cron) }}</b></div>
+        <div><span>采集内容</span><b>{{ collect_mode_text(a.collect_mode) }}</b></div>
         <div><span>对应 UKey</span><b>{{ a.device or '未绑定' }}</b></div>
         <div>
           <span>数据采至</span>
@@ -101,10 +102,28 @@
       </div>
 
       <div class="acct-actions">
-        <button class="small primary" onclick="collectNow({{ a.id }})">立即采集</button>
+        <details class="collect-menu">
+          <summary class="btn small primary">立即采集
+            <svg class="ico" style="width:12px;height:12px"><use href="#i-chevron"/></svg>
+          </summary>
+          <div class="collect-menu-list">
+            <button type="button" onclick="collectNow({{ a.id }}, 'statements')">流水采集</button>
+            <button type="button" onclick="collectNow({{ a.id }}, 'receipts')">回单采集</button>
+            <button type="button" onclick="collectNow({{ a.id }}, 'both')">流水 + 回单</button>
+          </div>
+        </details>
         <a class="btn small" href="/statements?account_id={{ a.id }}">查看流水</a>
-        <button class="icon-btn bordered" onclick="openCredentialModal({{ a.id }}, '{{ bank_name(a.bank_code) }} · {{ a.account_no }}')" title="更新登录信息" aria-label="更新登录信息">
-          <svg class="ico"><use href="#i-key"/></svg>
+        <button class="icon-btn bordered" onclick="openEditAccountModal(this)"
+                data-id="{{ a.id }}"
+                data-bank="{{ a.bank_code }}"
+                data-account-no="{{ a.account_no }}"
+                data-account-name="{{ a.account_name }}"
+                data-cron="{{ a.collect_cron }}"
+                data-collect-mode="{{ a.collect_mode }}"
+                data-days-back="{{ a.days_back }}"
+                data-device-id="{{ a.device_id or '' }}"
+                title="编辑账户" aria-label="编辑账户">
+          <svg class="ico"><use href="#i-sliders"/></svg>
         </button>
         <button class="icon-btn bordered account-delete-btn" onclick="openDeleteAccountModal(this)"
                 data-id="{{ a.id }}"
@@ -193,7 +212,7 @@
     <div class="head">
       <div>
         <strong id="account-modal-title">添加银行账户</strong>
-        <div class="modal-sub">添加后系统会按计划自动登录银行采集流水和回单</div>
+        <div class="modal-sub">添加后系统会按采集内容和计划自动登录银行取数</div>
       </div>
       <button class="icon-btn" onclick="closeModal('account-modal')" aria-label="关闭">
         <svg class="ico"><use href="#i-close"/></svg>
@@ -201,6 +220,7 @@
     </div>
 
     <form id="account-form" onsubmit="submitAccountForm(event)">
+      <input type="hidden" name="account_id" id="account-id">
       <fieldset class="form-section">
         <legend><span class="step-no">1</span>账户信息</legend>
         <div class="form-grid">
@@ -212,14 +232,15 @@
               {% endif %}{% endfor %}
             </select>
           </div>
-          <div class="field"><label>账号</label><input name="account_no" required placeholder="请输入完整银行账号" autocomplete="off"></div>
-          <div class="field full"><label>户名</label><input name="account_name" placeholder="公司在这家银行的账户名称"></div>
+          <div class="field"><label>账号</label><input name="account_no" id="account-no" required placeholder="请输入完整银行账号" autocomplete="off"></div>
+          <div class="field full"><label>户名</label><input name="account_name" id="account-name-input" placeholder="公司在这家银行的账户名称"></div>
         </div>
       </fieldset>
 
       <fieldset class="form-section">
         <legend><span class="step-no">2</span>网银登录信息</legend>
         <p class="form-note"><svg class="ico"><use href="#i-shield"/></svg>这些信息会加密保存，只在采集时使用，不会显示在页面上。</p>
+        <p class="form-note" id="credential-edit-note" hidden>编辑时留空表示不修改，只有填写的内容才会更新。</p>
         <div class="form-grid">
           <div class="field"><label>网银用户名</label><input name="username" autocomplete="off" placeholder="登录企业网银的账号"></div>
           <div class="field"><label>网银密码</label><input name="password" type="password" autocomplete="new-password"></div>
@@ -230,6 +251,15 @@
       <fieldset class="form-section">
         <legend><span class="step-no">3</span>自动采集设置</legend>
         <div class="form-grid">
+          <div class="field">
+            <label>采集内容</label>
+            <select name="collect_mode" id="account-collect-mode">
+              <option value="both">流水 + 回单（推荐）</option>
+              <option value="statements">仅流水</option>
+              <option value="receipts">仅回单</option>
+            </select>
+            <span class="tip">自动采集时取哪些数据；手动采集可临时选择</span>
+          </div>
           <div class="field">
             <label>采集频率</label>
             <select id="schedule-preset" onchange="applySchedulePreset(this.value)">
@@ -285,35 +315,7 @@
 
       <div class="modal-foot">
         <button type="button" onclick="closeModal('account-modal')">取消</button>
-        <button class="primary" type="submit">创建账户</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- 更新登录信息 -->
-<div class="modal" id="credential-modal" role="dialog" aria-modal="true" aria-labelledby="credential-modal-title">
-  <div class="box form-box" style="width:min(520px,100%)">
-    <div class="head">
-      <div>
-        <strong id="credential-modal-title">更新登录信息</strong>
-        <div class="modal-sub">修改 <b id="credential-account-label"></b> 的网银登录信息</div>
-      </div>
-      <button class="icon-btn" onclick="closeModal('credential-modal')" aria-label="关闭">
-        <svg class="ico"><use href="#i-close"/></svg>
-      </button>
-    </div>
-    <form id="credential-form" onsubmit="submitCredentialForm(event)">
-      <input type="hidden" name="account_id" id="credential-account-id">
-      <p class="form-note"><svg class="ico"><use href="#i-shield"/></svg>请完整填写三项信息，保存后会立即加密更新。</p>
-      <div class="form-grid">
-        <div class="field full"><label>网银用户名</label><input name="username" id="credential-username" autocomplete="off"></div>
-        <div class="field"><label>网银密码</label><input name="password" type="password" autocomplete="new-password"></div>
-        <div class="field"><label>UKey PIN</label><input name="pin" type="password" autocomplete="new-password"></div>
-      </div>
-      <div class="modal-foot">
-        <button type="button" onclick="closeModal('credential-modal')">取消</button>
-        <button class="primary" type="submit">保存登录信息</button>
+        <button class="primary" type="submit" id="account-submit">创建账户</button>
       </div>
     </form>
   </div>

@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>城投地产司库资金管理平台建设方案</title>
+<style>
+  :root {
+    --ink: #1B2028;
+    --navy: #2B3D54;
+    --navy-2: #233142;
+    --brass: #B98A44;
+    --paper: #F8F7F4;
+    --surface: #FFFFFF;
+    --line: #EAE6DF;
+    --text: #1b1f1c;
+    --muted: #666e68;
+    --green: #0c7154;
+    --red: #b33a32;
+    --amber: #946318;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft YaHei", "Microsoft YaHei UI", "PingFang SC", "Segoe UI", sans-serif;
+    color: var(--text);
+    background: var(--paper);
+    font-size: 9.6pt;
+    line-height: 1.75;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  a { color: var(--navy); text-decoration: none; }
+  .cover {
+    min-height: 0;
+    padding: 24mm 24mm 16mm;
+    color: #F4F1EA;
+    background:
+      linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px),
+      linear-gradient(150deg, #1B2028 0%, #233142 58%, #2B3D54 100%);
+    background-size: 14mm 14mm, 14mm 14mm, 100% 100%;
+    page-break-after: always;
+  }
+  .cover .top { display: flex; justify-content: space-between; align-items: center; }
+  .cover .brand { display: flex; align-items: center; gap: 10px; font-size: 11pt; letter-spacing: .06em; }
+  .cover .mark {
+    width: 34px; height: 34px; border-radius: 8px; display: inline-grid; place-items: center;
+    border: 1px solid rgba(185,138,68,.65); background: #233142; color: #F4F1EA;
+    font-size: 11pt; font-weight: 700;
+  }
+  .cover .tag { font-family: Consolas, monospace; font-size: 7.5pt; letter-spacing: .16em; color: #949BA6; }
+  .cover .main { margin-top: 46mm; }
+  .cover .eyebrow { font-size: 8pt; letter-spacing: .18em; color: #D5CFC7; margin-bottom: 8mm; }
+  .cover h1 { margin: 0; font-size: 29pt; line-height: 1.3; letter-spacing: -.02em; font-weight: 700; color: #FFFFFF; }
+  .cover h2 { margin: 7mm 0 0; font-size: 12pt; line-height: 1.7; font-weight: 400; color: #D5CFC7; max-width: 145mm; }
+  .cover .rule { width: 48mm; height: 2px; background: var(--brass); margin: 9mm 0; }
+  .cover .meta { margin-top: 24mm; display: grid; grid-template-columns: 1fr 1fr; gap: 6mm 14mm; font-size: 8.5pt; color: #949BA6; }
+  .cover .meta b { display: block; color: #F4F1EA; font-weight: 600; font-size: 9.5pt; margin-top: 1mm; }
+  .cover .foot { margin-top: 8mm; font-size: 7.5pt; color: #7E8792; letter-spacing: .04em; }
+  .page-break { page-break-before: always; }
+  .content { padding: 0 18mm 18mm; }
+  h2 {
+    margin: 0 0 4mm;
+    padding-bottom: 2.5mm;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+    font-size: 16pt;
+    line-height: 1.4;
+    letter-spacing: -.01em;
+    page-break-after: avoid;
+  }
+  h2 .no { color: var(--brass); font-family: Consolas, monospace; font-size: 11pt; margin-right: 3mm; }
+  h3 { margin: 6mm 0 2mm; color: var(--navy); font-size: 11pt; page-break-after: avoid; }
+  h4 { margin: 4mm 0 1.5mm; color: var(--ink); font-size: 9.8pt; page-break-after: avoid; }
+  p { margin: 0 0 3mm; text-align: justify; }
+  ul, ol { margin: 0 0 3.5mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  strong { color: #111; }
+  code { padding: 0 1mm; border-radius: 1mm; background: #F0EEE9; font-family: Consolas, "Courier New", monospace; font-size: 8pt; color: #2B3D54; }
+  .lead { font-size: 10.5pt; color: #3e4741; }
+  .muted { color: var(--muted); }
+  .small { font-size: 8pt; color: var(--muted); }
+  .callout {
+    margin: 4mm 0 5mm;
+    padding: 3.5mm 4.5mm;
+    border-left: 3px solid var(--brass);
+    background: #FAF7EF;
+    color: #3d453f;
+    font-size: 9pt;
+    page-break-inside: avoid;
+  }
+  .callout.warn { border-left-color: var(--red); background: #FBEEEC; }
+  .callout.good { border-left-color: var(--green); background: #E9F4EF; }
+  .callout b { color: #111; }
+  thead { display: table-header-group; }
+  table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 8.4pt; page-break-inside: avoid; }
+  th {
+    background: #F0EEE9; color: var(--ink); text-align: left; font-weight: 600;
+    padding: 2.2mm 2.6mm; border-bottom: 1px solid #DED8CE;
+  }
+  td { padding: 2.2mm 2.6mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:nth-child(even) td { background: #FCFBF8; }
+  .diagram {
+    margin: 4mm 0 5mm;
+    padding: 4.5mm 5mm;
+    border-radius: 2mm;
+    background: #1B2028;
+    color: #F4F1EA;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 7.8pt;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    page-break-inside: avoid;
+  }
+  .diagram .b { color: #E3C58F; }
+  .diagram .g { color: #9FD8BF; }
+  .diagram .d { color: #949BA6; }
+  .toc { margin-top: 2mm; }
+  .toc div {
+    display: flex; justify-content: space-between; gap: 10mm;
+    padding: 1.6mm 0; border-bottom: 1px dotted #DED8CE; font-size: 9.2pt;
+  }
+  .toc span:first-child { color: #222; }
+  .toc span:last-child { color: var(--brass); font-family: Consolas, monospace; font-size: 8pt; }
+  .kv { display: grid; grid-template-columns: 30mm 1fr; gap: 1.5mm 5mm; font-size: 8.8pt; margin: 3mm 0 5mm; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; color: #222; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .box {
+    border: 1px solid var(--line); border-radius: 2mm; padding: 3.5mm 4mm;
+    background: #FBFAF7; page-break-inside: avoid;
+  }
+  .box h3, .box h4 { margin-top: 0; }
+  .tagline { color: var(--brass); font-weight: 600; }
+  .status { color: var(--green); font-weight: 600; }
+  .warn-text { color: var(--red); font-weight: 600; }
+  .footer-note { margin-top: 8mm; padding-top: 3mm; border-top: 1px solid var(--line); font-size: 7.5pt; color: #8a908a; }
+  .wire {
+    margin: 4mm 0 5mm; padding: 4mm;
+    border: 1px solid var(--line); border-radius: 2mm; background: #FFFFFF;
+    font-family: Consolas, "Courier New", monospace; font-size: 7.6pt; line-height: 1.55;
+    white-space: pre-wrap; page-break-inside: avoid;
+  }
+  .wire b { color: var(--navy); }
+  .mock {
+    margin: 4mm 0 5mm; padding: 3.5mm 4mm;
+    border: 1px solid var(--line); border-radius: 2mm; background: #FFFFFF;
+    page-break-inside: avoid;
+  }
+  .mock-top {
+    display: flex; justify-content: space-between; align-items: center; gap: 4mm;
+    padding-bottom: 2.5mm; border-bottom: 1px solid var(--line);
+    font-size: 7.8pt; color: var(--muted);
+  }
+  .mock-btn { padding: 1mm 2mm; border-radius: 1mm; background: var(--navy); color: #F8F7F4; font-size: 7.2pt; }
+  .mock-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2mm; margin: 3mm 0; }
+  .mock-kpis div { padding: 2mm; border: 1px solid var(--line); border-radius: 1.2mm; background: #F8F7F4; }
+  .mock-kpis span { display: block; font-size: 7pt; color: var(--muted); }
+  .mock-kpis b { display: block; margin-top: .8mm; font-size: 9pt; color: var(--navy); }
+  .mock-section-title { margin: 2.5mm 0 1.5mm; font-size: 8.2pt; font-weight: 600; color: var(--ink); }
+  .mock-table { border: 1px solid var(--line); border-radius: 1.2mm; overflow: hidden; }
+  .mock-row {
+    display: grid; grid-template-columns: 20mm 24mm 1fr 16mm 16mm 16mm 22mm 12mm;
+    gap: 1.5mm; padding: 1.5mm 2mm; font-size: 7.1pt; color: var(--text);
+    border-top: 1px solid var(--line);
+  }
+  .mock-row.head { background: #F0EEE9; font-weight: 600; color: var(--ink); border-top: 0; }
+  .mock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; margin-top: 3mm; }
+  .mock-box { min-height: 18mm; padding: 2.5mm 3mm; border: 1px solid var(--line); border-radius: 1.2mm; background: #FBFAF7; }
+  .mock-box b { display: block; font-size: 8pt; color: var(--navy); }
+  .mock-box span { display: block; margin-top: 1mm; font-size: 7pt; color: var(--muted); }
+  @media print {
+    h2, h3, h4 { break-after: avoid; }
+    table, .callout, .diagram, .box, .wire, .mock { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="top">
+    <div class="brand"><span class="mark">TC</span><span>银行财务平台 · Treasury Console</span></div>
+    <div class="tag">INTERNAL · v1.0</div>
+  </div>
+  <div class="main">
+    <div class="eyebrow">建设方案 · 2026-11-03</div>
+    <h1>城投地产司库<br>资金管理平台</h1>
+    <div class="rule"></div>
+    <h2>以资金专户监管、项目资金视图和资金日报为核心，分阶段建设集团子公司的司库 1.0。</h2>
+  </div>
+  <div class="meta">
+    <div>客户背景<b>上海某城投国企集团下属地产子公司</b></div>
+    <div>业务特征<b>地产项目 / 资金专户 / 集团管控</b></div>
+    <div>方案范围<b>组织、账户、专户、项目、报表、预警</b></div>
+    <div>当前阶段<b>司库 1.0 规划与一期实施</b></div>
+  </div>
+  <div class="foot">本文件为内部建设方案，不包含真实银行账号、客户凭据、UKey 信息或访问令牌。</div>
+</section>
+
+<div class="content">
+
+<h2><span class="no">00</span>文档说明</h2>
+<p class="lead">本方案面向上海某城投国企集团下属、以地产开发运营为主业的子公司，目标是在现有银行账户采集与对账平台基础上，建设一套“看得见、说得清、管得住”的司库资金管理平台。</p>
+<p>方案的重点不是把所有银行功能一次性搬上线，而是先解决这类客户最现实的问题：<strong>账户多、专户多、项目多、受限资金多，账面余额与可用资金不清，资金日报靠手工，专户监管和项目资金缺口缺少统一视图。</strong></p>
+
+<div class="callout">
+  <b>方案主线：</b>先做“资金专户台账 + 项目资金视图 + 资金日报”，再做“资金计划与审批”，最后才做“支付、银企直连、融资与票据”。这条路径能在较低风险下先产生管理价值。
+</div>
+
+<h3>适用读者</h3>
+<p>客户分管财务的领导、资金/财务部门、项目财务、信息化部门、审计与风控部门；乙方的产品、实施、研发、测试与运维团队。</p>
+
+<h3>已知背景与待确认事项</h3>
+<p>本方案基于目前已知的客户背景编写。以下内容需要在项目启动调研阶段确认：集团与子公司的组织层级、银行账户清单、资金专户类型及监管要求、项目清单、现有财务/ERP/OA 系统、银行直连条件、历史数据范围、审批制度与权限边界。</p>
+
+<h3>关键结论</h3>
+<ul>
+  <li><strong>专户优先：</strong>资金专户不是普通账户的一个标签，而是独立的监管台账，必须单独管理监管方、受限金额、最低留存和释放条件。</li>
+  <li><strong>项目维度：</strong>地产业务的资金管理必须按项目看回款、工程支出、土地款、税费、利息和资金缺口。</li>
+  <li><strong>三分余额：</strong>账面余额、可用余额、受限/监管资金必须分开呈现，避免“账上有钱但不能用”的误判。</li>
+  <li><strong>先查询后支付：</strong>一期不做支付，先把账户、余额、流水、回单、专户和报表做准；支付涉及银行直连、审批、安全和双人复核，放到二期。</li>
+  <li><strong>复用现有底座：</strong>现有 UKey/Agent 采集、任务调度、流水、回单、对账、租户隔离和审计能力可以继续使用，避免重复建设。</li>
+</ul>
+
+<h2 class="page-break"><span class="no">目录</span>方案结构</h2>
+<div class="toc">
+  <div><span>01 项目背景与客户画像</span><span>01</span></div>
+  <div><span>02 建设目标与范围</span><span>02</span></div>
+  <div><span>03 现状能力与差距</span><span>03</span></div>
+  <div><span>04 总体设计</span><span>04</span></div>
+  <div><span>05 核心功能设计</span><span>05</span></div>
+  <div><span>06 资金专户管理专篇</span><span>06</span></div>
+  <div><span>07 数据模型改造</span><span>07</span></div>
+  <div><span>08 报表体系</span><span>08</span></div>
+  <div><span>09 权限、流程与合规</span><span>09</span></div>
+  <div><span>10 集成、部署与安全</span><span>10</span></div>
+  <div><span>11 实施计划与验收</span><span>11</span></div>
+  <div><span>12 风险与应对</span><span>12</span></div>
+  <div><span>13 交付物清单</span><span>13</span></div>
+</div>
+
+<h2 class="page-break"><span class="no">01</span>项目背景与客户画像</h2>
+
+<h3>1.1 客户背景</h3>
+<p>客户为上海某城投国企集团下属子公司，主业与地产开发相关，通常同时承担项目公司、区域公司或专业公司的资金管理职责。其资金管理既受集团统一管控，又受项目监管、国资监管和银行账户管理制度约束。</p>
+
+<h3>1.2 业务特征</h3>
+<table><thead><tr><th style="width:24%">特征</th><th>对司库的含义</th></tr></thead><tbody>
+  <tr><td>城投国企子公司</td><td>需要集团—子公司—项目公司的多级资金视图，强调账户备案、审批留痕、审计可追溯和国资监管报表。</td></tr>
+  <tr><td>地产开发业务</td><td>资金按项目全周期流动：土地款、开发贷、销售回款、工程款、税费、利息、股东借款，必须按项目核算和预测。</td></tr>
+  <tr><td>资金专户多</td><td>预售资金监管户、农民工工资专户、拆迁补偿专户、项目资本金专户、专项债/财政资金专户、共管账户等，资金使用受监管方和项目节点约束。</td></tr>
+  <tr><td>集团管控</td><td>需要合并余额、资金集中度、内部往来、统借统还、担保和融资台账，支持集团资金调度。</td></tr>
+  <tr><td>合规要求高</td><td>“三重一大”、账户开立/变更/撤销审批、UKey 双人保管、大额资金联签、审计留痕，都是司库系统必须承载的流程。</td></tr>
+</tbody></table>
+
+<h3>1.3 典型痛点</h3>
+<table><thead><tr><th style="width:26%">痛点</th><th>现状表现</th><th>管理影响</th></tr></thead><tbody>
+  <tr><td>账户分散</td><td>各项目公司、各银行账户分散，账户清单靠 Excel 维护。</td><td>无法快速掌握账户总数、状态、UKey 保管人和采集覆盖情况。</td></tr>
+  <tr><td>专户不清</td><td>专户类型、监管方、受限金额、最低留存、释放条件记录不清。</td><td>可能误用监管资金，无法及时准备释放材料，审计解释成本高。</td></tr>
+  <tr><td>可用资金不清</td><td>只看到账面余额，看不到受限金额和可用余额。</td><td>集团或公司层面误判资金余量，影响资金调度和项目支付。</td></tr>
+  <tr><td>项目资金不清</td><td>余额、回款、工程支出、土地款、税费没有按项目归集。</td><td>项目资金缺口发现晚，依赖财务手工统计。</td></tr>
+  <tr><td>计划执行弱</td><td>资金计划在 Excel 中编制，实际执行靠人工比对。</td><td>计划与实际脱节，无法提前发现偏差。</td></tr>
+  <tr><td>报表靠手工</td><td>资金日报、专户台账、账户清单需要多人重复整理。</td><td>时效性差、口径不一致、数据难追溯。</td></tr>
+  <tr><td>预警缺失</td><td>专户低于留存线、账户长期未更新、证书到期等靠人盯。</td><td>风险发现滞后，采集失败可能影响资金判断。</td></tr>
+</tbody></table>
+
+<h3>1.4 建设诉求</h3>
+<p>客户需要的不是“再多一个网银查询页面”，而是一套能够回答以下问题的司库工作台：</p>
+<ul>
+  <li>集团/公司/项目现在有多少钱？其中多少可用、多少受限？</li>
+  <li>每个资金专户的监管要求是什么？当前是否满足最低留存和释放条件？</li>
+  <li>每个地产项目的回款、支出、资金缺口和到期债务是什么情况？</li>
+  <li>资金计划执行到什么程度？偏差在哪里？</li>
+  <li>哪些账户、专户、证书、采集任务存在风险？</li>
+  <li>这些数据从哪里来、什么时候更新、谁看过、谁改过？</li>
+</ul>
+
+<h2><span class="no">02</span>建设目标与范围</h2>
+
+<h3>2.1 总目标</h3>
+<p>建设一套面向城投地产子公司的司库资金管理平台，以银行账户和资金专户为基础，以项目资金为主线，以资金日报和风险预警为抓手，形成“账户全、余额准、专户清、项目明、报表快、风险早”的资金管理能力。</p>
+
+<h3>2.2 司库 1.0 目标</h3>
+<table><thead><tr><th style="width:8%">序号</th><th style="width:28%">目标</th><th>验收口径</th></tr></thead><tbody>
+  <tr><td>1</td><td>账户全生命周期可见</td><td>所有银行账户纳入平台，记录账户性质、状态、所属公司/项目、UKey、证书和采集状态。</td></tr>
+  <tr><td>2</td><td>资金专户台账化</td><td>专户类型、监管方、受限金额、最低留存、释放条件、最近采集可查。</td></tr>
+  <tr><td>3</td><td>余额三分</td><td>账面余额、可用余额、受限/监管资金分列，支持集团/公司/项目汇总。</td></tr>
+  <tr><td>4</td><td>项目资金视图</td><td>按项目查看余额、回款、支出、资金缺口和近期到期事项。</td></tr>
+  <tr><td>5</td><td>资金日报自动化</td><td>每日自动生成资金日报，支持 PDF/Excel 导出。</td></tr>
+  <tr><td>6</td><td>风险预警</td><td>专户留存、监管资金、采集失败、证书到期、大额交易等规则可配置。</td></tr>
+</tbody></table>
+
+<h3>2.3 范围边界</h3>
+<table><thead><tr><th style="width:24%">范围</th><th>一期（司库 1.0）</th><th>后续阶段</th></tr></thead><tbody>
+  <tr><td>组织与账户</td><td>集团—公司—项目公司—项目；账户主数据、账户状态、UKey/设备绑定</td><td>账户开立/变更/销户审批流</td></tr>
+  <tr><td>资金专户</td><td>专户台账、监管方、受限金额、最低留存、释放条件、预警</td><td>监管平台对接、释放材料自动生成</td></tr>
+  <tr><td>余额与流水</td><td>账面/可用/受限余额、流水、回单、对账</td><td>多币种、资金池、内部往来</td></tr>
+  <tr><td>项目资金</td><td>项目维度余额、回款、支出、缺口</td><td>项目全周期现金流预测</td></tr>
+  <tr><td>资金计划</td><td>基础计划台账（可选）</td><td>年度/月度/周计划、计划 vs 实际、滚动预测</td></tr>
+  <tr><td>支付结算</td><td>不纳入一期</td><td>付款申请、审批、支付指令、银企直连</td></tr>
+  <tr><td>融资/票据</td><td>不纳入一期</td><td>授信、贷款、担保、票据、理财</td></tr>
+  <tr><td>报表</td><td>资金日报、专户台账、项目资金表、账户清单、收支明细、采集健康度</td><td>计划执行、融资台账、资金集中度、管理驾驶舱</td></tr>
+</tbody></table>
+
+<h3>2.4 设计原则</h3>
+<ul>
+  <li><strong>专户优先：</strong>先解决资金专户的监管属性，再谈账户余额汇总。</li>
+  <li><strong>项目维度：</strong>所有资金数据尽可能落到项目，支持地产项目全周期管理。</li>
+  <li><strong>三分余额：</strong>账面、可用、受限必须分开，报表口径统一。</li>
+  <li><strong>先查询后支付：</strong>一期不碰支付，降低银行接口、审批和安全风险。</li>
+  <li><strong>数据可追溯：</strong>每条余额、流水、专户数据都要有来源、采集时间和操作审计。</li>
+  <li><strong>复用现有底座：</strong>UKey/Agent 采集、任务调度、流水、回单、对账、租户隔离继续使用。</li>
+</ul>
+
+<h2><span class="no">03</span>现状能力与差距</h2>
+
+<h3>3.1 现有平台能力</h3>
+<p>现有平台已经具备银行账户采集与对账的基础能力，可以作为司库 1.0 的数据底座：</p>
+<table><thead><tr><th style="width:26%">能力</th><th>现状</th><th>司库价值</th></tr></thead><tbody>
+  <tr><td>银行账户</td><td>账户新增、编辑、删除、UKey 绑定、自动采集开关</td><td>账户主数据基础</td></tr>
+  <tr><td>UKey / 设备</td><td>MB 机柜、端口、Agent、证书到期、设备状态</td><td>采集执行与运维基础</td></tr>
+  <tr><td>采集任务</td><td>流水/回单任务、手动/定时、Agent 领取、日志、重试</td><td>数据获取通道</td></tr>
+  <tr><td>流水与回单</td><td>银行流水、电子回单、原始文件归档、解析</td><td>收支与对账数据</td></tr>
+  <tr><td>智能对账</td><td>流水与内部单据匹配、批次、差异</td><td>资金核对基础</td></tr>
+  <tr><td>多租户</td><td>租户隔离、超级管理员、租户切换</td><td>集团多公司扩展基础</td></tr>
+  <tr><td>审计</td><td>账户、任务、设备等操作日志</td><td>合规留痕基础</td></tr>
+</tbody></table>
+
+<h3>3.2 主要差距</h3>
+<table><thead><tr><th style="width:24%">差距</th><th>说明</th><th>优先级</th></tr></thead><tbody>
+  <tr><td>组织与项目维度</td><td>目前以企业/账户为主，缺少集团—公司—项目公司的层级和地产项目主数据。</td><td>P0</td></tr>
+  <tr><td>资金专户</td><td>没有专户类型、监管方、受限金额、最低留存、释放条件等字段。</td><td>P0</td></tr>
+  <tr><td>余额口径</td><td>只有余额，没有可用余额、受限余额、授信/透支额度。</td><td>P0</td></tr>
+  <tr><td>资金日报</td><td>首页有总览，但没有按公司/项目/专户的资金日报和导出。</td><td>P0</td></tr>
+  <tr><td>资金计划</td><td>没有计划编制、计划执行、差异分析。</td><td>P1</td></tr>
+  <tr><td>支付结算</td><td>只有查询，没有付款申请、审批、支付指令。</td><td>P2</td></tr>
+  <tr><td>融资/票据</td><td>没有授信、贷款、担保、票据台账。</td><td>P3</td></tr>
+</tbody></table>
+
+<h3>3.3 改造策略</h3>
+<table><thead><tr><th style="width:18%">策略</th><th>内容</th></tr></thead><tbody>
+  <tr><td>复用</td><td>UKey/Agent 采集、任务调度、流水/回单、对账、租户隔离、审计日志、Docker 部署。</td></tr>
+  <tr><td>扩展</td><td>BankAccount 增加组织/项目/专户字段；BalanceSnapshot 增加可用/受限；Statement 增加项目/分类。</td></tr>
+  <tr><td>新建</td><td>OrgUnit、Project、SpecialAccount、FundPlan、Alert、ReportSnapshot、AccountEvent。</td></tr>
+  <tr><td>迁移</td><td>SQLite 迁 PostgreSQL；现有账户/流水/任务数据平滑迁移；一期新增字段先允许为空，再逐步补全。</td></tr>
+</tbody></table>
+
+<h2><span class="no">04</span>总体设计</h2>
+
+<h3>4.1 业务架构</h3>
+<div class="diagram">
+<span class="b">集团司库管理</span>
+├─ 资金驾驶舱：余额、可用、受限、趋势、预警
+├─ 账户与专户：账户全生命周期、专户监管台账、UKey/授权
+├─ 项目资金：项目回款、工程支出、土地款、税费、资金缺口
+├─ 资金计划：计划编制、执行跟踪、差异分析
+├─ 收支结算：流水、回单、付款申请、支付指令（二期）
+├─ 风险合规：专户留存、大额交易、采集质量、证书、融资到期
+└─ 报表中心：资金日报、专户台账、项目资金表、管理报表
+        <span class="d">↑ 数据底座</span>
+<span class="g">银行账户 / 流水 / 回单 / 余额 / 对账 / 采集任务 / Agent / UKey</span>
+</div>
+
+<h3>4.2 应用架构</h3>
+<table><thead><tr><th style="width:22%">层次</th><th>内容</th></tr></thead><tbody>
+  <tr><td>展示层</td><td>Web 管理端、移动端/企业微信（后续）、报表导出、大屏（后续）。</td></tr>
+  <tr><td>业务层</td><td>资金驾驶舱、账户与专户、项目资金、资金计划、收支结算、风险预警、报表中心、系统管理。</td></tr>
+  <tr><td>数据层</td><td>组织/项目/账户主数据、余额快照、流水、回单、专户台账、计划、预警、报表快照、审计日志。</td></tr>
+  <tr><td>集成层</td><td>银行采集 Agent、UKey/MB、银行直连 Adapter、ERP/OA、监管平台、消息通知。</td></tr>
+  <tr><td>基础设施</td><td>Docker、PostgreSQL、对象存储、日志/监控、备份、SSO（后续）。</td></tr>
+</tbody></table>
+
+<h3>4.3 数据架构</h3>
+<div class="diagram">
+<span class="b">主数据</span>      组织 OrgUnit ── 项目 Project ── 银行账户 BankAccount ── 资金专户 SpecialAccount
+     │                │                 │
+<span class="b">交易数据</span>    流水 Statement ── 回单 Receipt ── 余额快照 BalanceSnapshot ── 对账 Recon
+     │
+<span class="b">计划数据</span>    资金计划 FundPlan ── 计划明细 FundPlanItem ── 计划执行
+     │
+<span class="b">分析数据</span>    资金日报 ReportSnapshot ── 预警 Alert ── 管理报表
+     │
+<span class="b">审计数据</span>    操作日志 AuditLog ── 账户事件 AccountEvent ── 审批记录 Approval
+</div>
+
+<h3>4.4 技术架构</h3>
+<table><thead><tr><th style="width:24%">组件</th><th>建议</th><th>说明</th></tr></thead><tbody>
+  <tr><td>应用服务</td><td>FastAPI + Jinja2 / Vue（可选）</td><td>复用现有平台，逐步前后端分离。</td></tr>
+  <tr><td>数据库</td><td>PostgreSQL</td><td>替代 SQLite，支持并发、权限、审计和报表查询。</td></tr>
+  <tr><td>任务队列</td><td>Redis + Celery / RQ</td><td>采集、报表生成、提醒异步化。</td></tr>
+  <tr><td>文件存储</td><td>本地对象存储 / MinIO / OSS</td><td>回单、流水文件、报表归档。</td></tr>
+  <tr><td>采集执行</td><td>客户侧 Agent + UKey/MB</td><td>只出站、不开放入站；查询与支付分离。</td></tr>
+  <tr><td>银行接口</td><td>Adapter 抽象</td><td>查询可先用 UKey/RPA，支付必须走银企直连/银行 API。</td></tr>
+  <tr><td>部署</td><td>Docker / 私有化</td><td>支持集团私有云或客户机房部署。</td></tr>
+</tbody></table>
+
+<h3>4.5 部署架构</h3>
+<div class="diagram">
+客户机房 / 私有云
+┌──────────────────────────────────────────────┐
+│  Web/API 服务  ──  PostgreSQL  ──  对象存储  │
+│        │              │              │       │
+│     报表/预警      审计/权限       回单/流水  │
+└────────┬─────────────────────────────────────┘
+         │ 出站 HTTPS（Agent 主动上报/领取）
+┌────────▼─────────────────────────────────────┐
+│ 客户侧采集 Agent（Windows）                   │
+│  ├─ UKey/MB 机柜访问                          │
+│  ├─ 银行网页/客户端采集                       │
+│  └─ 结果/文件上传                             │
+└──────────────────────────────────────────────┘
+</div>
+<p class="small">说明：一期只做查询采集；支付指令不经过 Agent，必须走银行直连或专用支付通道，并配置双人复核与审批。</p>
+
+<h2><span class="no">05</span>核心功能设计</h2>
+
+<h3>5.1 资金驾驶舱</h3>
+<div class="mock">
+  <div class="mock-top">
+    <span>公司 / 项目切换</span>
+    <span>数据截止 11-03 08:00</span>
+    <span class="mock-btn">生成资金日报</span>
+  </div>
+  <div class="mock-kpis">
+    <div><span>账面余额</span><b>¥xx,xxx</b></div>
+    <div><span>可用余额</span><b>¥xx,xxx</b></div>
+    <div><span>受限 / 监管资金</span><b>¥xx,xxx</b></div>
+    <div><span>今日净流入</span><b>+¥xx,xxx</b></div>
+    <div><span>待处理</span><b>N 项</b></div>
+  </div>
+  <div class="mock-section-title">资金专户监管台账</div>
+  <div class="mock-table">
+    <div class="mock-row head"><span>项目</span><span>专户类型</span><span>开户行 / 账号</span><span>账面</span><span>可用</span><span>受限</span><span>监管方</span><span>状态</span></div>
+    <div class="mock-row"><span>项目 A</span><span>预售监管</span><span>XX 银行 · 尾号 1234</span><span>¥xxx</span><span>¥xxx</span><span>¥xxx</span><span>住建</span><span>正常</span></div>
+    <div class="mock-row"><span>项目 B</span><span>农民工工资</span><span>XX 银行 · 尾号 5678</span><span>¥xxx</span><span>¥xxx</span><span>¥xxx</span><span>人社</span><span>预警</span></div>
+  </div>
+  <div class="mock-grid">
+    <div class="mock-box"><b>项目资金视图</b><span>余额 / 回款 / 支出 / 缺口</span></div>
+    <div class="mock-box"><b>账户余额分布</b><span>按银行 / 公司 / 项目占比</span></div>
+    <div class="mock-box"><b>资金计划执行</b><span>计划 / 实际 / 差异 / 执行率</span></div>
+    <div class="mock-box"><b>风险预警</b><span>专户留存 · 大额 · 采集 · 证书 · 到期</span></div>
+  </div>
+</div>
+<p>首页优先回答“钱在哪、能不能用、项目缺不缺、有没有风险”，账户卡片下沉为“账户清单”入口。首页支持按集团、公司、项目切换，所有指标带数据截止时间。</p>
+
+<h3>5.2 账户与专户</h3>
+<ul>
+  <li><strong>账户台账：</strong>账户名称、账号、开户行、账户性质、所属公司/项目、状态、UKey、证书、采集状态、最近余额。</li>
+  <li><strong>账户生命周期：</strong>开户、变更、冻结、久悬、销户；记录审批单号、经办人、附件。</li>
+  <li><strong>专户台账：</strong>专户类型、监管方、监管银行、账面/可用/受限、最低留存、释放条件、最近释放、下次复核。</li>
+  <li><strong>UKey 保管：</strong>UKey 编号、保管人、交接记录、证书到期、绑定设备。</li>
+</ul>
+
+<h3>5.3 项目资金</h3>
+<p>以地产项目为主线，汇总项目公司、项目账户、专户和资金流水：</p>
+<ul>
+  <li>项目余额：账面、可用、受限。</li>
+  <li>项目回款：销售回款、按揭放款、预售监管释放。</li>
+  <li>项目支出：土地款、工程款、材料款、税费、利息、营销费用。</li>
+  <li>资金缺口：未来 30/60/90 天预计支出与可用资金对比。</li>
+  <li>项目风险：监管资金不足、回款不及预期、工程款集中支付、债务到期。</li>
+</ul>
+
+<h3>5.4 资金计划（一期可选，二期完整）</h3>
+<table><thead><tr><th style="width:20%">功能</th><th>说明</th></tr></thead><tbody>
+  <tr><td>计划编制</td><td>按年度/月度/周编制，按公司、项目、账户、收支类别拆分。</td></tr>
+  <tr><td>计划审批</td><td>资金计划提交、审核、下达；支持版本和调整记录。</td></tr>
+  <tr><td>执行跟踪</td><td>实际流水自动归集到计划项，计算执行率、差异、偏差原因。</td></tr>
+  <tr><td>资金缺口</td><td>计划支出 - 可用资金 - 预计回款，形成未来资金缺口。</td></tr>
+</tbody></table>
+
+<h3>5.5 收支、回单与对账</h3>
+<p>复用现有采集与对账能力，补充司库需要的维度：</p>
+<ul>
+  <li>流水增加项目、收支分类、用途、交易后余额、专户标识。</li>
+  <li>回单与流水、付款申请、内部单据关联。</li>
+  <li>对账结果进入资金日报和风险预警，未对账流水按账龄展示。</li>
+  <li>支持按公司、项目、账户、专户、收支类别筛选和导出。</li>
+</ul>
+
+<h3>5.6 风险预警</h3>
+<table><thead><tr><th style="width:26%">预警</th><th>规则示例</th><th>处理建议</th></tr></thead><tbody>
+  <tr><td>专户低于留存线</td><td>可用余额 &lt; 最低留存，或账面余额 &lt; 监管最低额度</td><td>提示补足、调整支付计划、联系监管银行。</td></tr>
+  <tr><td>监管资金异常</td><td>专户支出超出监管用途，或受限金额突然下降</td><td>复核支付用途、监管释放材料、审计留痕。</td></tr>
+  <tr><td>大额交易</td><td>单笔或当日累计超过阈值</td><td>推送财务负责人、资金负责人复核。</td></tr>
+  <tr><td>数据不及时</td><td>账户超过 N 小时未更新，或采集任务连续失败</td><td>检查 UKey/Agent/网络，触发重试。</td></tr>
+  <tr><td>证书到期</td><td>UKey 证书 30/15/7 天内到期</td><td>安排更新，避免采集中断。</td></tr>
+  <tr><td>融资/债务到期</td><td>贷款、票据、担保 30 天内到期</td><td>纳入资金计划，提前安排还款。</td></tr>
+</tbody></table>
+
+<h3>5.7 报表中心</h3>
+<p>一期提供六类报表，支持按权限查看、PDF/Excel 导出、按日/月归档：</p>
+<ol>
+  <li>资金日报</li>
+  <li>资金专户监管台账</li>
+  <li>项目资金表</li>
+  <li>账户清单</li>
+  <li>收支明细与分类汇总</li>
+  <li>采集健康度/数据质量报表</li>
+</ol>
+
+<h3>5.8 系统管理</h3>
+<ul>
+  <li>组织与项目维护、账户主数据维护、专户规则维护。</li>
+  <li>用户、角色、数据权限、审批权限。</li>
+  <li>UKey/Agent/设备/采集任务运维。</li>
+  <li>审计日志、操作记录、数据导出记录。</li>
+</ul>
+
+<h2><span class="no">06</span>资金专户管理专篇</h2>
+
+<h3>6.1 专户类型</h3>
+<table><thead><tr><th style="width:24%">专户类型</th><th>典型监管方</th><th>管理重点</th></tr></thead><tbody>
+  <tr><td>预售资金监管户</td><td>住建部门/监管银行</td><td>监管额度、工程节点释放、按揭放款归集、可用余额。</td></tr>
+  <tr><td>农民工工资专户</td><td>人社部门/银行</td><td>人工费拨付、实名制、工资代发、不得挪用。</td></tr>
+  <tr><td>拆迁补偿专户</td><td>属地政府/街道</td><td>补偿对象、发放进度、结余资金。</td></tr>
+  <tr><td>项目资本金专户</td><td>银行/集团</td><td>资本金到位、使用范围、项目匹配。</td></tr>
+  <tr><td>专项债/财政资金专户</td><td>财政/发改/审计</td><td>专款专用、支出进度、绩效与审计。</td></tr>
+  <tr><td>共管账户</td><td>合作方/银行</td><td>共管比例、双方签章、支付条件。</td></tr>
+  <tr><td>开发贷专户</td><td>贷款银行</td><td>贷款发放、受托支付、还款计划。</td></tr>
+  <tr><td>保证金/保函户</td><td>银行/合作方</td><td>保证金余额、到期释放、保函对应关系。</td></tr>
+</tbody></table>
+
+<h3>6.2 专户台账字段</h3>
+<table><thead><tr><th style="width:24%">字段</th><th>说明</th></tr></thead><tbody>
+  <tr><td>所属公司/项目</td><td>专户归属的法人主体和地产项目。</td></tr>
+  <tr><td>专户类型</td><td>预售监管、农民工工资、拆迁补偿、项目资本金、专项债、共管、开发贷、保证金等。</td></tr>
+  <tr><td>监管方</td><td>住建、人社、财政、街道、银行、集团等。</td></tr>
+  <tr><td>开户行/账号</td><td>银行、支行、账号、账户名称。</td></tr>
+  <tr><td>账面余额</td><td>银行账面余额。</td></tr>
+  <tr><td>受限金额</td><td>监管冻结、最低留存、共管冻结等不可用金额。</td></tr>
+  <tr><td>可用余额</td><td>账面余额 - 受限金额，必要时考虑最低留存和透支额度。</td></tr>
+  <tr><td>最低留存</td><td>监管要求的最低余额或留存比例。</td></tr>
+  <tr><td>释放条件</td><td>工程节点、监管额度、审批材料、合作方签章等。</td></tr>
+  <tr><td>最近释放/下次复核</td><td>释放日期、金额、下次复核日期。</td></tr>
+  <tr><td>状态</td><td>正常、预警、冻结、已销户。</td></tr>
+</tbody></table>
+
+<h3>6.3 可用资金计算</h3>
+<div class="callout">
+  <b>建议口径：</b>可用余额 = 账面余额 - 受限金额 - 最低留存 + 可透支/授信额度（如适用）。不同银行/监管方的口径可能不同，系统应支持按账户配置公式或人工调整，并保留调整原因和审计记录。
+</div>
+
+<h3>6.4 专户预警</h3>
+<ul>
+  <li>账面余额低于监管最低留存。</li>
+  <li>可用余额为负或低于未来 7 天计划支出。</li>
+  <li>专户支出用途与监管类型不匹配。</li>
+  <li>专户超过 N 天未采集或余额长期不动。</li>
+  <li>监管释放节点临近但材料未准备。</li>
+  <li>专户未纳入平台采集，或 UKey 未绑定。</li>
+</ul>
+
+<h3>6.5 专户报表</h3>
+<ul>
+  <li>专户监管台账（按公司/项目/类型）。</li>
+  <li>专户余额与可用资金日报。</li>
+  <li>专户收支明细。</li>
+  <li>预售监管资金释放台账。</li>
+  <li>农民工工资专户拨付台账。</li>
+  <li>专户异常与待办清单。</li>
+</ul>
+
+<h2><span class="no">07</span>数据模型改造</h2>
+
+<h3>7.1 模型关系</h3>
+<div class="diagram">
+OrgUnit（集团/公司/项目公司/部门）
+   │ 1:N
+Project（地产项目）
+   │ 1:N
+BankAccount（银行账户）── 1:1 ── SpecialAccount（专户台账）
+   │ 1:N                              │
+BalanceSnapshot（余额快照）        Statement（流水）
+   │                                 │
+   └──────── ReportSnapshot ─────────┘
+FundPlan（资金计划）── FundPlanItem（计划明细）
+Alert（预警）── AccountEvent（账户事件）── AuditLog（审计）
+</div>
+
+<h3>7.2 新增与扩展模型</h3>
+<table><thead><tr><th style="width:20%">模型</th><th style="width:12%">处理</th><th>关键字段</th></tr></thead><tbody>
+  <tr><td>OrgUnit</td><td>新增</td><td>tenant_id、parent_id、code、name、type（集团/公司/项目公司/部门）、legal_entity_id、status。</td></tr>
+  <tr><td>Project</td><td>新增</td><td>tenant_id、org_id、code、name、stage、location、total_investment、pre_sale_status、start_date、end_date。</td></tr>
+  <tr><td>BankAccount</td><td>扩展</td><td>org_id、project_id、account_type、special_type、regulator、supervision_bank、opening_date、closing_date、status、is_restricted、min_balance、parent_account_id、cash_pool_code、direct_connect_status、ukey_custodian、approval_doc_no。</td></tr>
+  <tr><td>BalanceSnapshot</td><td>扩展</td><td>book_balance、available_balance、restricted_balance、min_balance、overdraft_limit、cutoff_at、source、is_continuous。</td></tr>
+  <tr><td>SpecialAccount</td><td>新增</td><td>account_id、project_id、special_type、regulator、restricted_balance、available_balance、min_balance、release_condition、release_node、last_release_date、next_review_date、status。</td></tr>
+  <tr><td>Statement</td><td>扩展</td><td>project_id、category、purpose、balance_after、special_fund_flag、recon_status。</td></tr>
+  <tr><td>FundPlan / FundPlanItem</td><td>新增（二期）</td><td>period、org_id、project_id、account_id、category、direction、planned_amount、actual_amount、variance、status。</td></tr>
+  <tr><td>AlertRule / Alert</td><td>新增</td><td>rule_type、scope、threshold、level、status、handled_by、handled_at。</td></tr>
+  <tr><td>ReportSnapshot</td><td>新增</td><td>report_type、report_date、scope、payload、generated_at、generated_by。</td></tr>
+  <tr><td>AccountEvent</td><td>新增</td><td>account_id、event_type、event_date、approval_doc_no、operator、attachment、remark。</td></tr>
+</tbody></table>
+
+<h3>7.3 迁移策略</h3>
+<ul>
+  <li>现有 <code>Enterprise</code> 保留为法人主体，新增 <code>OrgUnit</code> 表达集团—公司—项目公司层级。</li>
+  <li>现有 <code>BankAccount</code> 新增字段允许为空，按账户清单逐步补全组织和项目。</li>
+  <li>现有 <code>BalanceSnapshot</code> 增加可用/受限字段，历史数据先按账面余额回填。</li>
+  <li>现有流水/回单/任务数据保留，新增项目、分类字段后逐步回填。</li>
+  <li>生产环境从 SQLite 迁移到 PostgreSQL，使用 Alembic 管理版本；迁移前做全量备份和回滚演练。</li>
+</ul>
+
+<h2><span class="no">08</span>报表体系</h2>
+
+<table><thead><tr><th style="width:24%">报表</th><th style="width:12%">频率</th><th style="width:20%">主要读者</th><th>核心内容</th></tr></thead><tbody>
+  <tr><td>资金日报</td><td>每日</td><td>集团/公司资金负责人</td><td>账面、可用、受限、今日收支、异常、专户摘要。</td></tr>
+  <tr><td>资金专户监管台账</td><td>每日/每周</td><td>财务、项目、审计</td><td>专户类型、监管方、余额、受限、最低留存、释放条件。</td></tr>
+  <tr><td>项目资金表</td><td>每周/每月</td><td>项目财务、公司领导</td><td>项目余额、回款、支出、缺口、到期债务。</td></tr>
+  <tr><td>账户清单</td><td>每月/按需</td><td>财务、审计、IT</td><td>账户性质、状态、UKey、证书、采集覆盖。</td></tr>
+  <tr><td>收支明细/分类汇总</td><td>每日/每月</td><td>财务、项目</td><td>按公司、项目、账户、类别汇总收入支出。</td></tr>
+  <tr><td>资金计划执行表</td><td>每月</td><td>资金负责人</td><td>计划、实际、差异、执行率、偏差原因。</td></tr>
+  <tr><td>采集健康度</td><td>每日</td><td>运维、财务</td><td>采集成功率、数据新鲜度、失败任务、证书到期。</td></tr>
+  <tr><td>融资/担保/票据台账</td><td>每月</td><td>资金、审计</td><td>授信、贷款、担保、票据、到期日、成本。</td></tr>
+</tbody></table>
+
+<h3>8.1 报表口径</h3>
+<ul>
+  <li>所有报表必须带“数据截止时间”和“数据来源”。</li>
+  <li>余额口径统一为账面、可用、受限三列；专户报表增加最低留存和释放条件。</li>
+  <li>集团汇总时区分“全口径”和“可调度口径”，避免把监管资金算作可调度资金。</li>
+  <li>报表支持按权限导出 PDF/Excel，并记录导出人和导出时间。</li>
+</ul>
+
+<h2><span class="no">09</span>权限、流程与合规</h2>
+
+<h3>9.1 数据权限</h3>
+<table><thead><tr><th style="width:22%">角色</th><th>数据范围</th><th>典型权限</th></tr></thead><tbody>
+  <tr><td>集团资金管理员</td><td>全集团</td><td>查看全部公司/项目/账户，生成集团报表，配置预警。</td></tr>
+  <tr><td>子公司财务</td><td>本公司</td><td>查看本公司账户、专户、项目资金，编制资金计划。</td></tr>
+  <tr><td>项目财务</td><td>本项目</td><td>查看项目账户、专户、回款、支出，维护项目资金数据。</td></tr>
+  <tr><td>审批人</td><td>授权范围</td><td>审批资金计划、账户变更、专户释放（后续支付）。</td></tr>
+  <tr><td>审计/风控</td><td>授权范围只读</td><td>查看报表、审计日志、异常记录，不可修改业务数据。</td></tr>
+  <tr><td>运维</td><td>设备/任务</td><td>维护 Agent、UKey、采集任务，不查看资金明细。</td></tr>
+</tbody></table>
+
+<h3>9.2 流程与留痕</h3>
+<ul>
+  <li>账户开立、变更、冻结、销户：申请—审批—备案—平台登记。</li>
+  <li>专户资金释放：项目节点/监管材料—财务复核—负责人审批—银行办理—平台登记。</li>
+  <li>UKey 保管与交接：领用、归还、交接人、时间、附件。</li>
+  <li>资金日报：生成—复核—发布—归档。</li>
+  <li>关键操作全部写入审计日志，支持按人、时间、账户、项目查询。</li>
+</ul>
+
+<h3>9.3 国企与地产合规要点</h3>
+<ul>
+  <li>“三重一大”事项与资金审批留痕。</li>
+  <li>银行账户开立、变更、撤销的审批和备案。</li>
+  <li>资金专户监管要求、专款专用、最低留存和释放条件。</li>
+  <li>大额资金支付联签、双人复核、UKey 分管。</li>
+  <li>国资监管报表：账户数量、资金集中度、融资成本、担保余额。</li>
+  <li>审计要求：数据来源可追溯、报表版本可追溯、操作不可抵赖。</li>
+</ul>
+
+<h2><span class="no">10</span>集成、部署与安全</h2>
+
+<h3>10.1 集成范围</h3>
+<table><thead><tr><th style="width:24%">系统</th><th>集成内容</th><th>阶段</th></tr></thead><tbody>
+  <tr><td>银行 UKey/网银</td><td>流水、回单、余额采集（现有 Agent）。</td><td>一期</td></tr>
+  <tr><td>银行直连/银企直连</td><td>账户余额、流水、支付指令、回单。</td><td>二期/三期</td></tr>
+  <tr><td>监管平台</td><td>预售监管资金、释放节点、监管额度（如可对接）。</td><td>二期</td></tr>
+  <tr><td>ERP/财务系统</td><td>组织、供应商、客户、预算、凭证、项目。</td><td>二期</td></tr>
+  <tr><td>OA/审批系统</td><td>资金计划、账户变更、付款审批。</td><td>二期</td></tr>
+</tbody></table>
+
+<h3>10.2 部署建议</h3>
+<ul>
+  <li>集团私有云或客户机房部署，数据库与文件存储独立备份。</li>
+  <li>采集 Agent 部署在客户侧 Windows 机器，只允许出站 HTTPS。</li>
+  <li>Web 端不直接暴露数据库；通过反向代理/网关访问。</li>
+  <li>生产、测试、培训环境分离；上线前做数据迁移演练。</li>
+</ul>
+
+<h3>10.3 安全要求</h3>
+<ul>
+  <li>账号密码、UKey PIN、银行凭据加密存储，最小权限访问。</li>
+  <li>支付相关操作必须双人复核、审批留痕、IP/设备绑定。</li>
+  <li>操作日志、登录日志、导出日志保留不少于审计要求期限。</li>
+  <li>备份、恢复、灾备演练；敏感数据脱敏展示。</li>
+  <li>按等保/集团安全要求进行渗透测试和漏洞整改。</li>
+</ul>
+
+<h2><span class="no">11</span>实施计划与验收</h2>
+
+<h3>11.1 分阶段计划</h3>
+<table><thead><tr><th style="width:14%">阶段</th><th style="width:18%">周期</th><th>主要内容</th><th style="width:26%">交付物</th></tr></thead><tbody>
+  <tr><td>阶段 0 调研</td><td>1–2 周</td><td>组织/项目/账户/专户清单、监管要求、报表样例、权限与流程、银行接口条件。</td><td>调研报告、账户清单、专户清单、需求确认书。</td></tr>
+  <tr><td>阶段 1 司库 1.0</td><td>6–8 周</td><td>组织/项目/账户主数据、专户台账、余额三分、资金驾驶舱、资金日报、专户/项目/账户报表、预警。</td><td>可上线系统、数据迁移、UAT 报告、培训材料。</td></tr>
+  <tr><td>阶段 2 计划与审批</td><td>6–8 周</td><td>资金计划、计划执行、差异分析、审批流、账户生命周期、ERP/OA 集成。</td><td>计划模块、审批流、集成接口、验收报告。</td></tr>
+  <tr><td>阶段 3 支付与融资</td><td>8–12 周</td><td>付款申请、支付指令、银企直连、资金归集、票据、融资、担保。</td><td>支付/直连/融资模块、安全评估、上线报告。</td></tr>
+</tbody></table>
+
+<h3>11.2 一期工作包</h3>
+<ol>
+  <li>组织、项目、账户、专户主数据模型与页面。</li>
+  <li>余额快照扩展：账面、可用、受限、最低留存。</li>
+  <li>专户台账与专户预警规则。</li>
+  <li>资金驾驶舱首页改造。</li>
+  <li>资金日报、专户台账、项目资金表、账户清单、收支明细、采集健康度。</li>
+  <li>角色与数据权限、审计日志。</li>
+  <li>历史数据迁移、UAT、培训、上线。</li>
+</ol>
+
+<h3>11.3 验收标准</h3>
+<ul>
+  <li>账户覆盖率：纳入平台的银行账户达到客户确认清单的 100%。</li>
+  <li>专户完整率：专户类型、监管方、受限金额、最低留存、释放条件完整率 ≥ 95%。</li>
+  <li>数据及时性：资金日报在约定时间前生成；账户数据超过阈值未更新时产生预警。</li>
+  <li>余额准确性：账面、可用、受限与银行/监管口径核对一致；差异有说明。</li>
+  <li>报表可用性：六类一期报表可生成、可导出、可按权限查看。</li>
+  <li>权限与审计：越权访问被阻止；关键操作可追溯。</li>
+  <li>用户验收：财务、项目、审计关键用户完成 UAT 并签字确认。</li>
+</ul>
+
+<h3>11.4 项目组织建议</h3>
+<table><thead><tr><th style="width:26%">角色</th><th>职责</th></tr></thead><tbody>
+  <tr><td>项目负责人</td><td>总体进度、范围、风险、客户沟通。</td></tr>
+  <tr><td>业务顾问</td><td>司库流程、专户规则、报表口径、UAT 组织。</td></tr>
+  <tr><td>产品/设计</td><td>页面结构、交互、原型、可用性。</td></tr>
+  <tr><td>研发</td><td>数据模型、接口、前端、采集/Agent 集成。</td></tr>
+  <tr><td>测试</td><td>功能、权限、数据迁移、报表核对。</td></tr>
+  <tr><td>客户方</td><td>财务、项目、IT、审计、银行关系人。</td></tr>
+</tbody></table>
+
+<h2><span class="no">12</span>风险与应对</h2>
+<table><thead><tr><th style="width:26%">风险</th><th>影响</th><th>应对</th></tr></thead><tbody>
+  <tr><td>专户监管口径不统一</td><td>可用余额和预警失真</td><td>调研阶段逐户确认；系统支持按账户配置公式和人工调整；保留调整记录。</td></tr>
+  <tr><td>银行/监管数据获取困难</td><td>专户数据不完整</td><td>优先 UKey/网银采集；无法采集的专户支持手工台账和导入，并标记数据来源。</td></tr>
+  <tr><td>历史数据质量差</td><td>报表不可用</td><td>先做账户/项目/专户清单清洗；历史流水按可用字段回填，缺口明确标注。</td></tr>
+  <tr><td>范围蔓延到支付</td><td>周期和安全风险上升</td><td>一期明确不包含支付；支付单独立项，先完成审批、直连和安全评估。</td></tr>
+  <tr><td>组织权限复杂</td><td>越权或数据看不到</td><td>调研阶段确认集团—公司—项目权限矩阵；用角色+数据范围双重控制。</td></tr>
+  <tr><td>SQLite 承载不足</td><td>并发/报表性能问题</td><td>一期同步迁移 PostgreSQL；报表快照化，避免实时大查询。</td></tr>
+</tbody></table>
+
+<h2><span class="no">13</span>交付物清单</h2>
+<table><thead><tr><th style="width:28%">交付物</th><th>说明</th></tr></thead><tbody>
+  <tr><td>建设方案</td><td>本文件，含业务架构、功能、数据模型、实施计划。</td></tr>
+  <tr><td>调研报告</td><td>组织、账户、专户、项目、报表、权限、接口现状。</td></tr>
+  <tr><td>账户/专户清单模板</td><td>客户填报和确认的统一模板。</td></tr>
+  <tr><td>页面原型</td><td>资金驾驶舱、专户台账、项目资金、报表中心。</td></tr>
+  <tr><td>数据模型与迁移脚本</td><td>PostgreSQL/Alembic 迁移、历史数据清洗脚本。</td></tr>
+  <tr><td>接口文档</td><td>Agent、银行、ERP/OA、监管平台接口。</td></tr>
+  <tr><td>报表模板</td><td>资金日报、专户台账、项目资金表等。</td></tr>
+  <tr><td>测试与 UAT 报告</td><td>功能、权限、数据核对、性能测试。</td></tr>
+  <tr><td>培训与操作手册</td><td>财务、项目、审计、运维分角色培训。</td></tr>
+  <tr><td>上线与运维手册</td><td>部署、备份、监控、应急处理。</td></tr>
+</tbody></table>
+
+<div class="callout good">
+  <b>建议的下一步：</b>先做一次 1–2 周的专项调研，输出《账户与资金专户清单》《项目清单》《报表样例》《权限矩阵》。这四份材料确认后，再进入司库 1.0 的页面与数据模型开发，可以显著降低返工。
+</div>
+
+<div class="footer-note">
+  城投地产司库资金管理平台建设方案 · v1.0 · 2026-11-03 · 内部文件。本方案不包含真实银行账号、客户凭据、UKey 信息或访问令牌；具体监管口径、账户结构和接口条件以客户调研确认结果为准。
+</div>
+
+</div>
+</body>
+</html>

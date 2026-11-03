@@ -11,6 +11,19 @@ async function postJSON(url, body) {
   return response.json();
 }
 
+async function patchJSON(url, body) {
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : null,
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || response.statusText);
+  }
+  return response.json();
+}
+
 async function getJSON(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(response.statusText);
@@ -25,9 +38,10 @@ function toast(message) {
   setTimeout(() => el.classList.remove("show"), 2600);
 }
 
-async function collectNow(accountId) {
+async function collectNow(accountId, mode) {
+  const suffix = mode ? `?type=${encodeURIComponent(mode)}` : "";
   try {
-    await postJSON(`/api/accounts/${accountId}/collect`);
+    await postJSON(`/api/accounts/${accountId}/collect${suffix}`);
     toast("已加入采集队列");
     setTimeout(() => location.reload(), 800);
   } catch (error) {
@@ -43,6 +57,60 @@ async function retryTask(taskId) {
   } catch (error) {
     toast("重试失败: " + error.message);
   }
+}
+
+let confirmHandler = null;
+
+function openConfirmModal({ title = "确认操作", message = "", confirmText = "确定", danger = false, onConfirm }) {
+  const titleEl = document.getElementById("confirm-title");
+  const messageEl = document.getElementById("confirm-message");
+  const ok = document.getElementById("confirm-ok");
+  if (!titleEl || !messageEl || !ok) return;
+  titleEl.textContent = title;
+  messageEl.textContent = message;
+  ok.textContent = confirmText;
+  ok.className = danger ? "danger" : "primary";
+  ok.disabled = false;
+  confirmHandler = onConfirm;
+  openModal("confirm-modal", "#confirm-ok");
+}
+
+function closeConfirmModal() {
+  confirmHandler = null;
+  closeModal("confirm-modal");
+}
+
+async function confirmModalOk() {
+  const handler = confirmHandler;
+  if (!handler) return;
+  const ok = document.getElementById("confirm-ok");
+  const label = ok.textContent;
+  ok.disabled = true;
+  ok.textContent = "处理中…";
+  closeModal("confirm-modal");
+  confirmHandler = null;
+  try {
+    await handler();
+  } catch (error) {
+    toast("操作失败: " + error.message);
+  } finally {
+    ok.disabled = false;
+    ok.textContent = label;
+  }
+}
+
+function stopTask(taskId) {
+  openConfirmModal({
+    title: "停止采集",
+    message: "确定停止这次采集吗？正在执行的采集会被中断。",
+    confirmText: "停止",
+    danger: true,
+    onConfirm: async () => {
+      await postJSON(`/api/tasks/${taskId}/stop`);
+      toast("已请求停止");
+      setTimeout(() => location.reload(), 800);
+    },
+  });
 }
 
 let deleteAccountContext = null;
@@ -194,43 +262,90 @@ async function ignoreReconItem(itemId) {
   }
 }
 
+function setAccountSchedule(cron) {
+  const select = document.getElementById("schedule-preset");
+  const input = document.getElementById("cron-input");
+  if (!select || !input) return;
+  const value = cron || "0 8,18 * * *";
+  const known = Array.from(select.options).some((option) => option.value === value);
+  if (known) {
+    select.value = value;
+    applySchedulePreset(value);
+    return;
+  }
+  select.value = "custom";
+  input.value = value;
+  applySchedulePreset("custom");
+}
+
+function openEditAccountModal(button) {
+  const form = document.getElementById("account-form");
+  if (form) form.reset();
+  document.getElementById("account-id").value = button.dataset.id || "";
+  document.getElementById("account-modal-title").textContent = "编辑银行账户";
+  document.getElementById("account-submit").textContent = "保存修改";
+
+  const bank = document.getElementById("account-bank");
+  bank.value = button.dataset.bank || "";
+  bank.disabled = true;
+  const accountNo = document.getElementById("account-no");
+  accountNo.value = button.dataset.accountNo || "";
+  accountNo.readOnly = true;
+  document.getElementById("account-name-input").value = button.dataset.accountName || "";
+
+  const note = document.getElementById("credential-edit-note");
+  if (note) note.hidden = false;
+  form.username.value = "";
+  form.password.value = "";
+  form.pin.value = "";
+  form.username.placeholder = "留空表示不修改当前用户名";
+  form.password.placeholder = "留空表示不修改";
+  form.pin.placeholder = "留空表示不修改";
+
+  if (typeof filterAccountDevices === "function") filterAccountDevices(bank.value);
+  const device = document.getElementById("account-device");
+  if (device) device.value = button.dataset.deviceId || "";
+  const collectMode = document.getElementById("account-collect-mode");
+  if (collectMode) collectMode.value = button.dataset.collectMode || "both";
+  renderDeviceHint();
+  setAccountSchedule(button.dataset.cron || "0 8,18 * * *");
+  openModal("account-modal", "#account-name-input");
+}
+
 async function submitAccountForm(event) {
   event.preventDefault();
   const form = event.target;
+  const accountId = form.account_id.value;
   const payload = {
-    bank_code: form.bank_code.value,
-    account_no: form.account_no.value,
     account_name: form.account_name.value,
     collect_cron: form.collect_cron.value,
+    collect_mode: form.collect_mode.value,
     days_back: parseInt(form.days_back.value || "30", 10),
-    collect_enabled: true,
     ukey_device_id: form.ukey_device_id.value ? parseInt(form.ukey_device_id.value, 10) : null,
-    username: form.username.value,
-    password: form.password.value,
-    pin: form.pin.value,
   };
+  const submit = document.getElementById("account-submit");
+  if (submit) submit.disabled = true;
   try {
-    await postJSON("/api/accounts", payload);
-    toast("账户已创建");
+    if (accountId) {
+      if (form.username.value.trim()) payload.username = form.username.value;
+      if (form.password.value) payload.password = form.password.value;
+      if (form.pin.value) payload.pin = form.pin.value;
+      await patchJSON(`/api/accounts/${accountId}`, payload);
+      toast("账户已更新");
+    } else {
+      payload.bank_code = form.bank_code.value;
+      payload.account_no = form.account_no.value;
+      payload.collect_enabled = true;
+      payload.username = form.username.value;
+      payload.password = form.password.value;
+      payload.pin = form.pin.value;
+      await postJSON("/api/accounts", payload);
+      toast("账户已创建");
+    }
     setTimeout(() => location.reload(), 600);
   } catch (error) {
-    toast("创建失败: " + error.message);
-  }
-}
-
-async function submitCredentialForm(event) {
-  event.preventDefault();
-  const form = event.target;
-  const accountId = form.account_id.value;
-  try {
-    await postJSON(`/api/accounts/${accountId}/credential`, {
-      username: form.username.value,
-      password: form.password.value,
-      pin: form.pin.value,
-    });
-    toast("凭据已更新");
-  } catch (error) {
-    toast("更新失败: " + error.message);
+    toast((accountId ? "更新失败: " : "创建失败: ") + error.message);
+    if (submit) submit.disabled = false;
   }
 }
 
@@ -352,39 +467,60 @@ function initTaskAutoRefresh() {
   const tableBox = document.getElementById("task-table");
   if (!statsBox || !tableBox) return;
 
-  const status = new URLSearchParams(window.location.search).get("status") || "";
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("status") || "";
+  const page = params.get("page") || "1";
+  const activeCount = () => Number(document.getElementById("task-stats")?.dataset.active || 0);
+  let timer = null;
   let refreshing = false;
+
+  const schedule = (delay) => {
+    if (timer) window.clearTimeout(timer);
+    timer = delay > 0 ? window.setTimeout(refresh, delay) : null;
+  };
 
   const refresh = async () => {
     if (refreshing || document.hidden) return;
-    if (document.querySelector(".modal.open")) return;
+    if (document.querySelector(".modal.open")) {
+      schedule(activeCount() > 0 ? 5000 : 0);
+      return;
+    }
     refreshing = true;
     const scrollY = window.scrollY;
     try {
-      const query = status ? `?status=${encodeURIComponent(status)}` : "";
-      const response = await fetch(`/tasks/partial${query}`, {
+      const query = new URLSearchParams();
+      if (status) query.set("status", status);
+      if (page && page !== "1") query.set("page", page);
+      const suffix = query.toString() ? `?${query.toString()}` : "";
+      const response = await fetch(`/tasks/partial${suffix}`, {
         cache: "no-store",
         credentials: "same-origin",
       });
-      if (!response.ok) return;
-      const doc = new DOMParser().parseFromString(await response.text(), "text/html");
-      for (const id of ["task-total-chip", "task-stats", "task-table"]) {
-        const next = doc.getElementById(id);
-        const current = document.getElementById(id);
-        if (next && current) current.replaceWith(next);
+      if (response.ok) {
+        const doc = new DOMParser().parseFromString(await response.text(), "text/html");
+        for (const id of ["task-total-chip", "task-stats", "task-table"]) {
+          const next = doc.getElementById(id);
+          const current = document.getElementById(id);
+          if (next && current) current.replaceWith(next);
+        }
+        if (window.scrollY !== scrollY) window.scrollTo(0, scrollY);
       }
-      if (window.scrollY !== scrollY) window.scrollTo(0, scrollY);
     } catch (error) {
-      // 网络抖动时保持当前内容，下一轮继续
+      // 网络抖动时保持当前内容
     } finally {
       refreshing = false;
+      schedule(activeCount() > 0 ? 3000 : 0);
     }
   };
 
-  window.setInterval(refresh, 5000);
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) refresh();
-  });
+  schedule(activeCount() > 0 ? 3000 : 0);
+  const wake = () => {
+    if (document.hidden) return;
+    if (timer) window.clearTimeout(timer);
+    refresh();
+  };
+  document.addEventListener("visibilitychange", wake);
+  window.addEventListener("focus", wake);
 }
 
 document.addEventListener("DOMContentLoaded", initTaskAutoRefresh);

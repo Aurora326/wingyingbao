@@ -37,6 +37,10 @@ except ImportError:
     from config import AgentConfig, APP_NAME, app_root, local_dir, log_dir
 
 APP_VERSION = "desktop/1.0"
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 UKeyAgent/1.0"
+)
 
 
 def make_icon() -> QIcon:
@@ -69,7 +73,8 @@ class PingWorker(QThread):
             return
         endpoint = self.url.rstrip("/") + "/api/agent/ping"
         request = urllib.request.Request(
-            endpoint, headers={"Authorization": f"Bearer {self.token}"}
+            endpoint,
+            headers={"Authorization": f"Bearer {self.token}", "User-Agent": USER_AGENT},
         )
         try:
             with urllib.request.urlopen(request, timeout=8) as response:

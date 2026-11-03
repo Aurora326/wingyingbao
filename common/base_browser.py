@@ -77,7 +77,7 @@ class BaseBrowser:
         return Path(__file__).parent
 
     def _get_window_size(self) -> tuple:
-        return (1750, 950)
+        return (1750, 900)
 
     def _get_extra_launch_args(self) -> list:
         return [
@@ -170,7 +170,9 @@ class BaseBrowser:
 
         launch_options = {
             "headless": self.config.headless,
-            "viewport": {"width": window_width, "height": window_height},
+            # 不用视口模拟：视口会把窗口撑成 视口高度 + 浏览器工具栏高度，
+            # 关掉后 --window-size 才是整个窗口的实际尺寸
+            "no_viewport": True,
             "args": args,
         }
         if chrome_path:
@@ -204,12 +206,15 @@ class BaseBrowser:
         except Exception:
             pass
 
-        # 强制设置视口尺寸，覆盖持久化上下文可能恢复的最大化状态
+        # 持久化上下文可能恢复上次的窗口尺寸，这里按配置再校正一次
         try:
-            self.page.set_viewport_size({"width": window_width, "height": window_height})
-            logger.info(f"浏览器视口已设置为 {window_width}x{window_height}")
+            self.page.evaluate(
+                "(size) => { window.moveTo(0, 0); window.resizeTo(size[0], size[1]); }",
+                [window_width, window_height],
+            )
+            logger.info(f"浏览器窗口尺寸: {window_width}x{window_height}")
         except Exception as e:
-            logger.warning(f"设置浏览器视口失败: {e}")
+            logger.warning(f"设置浏览器窗口尺寸失败: {e}")
 
         self.page.set_default_timeout(self.config.page_timeout * 1000)
 

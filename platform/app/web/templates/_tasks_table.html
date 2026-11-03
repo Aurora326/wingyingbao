@@ -25,14 +25,20 @@
         <td>{{ task_type_text(t.type) }}</td>
         <td class="muted nowrap">{{ t.start_date | dt }} 至 {{ t.end_date | dt }}</td>
         <td>
-          {{ task_status(t.status) }}
+          {{ task_status(t.status, t.cancel_requested) }}
           {% if t.status == 'failed' %}
           <div class="cell-sub">{{ error_text(t.error_code) }}</div>
           {% endif %}
         </td>
         <td class="right nowrap">
           <button class="small" onclick="showLog({{ t.id }})">查看记录</button>
-          {% if t.status in ('failed', 'succeeded') %}
+          {% if t.status in ('queued', 'leased', 'running') %}
+          {% if t.cancel_requested %}
+          <button class="small" disabled>停止中…</button>
+          {% else %}
+          <button class="small" onclick="stopTask({{ t.id }})">停止</button>
+          {% endif %}
+          {% elif t.status in ('failed', 'succeeded') %}
           <button class="small" onclick="retryTask({{ t.id }})">重新采集</button>
           {% endif %}
         </td>
@@ -49,5 +55,38 @@
         {% if status %}<a class="btn small" href="/tasks">查看全部记录</a>{% endif %}
       </div>
     </div>
+  {% endif %}
+  {% set qs = ('status=' ~ (status|urlencode) ~ '&') if status else '' %}
+  {% set start = 1 if page_no <= 3 else page_no - 2 %}
+  {% set end = pages if page_no >= pages - 2 else page_no + 2 %}
+  {% if pages > 1 %}
+  <div class="pagination">
+    {% if page_no > 1 %}
+    <a class="page-btn" href="/tasks?{{ qs }}page={{ page_no - 1 }}">上一页</a>
+    {% else %}
+    <span class="page-btn disabled">上一页</span>
+    {% endif %}
+    {% if start > 1 %}
+    <a class="page-btn" href="/tasks?{{ qs }}page=1">1</a>
+    {% if start > 2 %}<span class="page-gap">…</span>{% endif %}
+    {% endif %}
+    {% for p in range(start, end + 1) %}
+      {% if p == page_no %}
+      <span class="page-btn active">{{ p }}</span>
+      {% else %}
+      <a class="page-btn" href="/tasks?{{ qs }}page={{ p }}">{{ p }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if end < pages %}
+      {% if end < pages - 1 %}<span class="page-gap">…</span>{% endif %}
+      <a class="page-btn" href="/tasks?{{ qs }}page={{ pages }}">{{ pages }}</a>
+    {% endif %}
+    {% if page_no < pages %}
+    <a class="page-btn" href="/tasks?{{ qs }}page={{ page_no + 1 }}">下一页</a>
+    {% else %}
+    <span class="page-btn disabled">下一页</span>
+    {% endif %}
+    <span class="page-info">第 {{ page_no }} / {{ pages }} 页 · 共 {{ total }} 条</span>
+  </div>
   {% endif %}
 </div>

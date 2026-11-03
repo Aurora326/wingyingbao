@@ -15,6 +15,7 @@ TEST_DATA_DIR = Path(tempfile.mkdtemp(prefix="bank_platform_test_"))
 os.environ["PLATFORM_DATA_DIR"] = str(TEST_DATA_DIR)
 os.environ["PLATFORM_ENABLE_WORKER"] = "0"
 os.environ["PLATFORM_ENABLE_SCHEDULER"] = "0"
+os.environ["PLATFORM_ENABLE_MOCK_BANK"] = "1"
 
 import pytest  # noqa: E402
 

@@ -171,11 +171,56 @@ class MBCabinetController(CabinetController):
             logger.error(f"[MB] 执行命令异常: {e}")
             return {"success": False, "error": str(e)}
     
+    def _port_attached(self):
+        """查机柜状态，确认本端口是否真的挂到了本机。
+
+        返回 True/False；读不到状态时返回 None（不做判断，避免误判卡住流程）。
+        """
+        result = self._execute_subcommand("status")
+        try:
+            ports = result["data"]["data"]["data"][0]["usb_port_manage"]["usb_port_info"]
+        except Exception:
+            return None
+        for item in ports:
+            if str(item.get("usb_port")) == str(self.port):
+                return str(item.get("usb_share")) == "1" and bool(item.get("client_ip"))
+        return None
+
+    def _wait_port_attached(self, timeout: float = 20.0):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            state = self._port_attached()
+            if state is True:
+                logger.info(f"[MB] 端口 {self.port} 已挂载到本机")
+                return True
+            if state is None:
+                logger.warning("[MB] 读不到机柜端口状态，跳过挂载校验")
+                return None
+            time.sleep(2)
+        return False
+
     def connect(self) -> bool:
-        """插入U盾到MB机柜端口 (load_port)"""
-        result = self._execute_subcommand("load_port")
-        self._connected = result.get("success", False)
-        return self._connected
+        """插入U盾到MB机柜端口。
+
+        load_port 有时返回成功但机械臂没到位，端口并没真正挂到本机，
+        浏览器就看不到证书、登录必然失败。这里插完校验一次，没挂上就强制重插。
+        """
+        for attempt in range(1, 3):
+            result = self._execute_subcommand("load_port")
+            if not result.get("success", False):
+                logger.error(f"[MB] 第 {attempt} 次插入失败")
+                self._connected = False
+                return False
+            attached = self._wait_port_attached()
+            if attached is not False:
+                self._connected = True
+                return True
+            logger.warning(f"[MB] 第 {attempt} 次插入后端口未挂载，强制拔出重插")
+            self._execute_subcommand("force_shutdown_port")
+            time.sleep(3)
+        logger.error(f"[MB] 端口 {self.port} 多次插入仍未挂载")
+        self._connected = False
+        return False
     
     def click_ok(self) -> bool:
         """点击USBKey的OK键 (robot)"""

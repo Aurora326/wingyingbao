@@ -44,7 +44,7 @@ def log_dir() -> Path:
 
 @dataclass
 class AgentConfig:
-    platform_url: str = "https://your-platform.example.com"
+    platform_url: str = "https://ukey.leezhi.icu"
     agent_token: str = ""
     agent_code: str = "cust-1517"
     agent_name: str = "客户机房采集盒子"

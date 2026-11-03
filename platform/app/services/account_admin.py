@@ -146,6 +146,7 @@ def delete_account(db: Session, account_id: int, confirm: str) -> dict:
                 "artifacts": stats["artifacts"],
                 "tasks": stats["tasks"],
             },
+            tenant_id=account.tenant_id,
         )
     )
     db.delete(account)

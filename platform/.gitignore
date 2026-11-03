@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .env
 agent/agent.env
+agent/work/
 collectors.yaml
 access_token.conf
 .pytest_cache/

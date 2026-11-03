@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from sqlalchemy import create_engine, event, inspect, text
+from sqlalchemy import Table, create_engine, event, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.sql.dml import Delete, Update
+from sqlalchemy.sql.selectable import Alias, Select
 
 from app.config import settings
 from app.models import Base
+from app.tenancy import current_tenant_id, default_tenant_id
 
 connect_args = {"check_same_thread": False} if settings.db_url.startswith("sqlite") else {}
 
@@ -26,17 +29,84 @@ if settings.db_url.startswith("sqlite"):
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False, future=True)
 
 
+def _collect_tables(source, tables: set[Table]) -> None:
+    if isinstance(source, Table):
+        tables.add(source)
+        return
+    if isinstance(source, Alias):
+        return
+    for child in getattr(source, "get_children", lambda: [])():
+        _collect_tables(child, tables)
+
+
+@event.listens_for(Session, "do_orm_execute")
+def _apply_tenant_scope(execute_state) -> None:
+    tenant_id = current_tenant_id()
+    if tenant_id is None:
+        return
+    statement = execute_state.statement
+    if isinstance(statement, Select):
+        tables: set[Table] = set()
+        for source in statement.get_final_froms():
+            _collect_tables(source, tables)
+        for table in tables:
+            if "tenant_id" in table.c:
+                statement = statement.where(table.c.tenant_id == tenant_id)
+        execute_state.statement = statement
+    elif isinstance(statement, (Update, Delete)):
+        if "tenant_id" in statement.table.c:
+            execute_state.statement = statement.where(statement.table.c.tenant_id == tenant_id)
+
+
+@event.listens_for(Session, "before_flush")
+def _assign_tenant_id(session, flush_context, instances) -> None:  # noqa: ANN001
+    tenant_id = current_tenant_id()
+    if tenant_id is None:
+        tenant_id = default_tenant_id()
+    if tenant_id is None:
+        return
+    for obj in session.new:
+        if obj.__class__.__name__ in ("Tenant", "AppUser"):
+            continue
+        if hasattr(obj, "tenant_id") and getattr(obj, "tenant_id", None) is None:
+            obj.tenant_id = tenant_id
+
+
 COLUMN_ADDITIONS = {
     "ukey_device": {
         "backend": "VARCHAR(16) NOT NULL DEFAULT 'gf3'",
         "external_id": "VARCHAR(64) NOT NULL DEFAULT ''",
         "agent_code": "VARCHAR(32) NOT NULL DEFAULT 'local'",
         "extra": "JSON",
+        "tenant_id": "INTEGER",
+    },
+    "bank_account": {
+        "collect_mode": "VARCHAR(16) NOT NULL DEFAULT 'both'",
     },
     "collection_task": {
         "agent_code": "VARCHAR(32) NOT NULL DEFAULT 'local'",
+        "cancel_requested": "BOOLEAN NOT NULL DEFAULT 0",
+        "cancel_requested_at": "DATETIME",
+        "tenant_id": "INTEGER",
     },
 }
+for _table in (
+    "agent",
+    "enterprise",
+    "bank_account",
+    "credential",
+    "task_run",
+    "artifact",
+    "statement",
+    "receipt",
+    "balance_snapshot",
+    "internal_doc",
+    "recon_batch",
+    "recon_item",
+    "audit_log",
+    "app_user",
+):
+    COLUMN_ADDITIONS.setdefault(_table, {})["tenant_id"] = "INTEGER"
 
 
 def ensure_schema(target_engine=None) -> None:
@@ -53,6 +123,10 @@ def ensure_schema(target_engine=None) -> None:
             for name, ddl in additions.items():
                 if name not in existing:
                     connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
+                if name == "tenant_id":
+                    connection.execute(
+                        text(f"CREATE INDEX IF NOT EXISTS ix_{table}_tenant_id ON {table} (tenant_id)")
+                    )
 
 
 def init_db() -> None:

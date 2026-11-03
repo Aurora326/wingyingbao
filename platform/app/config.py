@@ -38,12 +38,14 @@ class Settings:
     timezone: str = os.getenv("PLATFORM_TIMEZONE", "Asia/Shanghai")
     enable_worker: bool = _env_bool("PLATFORM_ENABLE_WORKER", True)
     enable_scheduler: bool = _env_bool("PLATFORM_ENABLE_SCHEDULER", True)
+    enable_mock_bank: bool = _env_bool("PLATFORM_ENABLE_MOCK_BANK", False)
     gf3_exe: str = os.getenv("PLATFORM_GF3_EXE", "gf3")
     mb_exe: str = os.getenv("PLATFORM_MB_EXE", "")
     mb_user: str = os.getenv("PLATFORM_MB_USER", "")
     mb_ter_ids: str = os.getenv("PLATFORM_MB_TER_IDS", "")
     agent_token: str = os.getenv("PLATFORM_AGENT_TOKEN", "")
     agent_token_map: str = os.getenv("PLATFORM_AGENT_TOKEN_MAP", "")
+    agent_tenant_map: str = os.getenv("PLATFORM_AGENT_TENANT_MAP", "")
     agent_code: str = os.getenv("PLATFORM_AGENT_CODE", "local")
     agent_name: str = os.getenv("PLATFORM_AGENT_NAME", "")
     collector_python: str = os.getenv("PLATFORM_COLLECTOR_PYTHON", "")
@@ -105,6 +107,16 @@ class Settings:
             if code and token:
                 scopes.setdefault(token, set()).add(code)
         return scopes
+
+    @property
+    def agent_tenants(self) -> dict[str, int]:
+        tenants: dict[str, int] = {}
+        for pair in self.agent_tenant_map.split(";"):
+            code, _, tenant_id = pair.strip().partition("=")
+            code = code.strip()
+            if code and tenant_id.strip().isdigit():
+                tenants[code] = int(tenant_id.strip())
+        return tenants
 
     @property
     def master_key_path(self) -> Path:

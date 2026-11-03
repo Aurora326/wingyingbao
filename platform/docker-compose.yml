@@ -1,0 +1,37 @@
+# 容器里只跑平台本体（Web / 数据库 / 调度）。
+# 采集执行留在 Windows 客户机：那边的 Agent 通过 /api/agent 领取任务，
+# 容器内既没有 mb.exe 也接触不到 U盾，所以本地执行器必须关掉。
+services:
+  platform:
+    build: .
+    image: bank-platform:latest
+    container_name: bank-platform
+    restart: unless-stopped
+    ports:
+      - "${PLATFORM_BIND_IP:-127.0.0.1}:${PLATFORM_PORT:-8800}:8800"
+    environment:
+      # 换机器务必改掉：密文、会话、主密钥都挂在这个值上
+      PLATFORM_SECRET_KEY: ${PLATFORM_SECRET_KEY:-change-this-in-production}
+      PLATFORM_ADMIN_USER: ${PLATFORM_ADMIN_USER:-admin}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-admin123}
+      PLATFORM_TIMEZONE: ${PLATFORM_TIMEZONE:-Asia/Shanghai}
+      PLATFORM_ENABLE_WORKER: "0"
+      PLATFORM_ENABLE_SCHEDULER: ${PLATFORM_ENABLE_SCHEDULER:-1}
+      PLATFORM_ENABLE_MOCK_BANK: ${PLATFORM_ENABLE_MOCK_BANK:-0}
+      # 客户机 Agent 上报/领取令牌，见 platform/.env.example
+      PLATFORM_AGENT_TOKEN: ${PLATFORM_AGENT_TOKEN:-}
+      PLATFORM_AGENT_TOKEN_MAP: ${PLATFORM_AGENT_TOKEN_MAP:-}
+      PLATFORM_AGENT_TENANT_MAP: ${PLATFORM_AGENT_TENANT_MAP:-}
+    volumes:
+      - platform-data:/data
+      # 想直接用现有的 ./data 目录（比如把老数据迁过来），把上面一行换成下面这行：
+      # - ./data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8800/health', timeout=3).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  platform-data:

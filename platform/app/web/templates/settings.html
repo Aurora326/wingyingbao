@@ -38,6 +38,25 @@
   </div>
 </div>
 
+{% if is_super_admin %}
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>租户上下文</h2>
+      <div class="panel-sub">选择租户后，账户、任务、设备和流水只显示该租户的数据</div>
+    </div>
+  </div>
+  <form method="post" action="/tenant/switch" style="display:flex;gap:10px;align-items:center;padding:4px 0 8px">
+    <select name="tenant_id" onchange="this.form.submit()" style="max-width:360px">
+      <option value="">全部租户（仅查看）</option>
+      {% for t in tenants %}
+      <option value="{{ t.id }}" {{ 'selected' if current_tenant_id == t.id }}>{{ t.name }}（{{ t.code }}）</option>
+      {% endfor %}
+    </select>
+    <span class="muted">切换后写入的数据会归入当前租户</span>
+  </form>
+</div>
+{% endif %}
 
 <div class="panel">
   <div class="panel-head">

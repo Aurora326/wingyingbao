@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
+
 from fastapi import APIRouter, Depends, Header, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
+from app.models import Agent
 from app.schemas import AgentDeviceReport, AgentTaskClaim, AgentTaskResult
 from app.services.agent_report import AgentReportError, apply_device_report
 from app.services.agent_tasks import (
@@ -12,9 +16,22 @@ from app.services.agent_tasks import (
     apply_agent_task_result,
     claim_agent_task,
     get_agent_task_credentials,
+    get_agent_task_status,
 )
+from app.tenancy import tenant_context
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
+
+
+@contextmanager
+def _agent_tenant(db: Session, agent_code: str):
+    agent = db.execute(select(Agent).where(Agent.code == agent_code)).scalars().first()
+    mapping = getattr(settings, "agent_tenants", {})
+    tenant_id = (agent.tenant_id if agent else None) or mapping.get(agent_code)
+    if agent is None and tenant_id is None and mapping:
+        raise HTTPException(status_code=403, detail="Agent 未绑定租户")
+    with tenant_context(tenant_id):
+        yield
 
 
 def _token_scopes() -> dict[str, set[str]]:
@@ -63,11 +80,12 @@ def report_devices(
     token: str = Depends(require_agent_token),
     db: Session = Depends(get_db),
 ):
-    _authorize_agent(payload.agent_code, token)
-    try:
-        return apply_device_report(db, payload)
-    except AgentReportError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    agent_code = _authorize_agent(payload.agent_code, token)
+    with _agent_tenant(db, agent_code):
+        try:
+            return apply_device_report(db, payload)
+        except AgentReportError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/tasks/claim")
@@ -77,7 +95,23 @@ def claim_task(
     db: Session = Depends(get_db),
 ):
     agent_code = _authorize_agent(payload.agent_code, token)
-    return {"ok": True, "task": claim_agent_task(db, agent_code)}
+    with _agent_tenant(db, agent_code):
+        return {"ok": True, "task": claim_agent_task(db, agent_code)}
+
+
+@router.get("/tasks/{task_id}/status")
+def task_status(
+    task_id: int,
+    agent_code: str,
+    token: str = Depends(require_agent_token),
+    db: Session = Depends(get_db),
+):
+    code = _authorize_agent(agent_code, token)
+    with _agent_tenant(db, code):
+        try:
+            return get_agent_task_status(db, task_id, code)
+        except AgentTaskError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc))
 
 
 @router.get("/tasks/{task_id}/credentials")
@@ -89,10 +123,11 @@ def task_credentials(
     db: Session = Depends(get_db),
 ):
     code = _authorize_agent(agent_code, token)
-    try:
-        return get_agent_task_credentials(db, task_id, code, attempt)
-    except AgentTaskError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=str(exc))
+    with _agent_tenant(db, code):
+        try:
+            return get_agent_task_credentials(db, task_id, code, attempt)
+        except AgentTaskError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc))
 
 
 @router.post("/tasks/{task_id}/result")
@@ -104,7 +139,8 @@ def report_task_result(
 ):
     agent_code = _authorize_agent(payload.agent_code, token)
     payload.agent_code = agent_code
-    try:
-        return apply_agent_task_result(db, task_id, payload)
-    except AgentTaskError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=str(exc))
+    with _agent_tenant(db, agent_code):
+        try:
+            return apply_agent_task_result(db, task_id, payload)
+        except AgentTaskError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc))

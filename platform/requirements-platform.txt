@@ -1,0 +1,13 @@
+# 平台运行期依赖：只含 Web / 调度 / 解析，不含浏览器自动化
+# 采集器在 Windows 客户机上跑，不进容器
+fastapi>=0.110
+uvicorn[standard]>=0.29
+sqlalchemy>=2.0
+jinja2>=3.1
+python-multipart>=0.0.9
+pyyaml>=6.0
+cryptography>=42.0
+httpx>=0.27
+openpyxl>=3.1
+xlrd>=2.0
+pdfplumber>=0.11

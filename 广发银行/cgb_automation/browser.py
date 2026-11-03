@@ -21,9 +21,6 @@ logger = setup_logger()
 class CGBBrowser(BaseBrowser, PopupHandlerMixin, PinInputterMixin, LoginManagerMixin):
     """广发银行浏览器管理器"""
 
-    def _get_window_size(self) -> tuple:
-        return (1500, 800)
-
     def navigate_to_login(self):
         """导航到登录页 - 广发银行适配（处理PIN码弹窗）"""
         logger.info(f"正在访问: {self.config.login_url}")

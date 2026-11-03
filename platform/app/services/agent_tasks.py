@@ -35,7 +35,11 @@ def _release_stale(db: Session, agent_code: str, now: dt.datetime) -> None:
         )
     ).scalars().all()
     for task in stale:
-        if task.attempts < RETRY_LIMIT:
+        if task.cancel_requested:
+            task.status = "cancelled"
+            task.error_code = "CANCELLED"
+            task.error_msg = "用户停止任务"
+        elif task.attempts < RETRY_LIMIT:
             task.status = "queued"
             task.error_code = "TIMEOUT"
             task.error_msg = "客户机执行超时，任务已重新排队"
@@ -80,7 +84,11 @@ def claim_agent_task(db: Session, agent_code: str) -> dict | None:
     _release_stale(db, agent_code, now)
     task = db.execute(
         select(CollectionTask)
-        .where(CollectionTask.status == "queued", CollectionTask.agent_code == agent_code)
+        .where(
+            CollectionTask.status == "queued",
+            CollectionTask.agent_code == agent_code,
+            CollectionTask.cancel_requested.is_(False),
+        )
         .order_by(CollectionTask.priority, CollectionTask.created_at)
         .limit(1)
     ).scalars().first()
@@ -95,6 +103,20 @@ def claim_agent_task(db: Session, agent_code: str) -> dict | None:
     task.error_msg = ""
     db.commit()
     return _task_payload(db, task)
+
+
+def get_agent_task_status(db: Session, task_id: int, agent_code: str) -> dict:
+    task = db.get(CollectionTask, task_id)
+    if task is None:
+        raise AgentTaskError("任务不存在", 404)
+    if task.agent_code != agent_code:
+        raise AgentTaskError("任务不属于该 Agent", 403)
+    return {
+        "task_id": task.id,
+        "attempt": task.attempts,
+        "status": task.status,
+        "cancel_requested": bool(task.cancel_requested),
+    }
 
 
 def get_agent_task_credentials(

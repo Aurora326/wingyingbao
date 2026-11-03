@@ -29,4 +29,5 @@ def list_banks(registry: dict | None = None) -> list[dict]:
     return [
         {"code": code, "name": name, "implemented": code in registry}
         for code, name in BANK_NAMES.items()
+        if settings.enable_mock_bank or code != "mock"
     ]

@@ -64,6 +64,7 @@ def ingest_statement(db: Session, account: BankAccount, path: Path, artifact_id:
                 serial_no=row.serial_no,
                 dedupe_hash=key,
                 raw_json=row.raw,
+                tenant_id=account.tenant_id,
             )
         )
         result.inserted += 1
@@ -100,6 +101,7 @@ def ingest_receipt(db: Session, account: BankAccount, path: Path, artifact_id: i
                     artifact_id=artifact_id,
                     object_key=object_key,
                     extracted_text="",
+                    tenant_id=account.tenant_id,
                 )
             )
         return result
@@ -122,6 +124,7 @@ def ingest_receipt(db: Session, account: BankAccount, path: Path, artifact_id: i
             counterparty_name=parsed.counterparty_name,
             object_key=object_key,
             extracted_text=parsed.text[:20000],
+            tenant_id=account.tenant_id,
         )
         db.add(receipt)
         db.flush()
@@ -149,6 +152,7 @@ def ingest_receipt(db: Session, account: BankAccount, path: Path, artifact_id: i
 
 
 def verify_balance_continuity(db: Session, account_id: int) -> tuple[bool, list[str]]:
+    account = db.get(BankAccount, account_id)
     rows = db.execute(
         select(Statement)
         .where(Statement.account_id == account_id)
@@ -180,6 +184,7 @@ def verify_balance_continuity(db: Session, account_id: int) -> tuple[bool, list[
                     snapshot_date=latest.txn_date,
                     balance=latest.balance,
                     source="statement",
+                    tenant_id=account.tenant_id if account else None,
                 )
                 db.add(snapshot)
             else:

@@ -1,28 +1,50 @@
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import Artifact, BankAccount, CollectionTask, TaskRun
+from app.models import Artifact, AuditLog, BankAccount, CollectionTask, TaskRun, utcnow
 from app.services import storage
-from app.services.scheduler import enqueue_task
+from app.services.scheduler import enqueue_task, task_range, task_types_for
 
 router = APIRouter(prefix="/api", tags=["tasks"])
 
 
 @router.get("/tasks")
-def list_tasks(status: str | None = None, account_id: int | None = None, limit: int = 100, db: Session = Depends(get_db)):
-    query = select(CollectionTask).order_by(CollectionTask.id.desc()).limit(min(limit, 500))
+def list_tasks(
+    status: str | None = None,
+    account_id: int | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+):
+    conditions = []
     if status:
-        query = query.where(CollectionTask.status == status)
+        conditions.append(CollectionTask.status == status)
     if account_id:
-        query = query.where(CollectionTask.account_id == account_id)
-    tasks = db.execute(query).scalars().all()
+        conditions.append(CollectionTask.account_id == account_id)
+
+    count_query = select(func.count(CollectionTask.id))
+    query = select(CollectionTask)
+    if conditions:
+        count_query = count_query.where(*conditions)
+        query = query.where(*conditions)
+    total = db.execute(count_query).scalar() or 0
+    tasks = db.execute(
+        query.order_by(CollectionTask.id.desc())
+        .offset(max(offset, 0))
+        .limit(min(limit, 500))
+    ).scalars().all()
     accounts = {a.id: a for a in db.execute(select(BankAccount)).scalars().all()}
     return {
+        "total": total,
+        "limit": min(limit, 500),
+        "offset": max(offset, 0),
         "items": [
             {
                 "id": t.id,
@@ -34,6 +56,7 @@ def list_tasks(status: str | None = None, account_id: int | None = None, limit: 
                 "status": t.status,
                 "trigger": t.trigger,
                 "agent_code": t.agent_code,
+                "cancel_requested": bool(t.cancel_requested),
                 "attempts": t.attempts,
                 "error_code": t.error_code,
                 "error_msg": t.error_msg,
@@ -41,7 +64,50 @@ def list_tasks(status: str | None = None, account_id: int | None = None, limit: 
                 "finished_at": t.finished_at,
             }
             for t in tasks
-        ]
+        ],
+    }
+
+
+@router.post("/tasks/{task_id}/stop")
+def stop_task(task_id: int, db: Session = Depends(get_db)):
+    task = db.get(CollectionTask, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    if task.status in ("succeeded", "failed", "cancelled", "stopped"):
+        return {"ok": False, "status": task.status, "detail": "任务已结束"}
+
+    now = utcnow()
+    task.cancel_requested = True
+    task.cancel_requested_at = now
+    if task.status == "queued":
+        task.status = "cancelled"
+        task.error_code = "CANCELLED"
+        task.error_msg = "用户停止任务"
+        task.finished_at = now
+        task.lease_until = None
+        action = "cancelled"
+    else:
+        task.error_code = "STOPPING"
+        task.error_msg = "正在停止任务"
+        action = "stopping"
+
+    db.add(
+        AuditLog(
+            actor="ui",
+            action="task_stop",
+            target_type="collection_task",
+            target_id=str(task.id),
+            detail={"status": task.status, "action": action},
+            tenant_id=task.tenant_id,
+        )
+    )
+    db.commit()
+    return {
+        "ok": True,
+        "task_id": task.id,
+        "status": task.status,
+        "cancel_requested": True,
+        "action": action,
     }
 
 
@@ -57,6 +123,8 @@ def retry_task(task_id: int, db: Session = Depends(get_db)):
     task.error_msg = ""
     task.lease_until = None
     task.finished_at = None
+    task.cancel_requested = False
+    task.cancel_requested_at = None
     db.commit()
     return {"ok": True}
 
@@ -66,11 +134,23 @@ def enqueue_manual(account_id: int, task_type: str = "statements", db: Session =
     account = db.get(BankAccount, account_id)
     if account is None:
         raise HTTPException(status_code=404, detail="账户不存在")
-    from app.services.scheduler import task_range
 
     start, end = task_range(account)
-    task = enqueue_task(db, account, task_type, start, end, trigger="manual", created_by="ui", force=True)
-    return {"id": task.id}
+    tasks = [
+        enqueue_task(db, account, kind, start, end, trigger="manual", created_by="ui", force=True)
+        for kind in task_types_for(task_type)
+    ]
+    return {"id": tasks[0].id}
+
+
+ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
+
+def clean_log(text: str | None) -> str:
+    """去掉终端颜色控制符，避免日志弹窗里出现 [32m / [0m 这类乱码。"""
+    clean = ANSI_ESCAPE.sub("", text or "")
+    clean = clean.replace("\r\n", "\n").replace("\r", "\n").replace("\x00", "")
+    return clean
 
 
 @router.get("/tasks/{task_id}/log")
@@ -85,7 +165,7 @@ def task_log(task_id: int, db: Session = Depends(get_db)):
                 "attempt": r.attempt,
                 "exit_code": r.exit_code,
                 "duration_ms": r.duration_ms,
-                "log": r.log_text,
+                "log": clean_log(r.log_text),
             }
             for r in runs
         ]

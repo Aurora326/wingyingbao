@@ -12,15 +12,34 @@
   </div>
 </div>
 
-<div id="task-stats">{% include "_tasks_stats.html" %}</div>
+<div id="task-stats" data-active="{{ stats.running }}">{% include "_tasks_stats.html" %}</div>
 
 <div class="tabs">
   <a class="{{ 'active' if not status }}" href="/tasks">全部</a>
   <a class="{{ 'active' if status == 'queued' }}" href="/tasks?status=queued">等待中</a>
   <a class="{{ 'active' if status == 'leased' }}" href="/tasks?status=leased">进行中</a>
   <a class="{{ 'active' if status == 'succeeded' }}" href="/tasks?status=succeeded">已完成</a>
+  <a class="{{ 'active' if status == 'cancelled' }}" href="/tasks?status=cancelled">已停止</a>
   <a class="{{ 'active' if status == 'failed' }}" href="/tasks?status=failed">需处理</a>
 </div>
 
 <div id="task-table">{% include "_tasks_table.html" %}</div>
+
+<div class="modal" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="box form-box confirm-box">
+    <div class="head">
+      <div>
+        <strong id="confirm-title">确认操作</strong>
+        <div class="modal-sub" id="confirm-message"></div>
+      </div>
+      <button class="icon-btn" onclick="closeConfirmModal()" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <div class="modal-foot">
+      <button type="button" onclick="closeConfirmModal()">取消</button>
+      <button type="button" class="primary" id="confirm-ok" onclick="confirmModalOk()">确定</button>
+    </div>
+  </div>
+</div>
 {% endblock %}

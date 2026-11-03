@@ -42,7 +42,7 @@ def list_statements(
                 Statement.serial_no.like(pattern),
             )
         )
-    total = db.execute(select(func.count()).select_from(query.subquery())).scalar_one()
+    total = db.execute(query.with_only_columns(func.count(Statement.id)).order_by(None)).scalar_one()
     rows = db.execute(
         query.order_by(Statement.txn_date.desc(), Statement.txn_time.desc())
         .offset(max(page - 1, 0) * size)
@@ -99,7 +99,7 @@ def list_receipts(
     if q:
         pattern = f"%{q}%"
         query = query.where(or_(Receipt.counterparty_name.like(pattern), Receipt.receipt_no.like(pattern)))
-    total = db.execute(select(func.count()).select_from(query.subquery())).scalar_one()
+    total = db.execute(query.with_only_columns(func.count(Receipt.id)).order_by(None)).scalar_one()
     rows = db.execute(
         query.order_by(Receipt.id.desc()).offset(max(page - 1, 0) * size).limit(min(size, 200))
     ).scalars().all()

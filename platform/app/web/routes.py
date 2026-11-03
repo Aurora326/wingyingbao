@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from pathlib import Path
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
@@ -15,7 +15,7 @@ from app.api import recon as recon_api
 from app.api import tasks as tasks_api
 from app.config import settings
 from app.db import SessionLocal
-from app.models import AppUser, AuditLog, BankAccount, CollectionTask
+from app.models import AppUser, AuditLog, BankAccount, CollectionTask, Tenant
 from app.services import collectors, security
 from app.services.banks import list_banks
 
@@ -46,9 +46,12 @@ templates.env.filters["dt"] = _fmt_date
 _AUDIT_ACTORS = {"worker": "采集服务", "system": "系统"}
 _AUDIT_ACTIONS = {
     "task_finished": "采集任务结束",
+    "task_stop": "停止采集任务",
     "usb_robot_sync": "同步 UKey 设备",
     "agent_device_report": "客户侧 Agent 上报设备",
     "account_create": "创建银行账户",
+    "account_update": "更新银行账户",
+    "account_device_update": "调整账户 UKey",
     "credential_update": "更新登录信息",
 }
 _AUDIT_TARGETS = {
@@ -57,7 +60,7 @@ _AUDIT_TARGETS = {
     "bank_account": "银行账户",
     "agent": "采集 Agent",
 }
-_AUDIT_STATUS = {"succeeded": "已完成", "failed": "未完成", "running": "进行中"}
+_AUDIT_STATUS = {"succeeded": "已完成", "failed": "未完成", "running": "进行中", "cancelled": "已停止"}
 _AUDIT_ERRORS = {
     "LOGIN_FAILED": "登录失败",
     "SELECTOR_NOT_FOUND": "页面元素未找到",
@@ -65,6 +68,9 @@ _AUDIT_ERRORS = {
     "UKEY_NOT_FOUND": "未检测到 UKey",
     "TIMEOUT": "操作超时",
     "NETWORK_ERROR": "网络异常",
+    "COLLECT_FAILED": "采集失败",
+    "CANCELLED": "用户停止",
+    "STOPPING": "停止中",
     "UNKNOWN": "未知错误",
 }
 
@@ -92,6 +98,8 @@ def _audit_summary(log: AuditLog) -> str:
         ingest = detail.get("ingest") or {}
         inserted = ingest.get("inserted", 0)
         return f"采集任务{status}，新增 {inserted} 条数据" if inserted else f"采集任务{status}"
+    if log.action == "task_stop":
+        return "用户停止采集任务" if detail.get("action") == "cancelled" else "正在停止采集任务"
     if log.action == "usb_robot_sync":
         source = "本地 MB" if detail.get("source") == "local" else "服务商接口"
         suffix = f"，{detail.get('created', 0)} 新增 / {detail.get('updated', 0)} 更新" if detail.get("created") is not None else ""
@@ -130,7 +138,9 @@ def _audit_details(log: AuditLog) -> list[tuple[str, str]]:
     if detail.get("terminals"):
         rows.append(("机柜", "、".join(str(item) for item in detail["terminals"][:5])))
     if detail.get("artifacts") is not None:
-        rows.append(("附件", f"{len(detail.get('artifacts') or [])} 个文件"))
+        artifacts = detail.get("artifacts")
+        count = len(artifacts) if isinstance(artifacts, (list, tuple)) else artifacts
+        rows.append(("附件", f"{count} 个文件"))
     for key in ("total", "created", "updated"):
         if key in detail:
             label = {"total": "设备总数", "created": "新增", "updated": "更新"}[key]
@@ -167,6 +177,24 @@ def login_submit(request: Request, username: str = Form(...), password: str = Fo
 def logout():
     response = RedirectResponse("/login", status_code=303)
     response.delete_cookie("session")
+    response.delete_cookie("tenant_id")
+    return response
+
+
+@router.post("/tenant/switch")
+def tenant_switch(request: Request, tenant_id: str = Form("")):
+    user = getattr(request.state, "user", None)
+    if user is None or user.tenant_id is not None:
+        raise HTTPException(status_code=403, detail="只有平台管理员可以切换租户")
+    response = RedirectResponse("/settings", status_code=303)
+    if tenant_id:
+        with SessionLocal() as db:
+            tenant = db.get(Tenant, int(tenant_id)) if tenant_id.isdigit() else None
+        if tenant is None or tenant.status != "active":
+            raise HTTPException(status_code=400, detail="租户不存在或已停用")
+        response.set_cookie("tenant_id", tenant_id, httponly=True, samesite="lax")
+    else:
+        response.delete_cookie("tenant_id")
     return response
 
 
@@ -182,8 +210,27 @@ def dashboard_page(request: Request):
     )
 
 
-def _task_list_context(db, status: str) -> dict:
-    items = tasks_api.list_tasks(status=status or None, limit=100, db=db)["items"]
+TASK_PAGE_SIZE = 20
+
+
+def _task_list_context(db, status: str, page: int = 1, size: int = TASK_PAGE_SIZE) -> dict:
+    page = max(page, 1)
+    result = tasks_api.list_tasks(
+        status=status or None,
+        limit=size,
+        offset=(page - 1) * size,
+        db=db,
+    )
+    total = result["total"]
+    pages = max(1, (total + size - 1) // size)
+    if page > pages:
+        page = pages
+        result = tasks_api.list_tasks(
+            status=status or None,
+            limit=size,
+            offset=(page - 1) * size,
+            db=db,
+        )
     status_counts = dict(
         db.execute(
             select(CollectionTask.status, func.count(CollectionTask.id)).group_by(CollectionTask.status)
@@ -197,24 +244,33 @@ def _task_list_context(db, status: str) -> dict:
         "running": sum(status_counts.get(key, 0) for key in ("queued", "leased", "running")),
         "succeeded": status_counts.get("succeeded", 0),
         "failed": status_counts.get("failed", 0),
+        "cancelled": status_counts.get("cancelled", 0),
         "last": last_task,
     }
-    return {"tasks": items, "status": status, "stats": stats}
+    return {
+        "tasks": result["items"],
+        "status": status,
+        "stats": stats,
+        "page_no": page,
+        "pages": pages,
+        "total": total,
+        "size": size,
+    }
 
 
 @router.get("/tasks")
-def tasks_page(request: Request, status: str = ""):
+def tasks_page(request: Request, status: str = "", page: int = 1):
     with SessionLocal() as db:
-        context = _task_list_context(db, status)
+        context = _task_list_context(db, status, page)
         context["accounts"] = accounts_api.list_accounts(db)["items"]
     context.update(page="tasks")
     return templates.TemplateResponse(request=request, name="tasks.html", context=context)
 
 
 @router.get("/tasks/partial")
-def tasks_partial(request: Request, status: str = ""):
+def tasks_partial(request: Request, status: str = "", page: int = 1):
     with SessionLocal() as db:
-        context = _task_list_context(db, status)
+        context = _task_list_context(db, status, page)
     return templates.TemplateResponse(request=request, name="tasks_partial.html", context=context)
 
 
@@ -353,6 +409,8 @@ def settings_page(request: Request):
     with SessionLocal() as db:
         logs = db.execute(select(AuditLog).order_by(AuditLog.id.desc()).limit(50)).scalars().all()
         devices = accounts_api.list_devices(db)["items"]
+        tenants = db.execute(select(Tenant).order_by(Tenant.id)).scalars().all()
+    user = getattr(request.state, "user", None)
     return templates.TemplateResponse(
         request=request,
         name="settings.html",
@@ -363,5 +421,8 @@ def settings_page(request: Request):
             "collectors": collectors.status_rows(),
             "collectors_file": str(settings.collectors_file),
             "settings": settings,
+            "tenants": tenants,
+            "is_super_admin": bool(user is not None and user.tenant_id is None),
+            "current_tenant_id": getattr(request.state, "tenant_id", None),
         },
     )

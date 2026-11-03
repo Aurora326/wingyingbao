@@ -31,6 +31,19 @@ class TimestampMixin:
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
 
 
+class Tenant(Base, TimestampMixin):
+    __tablename__ = "tenant"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    code: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
+    status: Mapped[str] = mapped_column(String(16), default="active")
+
+
+class TenantMixin:
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+
+
 class Enterprise(Base, TimestampMixin):
     __tablename__ = "enterprise"
 
@@ -40,7 +53,7 @@ class Enterprise(Base, TimestampMixin):
     tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
-class Agent(Base, TimestampMixin):
+class Agent(Base, TimestampMixin, TenantMixin):
     __tablename__ = "agent"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -54,7 +67,7 @@ class Agent(Base, TimestampMixin):
     capabilities: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
-class UkeyDevice(Base, TimestampMixin):
+class UkeyDevice(Base, TimestampMixin, TenantMixin):
     __tablename__ = "ukey_device"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -72,7 +85,7 @@ class UkeyDevice(Base, TimestampMixin):
     extra: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
-class BankAccount(Base, TimestampMixin):
+class BankAccount(Base, TimestampMixin, TenantMixin):
     __tablename__ = "bank_account"
     __table_args__ = (UniqueConstraint("bank_code", "account_no", name="uq_bank_account"),)
 
@@ -85,12 +98,13 @@ class BankAccount(Base, TimestampMixin):
     ukey_device_id: Mapped[int | None] = mapped_column(ForeignKey("ukey_device.id"), nullable=True)
     collect_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     collect_cron: Mapped[str] = mapped_column(String(64), default="0 8,18 * * *")
+    collect_mode: Mapped[str] = mapped_column(String(16), default="both")
     days_back: Mapped[int] = mapped_column(Integer, default=30)
     watermark_date: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
     driver_options: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
-class Credential(Base, TimestampMixin):
+class Credential(Base, TimestampMixin, TenantMixin):
     __tablename__ = "credential"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -102,7 +116,7 @@ class Credential(Base, TimestampMixin):
     updated_at: Mapped[dt.datetime] = mapped_column(DateTime, default=utcnow)
 
 
-class CollectionTask(Base, TimestampMixin):
+class CollectionTask(Base, TimestampMixin, TenantMixin):
     __tablename__ = "collection_task"
     __table_args__ = (
         UniqueConstraint("idempotency_key", name="uq_task_idempotency"),
@@ -120,6 +134,8 @@ class CollectionTask(Base, TimestampMixin):
     device_id: Mapped[int | None] = mapped_column(ForeignKey("ukey_device.id"), nullable=True)
     agent_code: Mapped[str] = mapped_column(String(32), default="local")
     lease_until: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
+    cancel_requested_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     error_code: Mapped[str] = mapped_column(String(32), default="")
     error_msg: Mapped[str] = mapped_column(Text, default="")
@@ -129,7 +145,7 @@ class CollectionTask(Base, TimestampMixin):
     finished_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
 
 
-class TaskRun(Base, TimestampMixin):
+class TaskRun(Base, TimestampMixin, TenantMixin):
     __tablename__ = "task_run"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -142,7 +158,7 @@ class TaskRun(Base, TimestampMixin):
     duration_ms: Mapped[int] = mapped_column(Integer, default=0)
 
 
-class Artifact(Base, TimestampMixin):
+class Artifact(Base, TimestampMixin, TenantMixin):
     __tablename__ = "artifact"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -158,7 +174,7 @@ class Artifact(Base, TimestampMixin):
     parse_error: Mapped[str] = mapped_column(Text, default="")
 
 
-class Statement(Base, TimestampMixin):
+class Statement(Base, TimestampMixin, TenantMixin):
     __tablename__ = "statement"
     __table_args__ = (
         UniqueConstraint("dedupe_hash", name="uq_statement_dedupe"),
@@ -184,7 +200,7 @@ class Statement(Base, TimestampMixin):
     matched_internal_doc_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
-class Receipt(Base, TimestampMixin):
+class Receipt(Base, TimestampMixin, TenantMixin):
     __tablename__ = "receipt"
     __table_args__ = (Index("ix_receipt_account_date", "account_id", "txn_date"),)
 
@@ -200,7 +216,7 @@ class Receipt(Base, TimestampMixin):
     matched_statement_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
-class BalanceSnapshot(Base, TimestampMixin):
+class BalanceSnapshot(Base, TimestampMixin, TenantMixin):
     __tablename__ = "balance_snapshot"
     __table_args__ = (UniqueConstraint("account_id", "snapshot_date", name="uq_balance_snapshot"),)
 
@@ -213,7 +229,7 @@ class BalanceSnapshot(Base, TimestampMixin):
     note: Mapped[str] = mapped_column(String(256), default="")
 
 
-class InternalDoc(Base, TimestampMixin):
+class InternalDoc(Base, TimestampMixin, TenantMixin):
     __tablename__ = "internal_doc"
     __table_args__ = (Index("ix_internal_doc_date", "doc_date"),)
 
@@ -230,7 +246,7 @@ class InternalDoc(Base, TimestampMixin):
     imported_batch: Mapped[str] = mapped_column(String(64), default="")
 
 
-class ReconBatch(Base, TimestampMixin):
+class ReconBatch(Base, TimestampMixin, TenantMixin):
     __tablename__ = "recon_batch"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -245,7 +261,7 @@ class ReconBatch(Base, TimestampMixin):
     diff_amount: Mapped[Decimal] = mapped_column(Numeric(20, 2), default=Decimal("0"))
 
 
-class ReconItem(Base, TimestampMixin):
+class ReconItem(Base, TimestampMixin, TenantMixin):
     __tablename__ = "recon_item"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -260,7 +276,7 @@ class ReconItem(Base, TimestampMixin):
     candidates: Mapped[list] = mapped_column(JSON, default=list)
 
 
-class AuditLog(Base, TimestampMixin):
+class AuditLog(Base, TimestampMixin, TenantMixin):
     __tablename__ = "audit_log"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -272,7 +288,7 @@ class AuditLog(Base, TimestampMixin):
     detail: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
-class AppUser(Base, TimestampMixin):
+class AppUser(Base, TimestampMixin, TenantMixin):
     __tablename__ = "app_user"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

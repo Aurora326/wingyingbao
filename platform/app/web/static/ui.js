@@ -21,21 +21,30 @@ function closeModal(id) {
 function openAccountModal() {
   const form = document.getElementById("account-form");
   if (form) form.reset();
+  const accountId = document.getElementById("account-id");
+  if (accountId) accountId.value = "";
+  const title = document.getElementById("account-modal-title");
+  if (title) title.textContent = "添加银行账户";
+  const submit = document.getElementById("account-submit");
+  if (submit) submit.textContent = "创建账户";
   const bank = document.getElementById("account-bank");
+  if (bank) bank.disabled = false;
+  const accountNo = document.getElementById("account-no");
+  if (accountNo) accountNo.readOnly = false;
+  const note = document.getElementById("credential-edit-note");
+  if (note) note.hidden = true;
+  if (form) {
+    form.username.placeholder = "登录企业网银的账号";
+    form.password.placeholder = "";
+    form.pin.placeholder = "";
+  }
   if (bank && typeof filterAccountDevices === "function") filterAccountDevices(bank.value);
   const preset = document.getElementById("schedule-preset");
+  if (preset) preset.value = "0 8,18 * * *";
   applySchedulePreset(preset ? preset.value : "0 8,18 * * *");
+  const collectMode = document.getElementById("account-collect-mode");
+  if (collectMode) collectMode.value = "both";
   openModal("account-modal", "#account-bank");
-}
-
-function openCredentialModal(accountId, label) {
-  const form = document.getElementById("credential-form");
-  if (form) form.reset();
-  const input = document.getElementById("credential-account-id");
-  if (input) input.value = accountId;
-  const title = document.getElementById("credential-account-label");
-  if (title) title.textContent = label || "";
-  openModal("credential-modal", "#credential-username");
 }
 
 function openDeviceModal() {

@@ -50,7 +50,11 @@ def claim_task(db, agent_code: str | None = None) -> ClaimedTask | None:
         )
     ).scalars().all()
     for task in stale:
-        if task.attempts < RETRY_LIMIT:
+        if task.cancel_requested:
+            task.status = "cancelled"
+            task.error_code = "CANCELLED"
+            task.error_msg = "用户停止任务"
+        elif task.attempts < RETRY_LIMIT:
             task.status = "queued"
             task.error_code = "TIMEOUT"
             task.error_msg = "执行进程中断，任务已重新排队"
@@ -151,6 +155,7 @@ def _register_artifact(db, path: Path, task: CollectionTask, account: BankAccoun
         size=size,
         content_type=Path(object_key).suffix.lstrip("."),
         parsed_status="pending",
+        tenant_id=account.tenant_id,
     )
     db.add(artifact)
     db.flush()
@@ -166,11 +171,13 @@ def _finalize(db, task: CollectionTask, result: dict, exit_code: int | None, log
         exit_code=exit_code,
         log_text=log_text[-20000:],
         duration_ms=duration_ms,
+        tenant_id=task.tenant_id,
     )
     db.add(run)
     db.flush()
 
     error_code = result.get("error_code") or ""
+    cancelled = bool(task.cancel_requested) or error_code == "CANCELLED"
     no_data = bool(result.get("no_data"))
     files = [Path(p) for p in result.get("files", [])]
 
@@ -209,7 +216,11 @@ def _finalize(db, task: CollectionTask, result: dict, exit_code: int | None, log
             ingest_summary["errors"].extend(breaks[:5])
 
     task.finished_at = utcnow()
-    if error_code:
+    if cancelled:
+        task.status = "cancelled"
+        task.error_code = "CANCELLED"
+        task.error_msg = result.get("message", "用户停止任务")[:500]
+    elif error_code:
         if error_code in ("TIMEOUT", "DOWNLOAD_FAILED", "DEVICE_BUSY") and task.attempts < RETRY_LIMIT:
             task.status = "queued"
             task.lease_until = None
@@ -239,6 +250,7 @@ def _finalize(db, task: CollectionTask, result: dict, exit_code: int | None, log
                 "ingest": ingest_summary,
                 "artifacts": [a.object_key for a in artifacts],
             },
+            tenant_id=task.tenant_id,
         )
     )
     db.commit()
@@ -271,6 +283,27 @@ def _release_device(payload: dict) -> None:
             pass
 
 
+def _terminate_process(proc: subprocess.Popen) -> None:
+    if proc.poll() is not None:
+        return
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+            capture_output=True,
+            text=True,
+            errors="replace",
+        )
+        return
+    try:
+        os.killpg(os.getpgid(proc.pid), 15)
+    except Exception:
+        proc.terminate()
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+
+
 def run_task(task_id: int) -> None:
     db = SessionLocal()
     try:
@@ -295,6 +328,8 @@ def run_task(task_id: int) -> None:
         started = time.time()
         exit_code: int | None = None
         result: dict = {}
+        cancelled = False
+        timed_out = False
         log_text = ""
         lock = BusLock(settings.bus_lock_path)
         try:
@@ -302,22 +337,64 @@ def run_task(task_id: int) -> None:
             log_text = collectors.describe(command, task_file)
             if not command.cwd.is_dir():
                 raise FileNotFoundError(f"采集程序目录不存在: {command.cwd}")
-            lock.acquire()
-            proc = subprocess.run(
-                [*command.argv, "--task", str(task_file)],
-                cwd=str(command.cwd),
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=SUBPROCESS_TIMEOUT,
-                env=env,
-            )
-            exit_code = proc.returncode
-            log_text += "\n" + (proc.stdout or "") + "\n" + (proc.stderr or "")
-        except subprocess.TimeoutExpired:
-            result = {"error_code": "TIMEOUT", "message": "采集子进程超时"}
-            log_text += "\n采集子进程超时"
+            try:
+                db.refresh(task)
+            except Exception:
+                pass
+            if task.cancel_requested:
+                cancelled = True
+                exit_code = 130
+                result = {"error_code": "CANCELLED", "message": "用户停止任务"}
+                log_text += "\n用户停止任务"
+            else:
+                lock.acquire()
+                popen_kwargs = (
+                    {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+                    if os.name == "nt"
+                    else {"start_new_session": True}
+                )
+                proc = subprocess.Popen(
+                    [*command.argv, "--task", str(task_file)],
+                    cwd=str(command.cwd),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    env=env,
+                    **popen_kwargs,
+                )
+                last_cancel_check = 0.0
+                while True:
+                    try:
+                        stdout, stderr = proc.communicate(timeout=2)
+                        exit_code = proc.returncode
+                        log_text += "\n" + (stdout or "") + "\n" + (stderr or "")
+                        break
+                    except subprocess.TimeoutExpired:
+                        now = time.time()
+                        if now - started > SUBPROCESS_TIMEOUT:
+                            timed_out = True
+                            exit_code = 124
+                            result = {"error_code": "TIMEOUT", "message": "采集子进程超时"}
+                            _terminate_process(proc)
+                            stdout, stderr = proc.communicate()
+                            log_text += "\n采集子进程超时\n" + (stdout or "") + "\n" + (stderr or "")
+                            break
+                        if now - last_cancel_check >= 3:
+                            last_cancel_check = now
+                            try:
+                                db.refresh(task)
+                            except Exception:
+                                pass
+                            if task.cancel_requested:
+                                cancelled = True
+                                exit_code = 130
+                                result = {"error_code": "CANCELLED", "message": "用户停止任务"}
+                                _terminate_process(proc)
+                                stdout, stderr = proc.communicate()
+                                log_text += "\n用户停止任务\n" + (stdout or "") + "\n" + (stderr or "")
+                                break
         except (collectors.CollectorNotConfigured, FileNotFoundError) as exc:
             # 清单没配、或指向的目录/程序不存在，属于部署问题，重试无用
             result = {"error_code": "UNKNOWN", "message": str(exc)}
@@ -330,12 +407,12 @@ def run_task(task_id: int) -> None:
             lock.release()
 
         result_path = Path(payload["result_path"])
-        if result_path.exists():
+        if not cancelled and result_path.exists():
             try:
                 result = json.loads(result_path.read_text(encoding="utf-8"))
             except json.JSONDecodeError:
                 result = {"error_code": "UNKNOWN", "message": "结果文件无法解析"}
-        elif not result:
+        elif not cancelled and not result:
             result = {"error_code": "UNKNOWN", "message": f"未生成结果文件 (exit={exit_code})"}
 
         version = result.get("contract_version")
@@ -384,10 +461,15 @@ class Worker(threading.Thread):
                     )
                 ).scalars().all()
                 for task in leased:
-                    task.status = "queued"
-                    task.lease_until = None
-                    task.error_code = ""
-                    task.error_msg = "执行进程重启，任务重新排队"
+                    if task.cancel_requested:
+                        task.status = "cancelled"
+                        task.error_code = "CANCELLED"
+                        task.error_msg = "用户停止任务"
+                    else:
+                        task.status = "queued"
+                        task.lease_until = None
+                        task.error_code = ""
+                        task.error_msg = "执行进程重启，任务重新排队"
                 if leased:
                     db.commit()
         except Exception:

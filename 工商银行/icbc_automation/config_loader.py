@@ -62,7 +62,7 @@ class BrowserConfig:
     download_timeout: int = 60
     page_timeout: int = 30
     window_width: int = 1750
-    window_height: int = 950
+    window_height: int = 900
 
 
 @dataclass
@@ -166,7 +166,7 @@ def _load_ini_config(config_path: Path) -> dict:
             'download_timeout': get_value('browser', 'download_timeout', 60, int),
             'page_timeout': get_value('browser', 'page_timeout', 30, int),
             'window_width': get_value('browser', 'window_width', 1750, int),
-            'window_height': get_value('browser', 'window_height', 950, int),
+            'window_height': get_value('browser', 'window_height', 900, int),
         },
         'cabinet': {
             'type': get_value('cabinet', 'type', 'mb'),

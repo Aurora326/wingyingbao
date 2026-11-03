@@ -21,9 +21,6 @@ logger = setup_logger()
 class NJCBBrowser(BaseBrowser, PopupHandlerMixin, PinInputterMixin, LoginManagerMixin):
     """南京银行浏览器管理器"""
 
-    def _get_window_size(self) -> tuple:
-        return (1700, 900)
-
     def _get_extra_launch_args(self) -> list:
         return [
             "--disable-infobars",

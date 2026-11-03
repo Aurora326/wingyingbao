@@ -433,13 +433,14 @@ class StatementCollector:
                 for file_path in download_dir.iterdir():
                     if not file_path.is_file() or file_path.name in all_before_files:
                         continue
+                    # Chrome 下载中的临时文件，等它改名成正式文件再处理
+                    if file_path.name.lower().endswith(('.crdownload', '.tmp', '.partial')):
+                        continue
 
                     try:
                         file_size = file_path.stat().st_size
                     except Exception:
                         file_size = 0
-
-                    logger.info(f"发现新文件: {file_path.name} (大小: {file_size} bytes) 在目录: {download_dir}")
 
                     is_valid = (
                         file_path.name.endswith(('.xlsx', '.xls', '.pdf', '.csv')) or
@@ -451,17 +452,21 @@ class StatementCollector:
                         logger.info(f"确认新下载文件: {file_path}")
                         stable_count = 0
                         last_size = -1
+                        vanished = False
                         while stable_count < 3:
                             time.sleep(0.5)
-                            if file_path.exists():
-                                current_size = file_path.stat().st_size
-                                if current_size == last_size:
-                                    stable_count += 1
-                                else:
-                                    stable_count = 0
-                                    last_size = current_size
-                            else:
+                            if not file_path.exists():
+                                # 稳定过程中文件被改名/删除，说明还在下载
+                                vanished = True
                                 break
+                            current_size = file_path.stat().st_size
+                            if current_size == last_size:
+                                stable_count += 1
+                            else:
+                                stable_count = 0
+                                last_size = current_size
+                        if vanished:
+                            continue
                         return file_path
 
         logger.warning("下载超时，未发现新文件")
@@ -482,28 +487,41 @@ class StatementCollector:
         return str(file_path)
 
     JS_SET_DATE_RANGE = """([begin, end]) => {
-        const q = (s) => document.querySelector(s);
-        const set = (sel, val) => {
-            const el = q(sel);
+        const jq = window.jQuery || window.$;
+        const apply = (sel, val) => {
+            const el = document.querySelector(sel);
             if (!el) return false;
+            // 控件是 jQuery datepicker，只改 value 不更新内部状态，
+            // 点「查询」时会被内部状态覆盖回默认值
+            if (jq) {
+                try { jq(sel).datepicker('setDate', val); } catch (e) {}
+            }
             el.removeAttribute('readonly');
             el.value = val;
             el.dispatchEvent(new Event('input', { bubbles: true }));
             el.dispatchEvent(new Event('change', { bubbles: true }));
+            if (jq) { jq(el).trigger('change'); }
             return true;
         };
-        const bVisible = set('#datepicker1-beginDate', begin);
-        const eVisible = set('#datepicker1-endDate', end);
-        const bHidden = set("input[name='Begin_date']", begin);
-        const eHidden = set("input[name='End_date']", end);
+        const bVisible = apply('#datepicker1-beginDate', begin);
+        const eVisible = apply('#datepicker1-endDate', end);
+        const bHidden = apply("input[name='Begin_date']", begin);
+        const eHidden = apply("input[name='End_date']", end);
         return {
             bVisible, eVisible, bHidden, eHidden,
-            beginVisible: q('#datepicker1-beginDate') && q('#datepicker1-beginDate').value,
-            endVisible: q('#datepicker1-endDate') && q('#datepicker1-endDate').value,
-            beginHidden: q("input[name='Begin_date']") && q("input[name='Begin_date']").value,
-            endHidden: q("input[name='End_date']") && q("input[name='End_date']").value,
+            beginVisible: document.querySelector('#datepicker1-beginDate') && document.querySelector('#datepicker1-beginDate').value,
+            endVisible: document.querySelector('#datepicker1-endDate') && document.querySelector('#datepicker1-endDate').value,
+            beginHidden: document.querySelector("input[name='Begin_date']") && document.querySelector("input[name='Begin_date']").value,
+            endHidden: document.querySelector("input[name='End_date']") && document.querySelector("input[name='End_date']").value,
         };
     }"""
+
+    JS_READ_DATE_RANGE = """() => ({
+        beginVisible: (document.querySelector('#datepicker1-beginDate') || {}).value,
+        endVisible: (document.querySelector('#datepicker1-endDate') || {}).value,
+        beginHidden: (document.querySelector("input[name='Begin_date']") || {}).value,
+        endHidden: (document.querySelector("input[name='End_date']") || {}).value,
+    })"""
 
     def _set_date_range(self, start_date: str, end_date: str):
         """设置日期范围。控件是 jQuery datepicker，直接改 value 会被内部状态覆盖，
@@ -622,6 +640,13 @@ class StatementCollector:
             except Exception:
                 pass
             time.sleep(1)
+
+        # 日期被页面重置成默认区间的话，查的就是默认那段，结果会对不上
+        try:
+            state = self.root.evaluate(self.JS_READ_DATE_RANGE)
+            logger.info(f"查询后日期字段: {state}")
+        except Exception:
+            pass
         return True
 
 
@@ -710,11 +735,25 @@ class StatementCollector:
             return None
 
         if not self._statement_file_has_rows(file_path):
-            logger.info("下载到的文件只有表头，按查询结果为空处理")
+            # 导出有时赶在结果表格渲染完之前，拿到的只有表头；等一会儿再导一次
+            logger.info("下载到的文件只有表头，等待后重试一次导出")
             try:
                 file_path.unlink()
             except Exception:
                 pass
+            time.sleep(3)
+            retry_before = self._get_downloaded_files_before()
+            if self._open_download_excel():
+                retry_path = self._wait_and_find_new_file(retry_before, timeout=60)
+                if retry_path and self._statement_file_has_rows(retry_path):
+                    logger.info("重试导出成功，已拿到数据")
+                    return self._move_to_download_path(retry_path, account, end_date)
+                if retry_path:
+                    try:
+                        retry_path.unlink()
+                    except Exception:
+                        pass
+            logger.info("重试后仍无数据，按查询结果为空处理")
             return self._create_no_data_marker(start_date, end_date)
 
         return self._move_to_download_path(file_path, account, end_date)

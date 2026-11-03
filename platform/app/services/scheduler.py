@@ -47,6 +47,17 @@ def cron_matches(expr: str, when: dt.datetime) -> bool:
 # 银行对单次查询跨度有限制（工行 6 个月），水位不推进时窗口会一直变长
 MAX_QUERY_DAYS = 180
 
+COLLECT_MODES = {
+    "statements": ("statements",),
+    "receipts": ("receipts",),
+    "both": ("statements", "receipts"),
+}
+
+
+def task_types_for(mode: str | None) -> tuple[str, ...]:
+    key = (mode or "both").strip().lower()
+    return COLLECT_MODES.get(key, COLLECT_MODES["both"])
+
 
 def task_range(account: BankAccount, today: dt.date | None = None) -> tuple[dt.date, dt.date]:
     today = today or dt.date.today()
@@ -72,9 +83,9 @@ def enqueue_task(
 ) -> CollectionTask:
     key = f"{account.id}:{task_type}:{start_date.isoformat()}:{end_date.isoformat()}"
     existing = db.execute(select(CollectionTask).where(CollectionTask.idempotency_key == key)).scalars().first()
-    if existing and not force:
+    if existing and not force and existing.status not in ("cancelled", "stopped"):
         return existing
-    if existing and force:
+    if existing and (force or existing.status in ("cancelled", "stopped")):
         key = f"{key}:{dt.datetime.now().strftime('%H%M%S%f')}"
     task = CollectionTask(
         account_id=account.id,
@@ -87,6 +98,7 @@ def enqueue_task(
         created_by=created_by,
         device_id=account.ukey_device_id,
         agent_code=resolve_agent_code(db, account),
+        tenant_id=account.tenant_id,
     )
     db.add(task)
     db.commit()
@@ -115,7 +127,7 @@ class Scheduler(threading.Thread):
                     continue
                 self._last_slot[account.id] = slot
                 start, end = task_range(account, now.date())
-                for task_type in ("statements", "receipts"):
+                for task_type in task_types_for(account.collect_mode):
                     enqueue_task(db, account, task_type, start, end, trigger="schedule", created_by="scheduler")
 
     def run(self) -> None:

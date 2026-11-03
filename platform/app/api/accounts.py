@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import datetime as dt
+from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import Agent, BankAccount, BalanceSnapshot, Credential, Enterprise, UkeyDevice
-from app.schemas import AccountCreate, CredentialUpdate, DeviceCreate
+from app.models import Agent, AuditLog, BankAccount, BalanceSnapshot, CollectionTask, Credential, Enterprise, UkeyDevice
+from app.schemas import AccountCreate, AccountDeviceUpdate, AccountUpdate, CredentialUpdate, DeviceCreate
 from app.services import account_admin, device_sync, security
-from app.services.scheduler import enqueue_task, task_range
+from app.services.agents import resolve_agent_code
+from app.services.scheduler import enqueue_task, task_range, task_types_for
 from app.services.usb_robot import UsbRobotError
 
 router = APIRouter(prefix="/api", tags=["accounts"])
@@ -37,6 +39,7 @@ def list_accounts(db: Session = Depends(get_db)):
                 "account_name": account.account_name,
                 "collect_enabled": account.collect_enabled,
                 "collect_cron": account.collect_cron,
+                "collect_mode": account.collect_mode or "both",
                 "days_back": account.days_back,
                 "watermark_date": account.watermark_date,
                 "balance": str(snapshot.balance) if snapshot else None,
@@ -72,6 +75,7 @@ def create_account(payload: AccountCreate, db: Session = Depends(get_db)):
         ukey_device_id=payload.ukey_device_id,
         collect_enabled=payload.collect_enabled,
         collect_cron=payload.collect_cron,
+        collect_mode=payload.collect_mode,
         days_back=payload.days_back,
     )
     db.add(account)
@@ -105,15 +109,170 @@ def update_credential(account_id: int, payload: CredentialUpdate, db: Session = 
     return {"ok": True}
 
 
-@router.post("/accounts/{account_id}/collect")
-def collect_now(account_id: int, db: Session = Depends(get_db)):
+def _apply_device_binding(db: Session, account: BankAccount, device_id: int | None) -> dict:
+    active = db.execute(
+        select(CollectionTask).where(
+            CollectionTask.account_id == account.id,
+            CollectionTask.status.in_(("leased", "running")),
+        )
+    ).scalars().first()
+    if active is not None:
+        raise HTTPException(status_code=409, detail="该账户有正在执行的任务，请结束后再调整 UKey")
+
+    device = None
+    if device_id is not None:
+        device = db.get(UkeyDevice, device_id)
+        if device is None:
+            raise HTTPException(status_code=404, detail="UKey 设备不存在")
+        if device.bank_code and account.bank_code and device.bank_code != account.bank_code:
+            raise HTTPException(status_code=400, detail="UKey 所属银行与账户不一致")
+        other = db.execute(
+            select(BankAccount).where(
+                BankAccount.ukey_device_id == device.id,
+                BankAccount.id != account.id,
+            )
+        ).scalars().first()
+        if other is not None:
+            tail = other.account_no[-4:] if other.account_no else other.id
+            raise HTTPException(status_code=400, detail=f"该 UKey 已绑定其他账户（尾号 {tail}）")
+
+    old_device_id = account.ukey_device_id
+    if old_device_id == (device.id if device else None):
+        return {
+            "device_id": old_device_id,
+            "device": device.name if device else "",
+            "agent_code": resolve_agent_code(db, account),
+            "queued_tasks": 0,
+            "changed": False,
+        }
+
+    account.ukey_device_id = device.id if device else None
+    agent_code = resolve_agent_code(db, account)
+    queued = db.execute(
+        select(CollectionTask).where(
+            CollectionTask.account_id == account.id,
+            CollectionTask.status == "queued",
+        )
+    ).scalars().all()
+    for task in queued:
+        task.device_id = device.id if device else None
+        task.agent_code = agent_code
+
+    db.add(
+        AuditLog(
+            actor="ui",
+            action="account_device_update",
+            target_type="bank_account",
+            target_id=str(account.id),
+            detail={
+                "old_device_id": old_device_id,
+                "new_device_id": device.id if device else None,
+                "agent_code": agent_code,
+                "queued_tasks": len(queued),
+            },
+        )
+    )
+    return {
+        "device_id": device.id if device else None,
+        "device": device.name if device else "",
+        "agent_code": agent_code,
+        "queued_tasks": len(queued),
+        "changed": True,
+    }
+
+
+@router.post("/accounts/{account_id}/device")
+def update_account_device(
+    account_id: int, payload: AccountDeviceUpdate, db: Session = Depends(get_db)
+):
     account = db.get(BankAccount, account_id)
     if account is None:
         raise HTTPException(status_code=404, detail="账户不存在")
+    result = _apply_device_binding(db, account, payload.ukey_device_id)
+    db.commit()
+    return {"ok": True, **result}
+
+
+@router.patch("/accounts/{account_id}")
+def update_account(
+    account_id: int, payload: AccountUpdate, db: Session = Depends(get_db)
+):
+    account = db.get(BankAccount, account_id)
+    if account is None:
+        raise HTTPException(status_code=404, detail="账户不存在")
+
+    changed: list[str] = []
+    if payload.account_name is not None:
+        account.account_name = payload.account_name
+        changed.append("account_name")
+    if payload.collect_cron is not None:
+        account.collect_cron = payload.collect_cron.strip()
+        changed.append("collect_cron")
+    if payload.collect_mode is not None:
+        account.collect_mode = payload.collect_mode
+        changed.append("collect_mode")
+    if payload.days_back is not None:
+        account.days_back = payload.days_back
+        changed.append("days_back")
+
+    binding = None
+    if "ukey_device_id" in payload.model_fields_set:
+        binding = _apply_device_binding(db, account, payload.ukey_device_id)
+        if binding.get("changed"):
+            changed.append("ukey_device_id")
+
+    credential_fields = {
+        key: getattr(payload, key)
+        for key in ("username", "password", "pin")
+        if getattr(payload, key) is not None
+    }
+    if credential_fields:
+        credential = db.execute(
+            select(Credential).where(Credential.bank_account_id == account_id)
+        ).scalars().first()
+        if credential is None:
+            credential = Credential(bank_account_id=account_id)
+            db.add(credential)
+        for key, value in credential_fields.items():
+            setattr(credential, f"{key}_enc", security.encrypt(value))
+        credential.updated_at = dt.datetime.now()
+        changed.append("credential")
+
+    if changed:
+        db.add(
+            AuditLog(
+                actor="ui",
+                action="account_update",
+                target_type="bank_account",
+                target_id=str(account_id),
+                detail={"fields": changed},
+            )
+        )
+    db.commit()
+    return {
+        "ok": True,
+        "changed": changed,
+        "device_id": binding["device_id"] if binding else account.ukey_device_id,
+        "queued_tasks": binding["queued_tasks"] if binding else 0,
+    }
+
+
+@router.post("/accounts/{account_id}/collect")
+def collect_now(
+    account_id: int,
+    task_type: Annotated[
+        str | None, Query(alias="type", pattern="^(statements|receipts|both)$")
+    ] = None,
+    db: Session = Depends(get_db),
+):
+    account = db.get(BankAccount, account_id)
+    if account is None:
+        raise HTTPException(status_code=404, detail="账户不存在")
+    mode = task_type or account.collect_mode or "both"
     start, end = task_range(account)
     tasks = [
-        enqueue_task(db, account, task_type, start, end, trigger="manual", created_by="ui")
-        for task_type in ("statements", "receipts")
+        enqueue_task(db, account, kind, start, end, trigger="manual", created_by="ui")
+        for kind in task_types_for(mode)
     ]
     return {"tasks": [{"id": t.id, "type": t.type, "status": t.status} for t in tasks]}
 

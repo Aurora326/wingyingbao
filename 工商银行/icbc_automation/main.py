@@ -38,22 +38,8 @@ class ICBCAutomation:
         )
         self.browser: ICBCBrowser = None
 
-        # 机柜控制器：配置了才自动插拔 U盾；manual_mode=true 表示手动插好
+        # 机柜控制器在 run() 里按最终配置创建（平台任务会覆盖端口等信息）
         self.cabinet_controller = None
-        cabinet = self.config.cabinet
-        if cabinet.type != "mock" and not cabinet.manual_mode:
-            try:
-                from cabinet_controller import create_cabinet_controller
-
-                self.cabinet_controller = create_cabinet_controller(cabinet)
-                if self.cabinet_controller:
-                    logger.info(
-                        f"机柜控制器已初始化: {cabinet.type} ter={cabinet.ter_id} port={cabinet.port} user={cabinet.user}"
-                    )
-                else:
-                    logger.warning("机柜控制器初始化失败")
-            except Exception as exc:
-                logger.error(f"机柜控制器初始化异常: {exc}")
 
     @staticmethod
     def _no_data(files: List[str]) -> bool:
@@ -84,6 +70,22 @@ class ICBCAutomation:
             "error": None,
             "record_file": ""
         }
+
+        # 按最终配置创建机柜控制器（端口可能已被平台任务覆盖）
+        cabinet = self.config.cabinet
+        if cabinet.type != "mock" and not cabinet.manual_mode:
+            try:
+                from cabinet_controller import create_cabinet_controller
+
+                self.cabinet_controller = create_cabinet_controller(cabinet)
+                if self.cabinet_controller:
+                    logger.info(
+                        f"机柜控制器已初始化: {cabinet.type} ter={cabinet.ter_id} port={cabinet.port} user={cabinet.user}"
+                    )
+                else:
+                    logger.warning("机柜控制器初始化失败")
+            except Exception as exc:
+                logger.error(f"机柜控制器初始化异常: {exc}")
 
         max_retries = self.config.runtime.max_retries
         retry_delay = self.config.runtime.retry_delay

@@ -48,17 +48,6 @@ def _apply_task(automation, task: dict) -> None:
             config.cabinet.mb_path = str(task["mb_exe"])
 
 
-def _rebuild_cabinet(automation) -> None:
-    """机柜控制器在构造时就建好了，配置改完要按新参数重建。"""
-    from cabinet_controller import create_cabinet_controller
-
-    cabinet = automation.config.cabinet
-    if cabinet.type == "mock" or cabinet.manual_mode:
-        automation.cabinet_controller = None
-        return
-    automation.cabinet_controller = create_cabinet_controller(cabinet)
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="工商银行采集程序（平台入口）")
     parser.add_argument("--task", required=True, help="任务 JSON 文件路径")
@@ -71,7 +60,6 @@ def main() -> int:
 
     automation = ICBCAutomation()
     _apply_task(automation, task)
-    _rebuild_cabinet(automation)
 
     task_type = str(task.get("type") or "statements")
     results = automation.run(

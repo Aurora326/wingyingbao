@@ -1,4 +1,4 @@
-<div class="stat-row">
+<div class="stat-row five">
   <div class="stat">
     <span class="k">全部任务</span>
     <span class="v">{{ stats.total }}</span>
@@ -18,5 +18,10 @@
     <span class="k">需处理</span>
     <span class="v {{ 'red' if stats.failed else '' }}">{{ stats.failed }}</span>
     <span class="f">{% if stats.failed %}建议查看原因后重试{% else %}没有失败任务{% endif %}</span>
+  </div>
+  <div class="stat">
+    <span class="k">已停止</span>
+    <span class="v">{{ stats.cancelled }}</span>
+    <span class="f">用户主动停止的采集</span>
   </div>
 </div>

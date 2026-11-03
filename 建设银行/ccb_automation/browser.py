@@ -21,9 +21,6 @@ logger = setup_logger()
 class CCBBrowser(BaseBrowser, PopupHandlerMixin, PinInputterMixin, LoginManagerMixin):
     """建设银行浏览器管理器"""
 
-    def _get_window_size(self) -> tuple:
-        return (1500, 800)
-
     def navigate_to_login(self):
         """导航到登录页 - 建设银行适配"""
         # 设置弹窗监听：自动关闭空白弹窗

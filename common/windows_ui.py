@@ -313,6 +313,39 @@ def focus_edit(title_keywords, timeout: float = 5.0) -> bool:
             return False
 
 
+def _enum_children(hwnd) -> list:
+    children = []
+
+    def callback(child, _):
+        children.append(child)
+        return True
+
+    _user32.EnumChildWindows(hwnd, _WNDENUMPROC(callback), 0)
+    return children
+
+
+def _child_class(child) -> str:
+    buffer = ctypes.create_unicode_buffer(256)
+    _user32.GetClassNameW(child, buffer, 256)
+    return buffer.value
+
+
+def fast_click_button(title_keywords, button_texts=("确定", "确认", "OK"), timeout: float = 3.0) -> bool:
+    """纯 Win32 按控件文字点按钮（BM_CLICK），比 UIA 快一到两个数量级。"""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        hwnd = find_hwnd(title_keywords)
+        if hwnd:
+            for child in _enum_children(hwnd):
+                if _child_class(child).lower() != "button":
+                    continue
+                if _window_text(child).strip() in button_texts:
+                    _user32.SendMessageW(child, 0x00F5, 0, 0)  # BM_CLICK
+                    return True
+        time.sleep(0.05)
+    return False
+
+
 def window_process_name(hwnd) -> str:
     """返回窗口所属进程的可执行文件路径，用于区分是不是 U盾中间件的弹窗。"""
     if not hwnd:

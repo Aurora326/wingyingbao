@@ -9,6 +9,7 @@ from app.models import Agent, AuditLog, UkeyDevice
 from app.schemas import AgentDeviceReport
 from app.services import mb_local
 from app.services.usb_robot import bank_code_from_name, cabinet_from_ter_id
+from app.tenancy import current_tenant_id
 
 MB_BACKEND = "mb"
 DEVICE_STATUSES = {"online", "busy", "empty", "offline", "unknown"}
@@ -152,6 +153,7 @@ def apply_device_report(db: Session, payload: AgentDeviceReport) -> dict:
                 "updated": updated,
                 "missing": missing,
             },
+            tenant_id=agent.tenant_id or current_tenant_id(),
         )
     )
     db.flush()

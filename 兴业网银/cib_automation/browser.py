@@ -154,11 +154,12 @@ class CIBBrowser:
         # 获取屏幕分辨率用于最大化
         # 使用固定窗口大小，避免全屏导致某些元素定位问题
         window_width = 1750
-        window_height = 950
+        window_height = 900
         
         launch_options = {
             "headless": self.config.headless,
-            "viewport": {"width": window_width, "height": window_height},  # 设置视口为固定大小
+            # 关掉视口模拟，--window-size 才是整个窗口的实际尺寸
+            "no_viewport": True,
             "args": [
                 "--no-sandbox",
                 "--disable-setuid-sandbox",

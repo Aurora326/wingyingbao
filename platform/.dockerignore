@@ -1,0 +1,15 @@
+data/
+backup.py
+__pycache__/
+*.py[cod]
+.pytest_cache/
+tests/
+docs/
+desktop/
+agent/
+.env
+collectors.yaml
+access_token.conf
+*.log
+venv/
+.venv/

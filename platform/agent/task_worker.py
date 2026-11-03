@@ -15,9 +15,10 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from device_report import load_env, log, sleep_until_next, stop_requested
+from device_report import USER_AGENT, load_env, log, sleep_until_next, stop_requested
 
 AGENT_VERSION = "task-worker/1.0"
+CANCEL_POLL_SECONDS = 5
 BASE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = BASE_DIR.parent
 MAX_FILE_BYTES = 20 * 1024 * 1024
@@ -33,6 +34,7 @@ def post_json(endpoint: str, token: str, payload: dict, timeout: int = 120) -> d
         headers={
             "Content-Type": "application/json; charset=utf-8",
             "Authorization": f"Bearer {token}",
+            "User-Agent": USER_AGENT,
         },
     )
     try:
@@ -57,7 +59,7 @@ def fetch_credentials(
     request = urllib.request.Request(
         endpoint,
         method="GET",
-        headers={"Authorization": f"Bearer {token}"},
+        headers={"Authorization": f"Bearer {token}", "User-Agent": USER_AGENT},
     )
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
@@ -65,6 +67,44 @@ def fetch_credentials(
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:500]
         raise RuntimeError(f"平台返回 {exc.code}: {detail}") from exc
+
+
+def fetch_status(url: str, token: str, task_id: int, agent_code: str) -> dict:
+    query = urllib.parse.urlencode({"agent_code": agent_code})
+    endpoint = url.rstrip("/") + f"/api/agent/tasks/{task_id}/status?{query}"
+    request = urllib.request.Request(
+        endpoint,
+        method="GET",
+        headers={"Authorization": f"Bearer {token}", "User-Agent": USER_AGENT},
+    )
+    with urllib.request.urlopen(request, timeout=10) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def cancel_requested(args, task_id: int) -> bool:
+    try:
+        status = fetch_status(args.url, args.token, task_id, args.agent_code)
+        return bool(status.get("cancel_requested"))
+    except Exception:
+        return False
+
+
+def _terminate_process(proc: subprocess.Popen) -> None:
+    if proc.poll() is not None:
+        return
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+            capture_output=True,
+            text=True,
+            errors="replace",
+        )
+        return
+    try:
+        proc.terminate()
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
 
 
 def _read_files(paths) -> list[dict]:
@@ -87,6 +127,31 @@ def _read_files(paths) -> list[dict]:
             }
         )
     return files
+
+
+def collector_command(args, bank_code: str, task_path: Path) -> tuple[list[str], Path]:
+    """优先按 collectors.yaml 解析采集程序，和平台侧同一份清单；
+    清单里没有这家银行时退回旧的 common.collect 骨架。"""
+    fallback = (
+        [args.collector_python, "-m", "common.collect.run_task", "--task", str(task_path)],
+        Path(args.collector_root),
+    )
+    path = Path(getattr(args, "collectors_file", "") or "")
+    if not bank_code or not path.is_file():
+        return fallback
+    try:
+        import yaml
+
+        registry = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return fallback
+    entry = registry.get(bank_code) or {}
+    command = entry.get("command")
+    if not command:
+        return fallback
+    argv = [str(part) for part in command] if isinstance(command, list) else [str(command)]
+    cwd = Path(str(entry.get("cwd") or args.collector_root))
+    return [*argv, "--task", str(task_path)], cwd
 
 
 def execute_task(task: dict, args) -> dict:
@@ -121,6 +186,8 @@ def execute_task(task: dict, args) -> dict:
     started = time.time()
     exit_code: int | None = None
     log_text = ""
+    cancelled = False
+    timed_out = False
     env = dict(os.environ, PYTHONIOENCODING="utf-8")
     env.update(
         {
@@ -130,35 +197,73 @@ def execute_task(task: dict, args) -> dict:
         }
     )
     try:
-        proc = subprocess.run(
-            [args.collector_python, "-m", "common.collect.run_task", "--task", str(task_path)],
-            cwd=str(args.collector_root),
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=args.timeout,
-            env=env,
-        )
-        exit_code = proc.returncode
-        log_text = (proc.stdout or "") + "\n" + (proc.stderr or "")
-    except subprocess.TimeoutExpired as exc:
-        exit_code = 124
-        log_text = f"采集子进程超时: {exc}"
+        argv, cwd = collector_command(args, task.get("bank_code", ""), task_path)
+        if cancel_requested(args, task_id):
+            cancelled = True
+            exit_code = 130
+            log_text = "用户停止任务"
+        else:
+            popen_kwargs = (
+                {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+                if os.name == "nt"
+                else {"start_new_session": True}
+            )
+            proc = subprocess.Popen(
+                argv,
+                cwd=str(cwd),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=env,
+                **popen_kwargs,
+            )
+            last_cancel_check = 0.0
+            while True:
+                try:
+                    stdout, stderr = proc.communicate(timeout=2)
+                    exit_code = proc.returncode
+                    log_text = (stdout or "") + "\n" + (stderr or "")
+                    break
+                except subprocess.TimeoutExpired:
+                    now = time.time()
+                    if now - started > args.timeout:
+                        timed_out = True
+                        exit_code = 124
+                        _terminate_process(proc)
+                        stdout, stderr = proc.communicate()
+                        log_text = "采集子进程超时\n" + (stdout or "") + "\n" + (stderr or "")
+                        break
+                    if now - last_cancel_check >= CANCEL_POLL_SECONDS:
+                        last_cancel_check = now
+                        if cancel_requested(args, task_id):
+                            cancelled = True
+                            exit_code = 130
+                            _terminate_process(proc)
+                            stdout, stderr = proc.communicate()
+                            log_text = "用户停止任务\n" + (stdout or "") + "\n" + (stderr or "")
+                            break
     except Exception:  # noqa: BLE001
         exit_code = 1
         log_text = traceback.format_exc()
 
-    if result_path.exists():
-        try:
-            result = json.loads(result_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            result = {"error_code": "UNKNOWN", "message": "结果文件无法解析"}
+    if cancelled:
+        result = {"error_code": "CANCELLED", "message": "用户停止任务"}
+        files: list[dict] = []
     else:
-        result = {"error_code": "UNKNOWN", "message": f"未生成结果文件 (exit={exit_code})"}
+        if result_path.exists():
+            try:
+                result = json.loads(result_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                result = {"error_code": "UNKNOWN", "message": "结果文件无法解析"}
+        elif timed_out:
+            result = {"error_code": "TIMEOUT", "message": "采集子进程超时"}
+        else:
+            result = {"error_code": "UNKNOWN", "message": f"未生成结果文件 (exit={exit_code})"}
 
-    files = _read_files(result.get("files"))
-    result.pop("ok", None)
+        files = _read_files(result.get("files"))
+        result.pop("ok", None)
     return {
         "agent_code": args.agent_code,
         "attempt": attempt,
@@ -236,6 +341,10 @@ def main() -> int:
     parser.add_argument(
         "--collector-root",
         default=os.getenv("PLATFORM_COLLECTOR_ROOT", str(REPO_ROOT / "collectors")),
+    )
+    parser.add_argument(
+        "--collectors-file",
+        default=os.getenv("PLATFORM_COLLECTORS_FILE", str(REPO_ROOT / "collectors.yaml")),
     )
     parser.add_argument(
         "--work-dir",

@@ -21,9 +21,6 @@ logger = setup_logger()
 class NBCBBrowser(BaseBrowser, PopupHandlerMixin, PinInputterMixin, LoginManagerMixin):
     """宁波银行浏览器管理器"""
 
-    def _get_window_size(self) -> tuple:
-        return (1800, 850)
-
     def navigate_to_login(self):
         """导航到登录页 - 宁波银行适配（处理证书弹窗 + PIN码弹窗）"""
         logger.info(f"正在访问: {self.config.login_url}")

@@ -26,6 +26,7 @@ class AccountCreate(BaseModel):
     ukey_device_id: int | None = None
     collect_enabled: bool = True
     collect_cron: str = "0 8,18 * * *"
+    collect_mode: str = Field(default="both", pattern="^(statements|receipts|both)$")
     days_back: int = 30
     username: str = ""
     password: str = ""
@@ -36,6 +37,21 @@ class CredentialUpdate(BaseModel):
     username: str = ""
     password: str = ""
     pin: str = ""
+
+
+class AccountDeviceUpdate(BaseModel):
+    ukey_device_id: int | None = None
+
+
+class AccountUpdate(BaseModel):
+    account_name: str | None = None
+    collect_cron: str | None = None
+    collect_mode: str | None = Field(default=None, pattern="^(statements|receipts|both)$")
+    days_back: int | None = Field(default=None, ge=1, le=365)
+    ukey_device_id: int | None = None
+    username: str | None = None
+    password: str | None = None
+    pin: str | None = None
 
 
 class CollectRequest(BaseModel):
