@@ -1,5 +1,5 @@
 <!doctype html>
-{% set asset_v = '20261103-3' %}
+{% set asset_v = '20261103-5' %}
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
@@ -63,6 +63,14 @@
   </a>
 
   <nav class="nav" aria-label="主导航">
+    <div class="group">司库</div>
+    <a href="/treasury" class="{{ 'active' if page == 'treasury' }}" {% if page == 'treasury' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-wallet"/></svg><span>资金驾驶舱</span>
+    </a>
+    <a href="/special-accounts" class="{{ 'active' if page == 'special_accounts' }}" {% if page == 'special_accounts' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-lock"/></svg><span>资金专户</span>
+    </a>
+
     <div class="group">工作台</div>
     <a href="/" class="{{ 'active' if page == 'dashboard' }}" {% if page == 'dashboard' %}aria-current="page"{% endif %}>
       <svg class="ico"><use href="#i-grid"/></svg><span>首页</span>

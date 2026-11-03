@@ -21,6 +21,7 @@ from app.services.executor import Worker
 from app.services.scheduler import Scheduler
 from app.tenancy import reset_current_tenant, set_current_tenant
 from app.web.routes import router as web_router
+from app.web.treasury import router as treasury_router
 
 PUBLIC_PREFIXES = ("/static", "/login", "/health", "/docs", "/openapi.json", "/api/agent")
 
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
         return RedirectResponse("/login", status_code=302)
 
     app.include_router(web_router)
+    app.include_router(treasury_router)
     app.include_router(accounts_api.router)
     app.include_router(tasks_api.router)
     app.include_router(data_api.router)

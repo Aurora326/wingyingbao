@@ -1,0 +1,73 @@
+{% if rows %}
+<div class="table-wrap">
+  <table class="ledger-table" id="special-account-table">
+    <thead>
+      <tr>
+        <th>项目 / 公司</th>
+        <th>专户类型</th>
+        <th>开户行 / 账号</th>
+        <th>监管方</th>
+        <th class="num">账面余额</th>
+        <th class="num">受限金额</th>
+        <th class="num">可用余额</th>
+        <th class="num">最低留存</th>
+        <th>释放条件</th>
+        <th>状态 / 最近采集</th>
+        {% if show_actions %}<th></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr data-type="{{ row.type }}" data-status="{{ row.status }}" data-search="{{ row.search }}">
+        <td>
+          <b>{{ row.project }}</b>
+          <div class="cell-sub">{{ row.company }}</div>
+        </td>
+        <td><span class="type-badge {{ row.type_key }}">{{ row.type }}</span></td>
+        <td>
+          <b>{{ row.bank }} {{ row.branch }}</b>
+          <div class="cell-sub mono">{{ row.account_no }}</div>
+        </td>
+        <td class="muted">{{ row.regulator }}</td>
+        <td class="num">{{ row.book_text }}</td>
+        <td class="num muted">{{ row.restricted_text }}</td>
+        <td class="num strong">{{ row.available_text }}</td>
+        <td class="num">{{ row.min_balance_text }}</td>
+        <td class="muted">
+          {{ row.release }}
+          <div class="cell-sub">最近释放 {{ row.last_release }}</div>
+        </td>
+        <td>
+          <span class="tag {{ row.status_class }}">{{ row.status_text }}</span>
+          <div class="cell-sub">{{ row.last_sync }}</div>
+        </td>
+        {% if show_actions %}
+        <td class="right nowrap">
+          <button class="small" onclick="openSpecialAccountModal(this)"
+                  data-project="{{ row.project }}"
+                  data-company="{{ row.company }}"
+                  data-type="{{ row.type }}"
+                  data-bank="{{ row.bank }} {{ row.branch }}"
+                  data-account="{{ row.account_no }}"
+                  data-regulator="{{ row.regulator }}"
+                  data-book="{{ row.book_text }}"
+                  data-restricted="{{ row.restricted_text }}"
+                  data-available="{{ row.available_text }}"
+                  data-min="{{ row.min_balance_text }}"
+                  data-release="{{ row.release }}"
+                  data-last-release="{{ row.last_release }}"
+                  data-last-sync="{{ row.last_sync }}"
+                  data-ukey="{{ row.ukey }}"
+                  data-note="{{ row.note }}"
+                  data-status-text="{{ row.status_text }}"
+                  data-status-class="{{ row.status_class }}">查看</button>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty">还没有资金专户数据</div>
+{% endif %}

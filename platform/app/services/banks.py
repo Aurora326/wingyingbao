@@ -26,8 +26,11 @@ def list_banks(registry: dict | None = None) -> list[dict]:
         from app.services import collectors
 
         registry = collectors.load_registry(settings.collectors_file)
+    # 容器部署时平台只跑 Web 和调度，采集由客户机 Agent 执行，本机没有采集清单，
+    # 判断不了哪家银行可用；清单为空就全部列出，否则下拉里一个选项都没有
+    has_registry = bool(registry)
     return [
-        {"code": code, "name": name, "implemented": code in registry}
+        {"code": code, "name": name, "implemented": code in registry or not has_registry}
         for code, name in BANK_NAMES.items()
         if settings.enable_mock_bank or code != "mock"
     ]

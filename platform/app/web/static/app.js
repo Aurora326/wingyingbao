@@ -113,6 +113,55 @@ function stopTask(taskId) {
   });
 }
 
+function filterSpecialAccounts() {
+  const search = (document.getElementById("sa-search")?.value || "").trim().toLowerCase();
+  const type = document.getElementById("sa-type")?.value || "";
+  const status = document.getElementById("sa-status-filter")?.value || "";
+  const rows = document.querySelectorAll("#special-account-table tbody tr");
+  let visible = 0;
+  rows.forEach((row) => {
+    const matchesSearch = !search || (row.dataset.search || "").toLowerCase().includes(search);
+    const matchesType = !type || row.dataset.type === type;
+    const matchesStatus = !status || row.dataset.status === status;
+    const show = matchesSearch && matchesType && matchesStatus;
+    row.hidden = !show;
+    if (show) visible += 1;
+  });
+  const counter = document.getElementById("sa-visible");
+  if (counter) counter.textContent = String(visible);
+}
+
+function openSpecialAccountModal(button) {
+  const data = button.dataset;
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value || "—";
+  };
+  set("sa-modal-title", data.type || "专户详情");
+  set("sa-subtitle", `${data.project || ""} · ${data.company || ""}`);
+  set("sa-project", data.project);
+  set("sa-company", data.company);
+  set("sa-type", data.type);
+  set("sa-bank", data.bank);
+  set("sa-account", data.account);
+  set("sa-regulator", data.regulator);
+  set("sa-book", data.book);
+  set("sa-restricted", data.restricted);
+  set("sa-available", data.available);
+  set("sa-min", data.min);
+  set("sa-release", data.release);
+  set("sa-last-release", data.lastRelease);
+  set("sa-last-sync", data.lastSync);
+  set("sa-ukey", data.ukey);
+  set("sa-note", data.note);
+  const status = document.getElementById("sa-status");
+  if (status) {
+    status.textContent = data.statusText || "—";
+    status.className = "tag " + (data.statusClass || "");
+  }
+  openModal("special-account-modal", "#special-account-modal .modal-foot .primary");
+}
+
 let deleteAccountContext = null;
 
 function openDeleteAccountModal(button) {
