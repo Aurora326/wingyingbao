@@ -1,5 +1,5 @@
 <!doctype html>
-{% set asset_v = '20261103-5' %}
+{% set asset_v = '20261104-1' %}
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
@@ -156,15 +156,55 @@
 </div>
 
 <div class="modal" id="log-modal" onclick="if(event.target === this) closeLog()">
-  <div class="box">
-    <div class="head">
+  <div class="box log-viewer" role="dialog" aria-modal="true" aria-labelledby="log-title">
+    <div class="head log-head">
       <div>
         <strong id="log-title">执行日志</strong>
-        <div class="modal-sub">供技术人员排查问题，日常使用无需查看</div>
+        <div class="modal-sub" id="log-subtitle">供技术人员排查问题，日常使用无需查看</div>
       </div>
-      <button class="small" onclick="closeLog()">关闭</button>
+      <button class="icon-btn" onclick="closeLog()" aria-label="关闭日志">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
     </div>
-    <pre class="log" id="log-box"></pre>
+    <div class="log-toolbar">
+      <div class="search-box log-search">
+        <svg class="ico"><use href="#i-search"/></svg>
+        <input id="log-search" placeholder="请输入日志内容" oninput="onLogFilterChange()" autocomplete="off">
+      </div>
+      <select id="log-level" onchange="onLogFilterChange()" aria-label="日志级别">
+        <option value="">全部级别</option>
+        <option value="INFO">信息</option>
+        <option value="SUCCESS">成功</option>
+        <option value="WARNING">警告</option>
+        <option value="ERROR">错误</option>
+        <option value="DEBUG">调试</option>
+        <option value="OTHER">其他</option>
+      </select>
+      <select id="log-attempt" onchange="onLogFilterChange()" aria-label="执行批次"></select>
+      <button class="small log-download" id="log-download" onclick="downloadLog()" disabled>
+        <svg class="ico"><use href="#i-download"/></svg><span>下载</span>
+      </button>
+    </div>
+    <div class="log-table-wrap">
+      <table class="log-table log-viewer-table">
+        <thead>
+          <tr><th>时间</th><th>日志内容</th><th>日志级别</th></tr>
+        </thead>
+        <tbody id="log-rows"></tbody>
+      </table>
+      <div class="log-empty" id="log-empty" hidden></div>
+    </div>
+    <div class="log-pager" id="log-pager" hidden>
+      <span class="log-total">共 <b id="log-total">0</b> 条</span>
+      <div class="pager-pages" id="log-pages"></div>
+      <select id="log-page-size" onchange="onLogPageSizeChange()" aria-label="每页条数">
+        <option value="10">10 条/页</option>
+        <option value="20">20 条/页</option>
+        <option value="50">50 条/页</option>
+        <option value="100">100 条/页</option>
+      </select>
+      <span class="log-jump">跳至 <input id="log-jump" type="number" min="1" inputmode="numeric" onchange="onLogJump()"> 页</span>
+    </div>
   </div>
 </div>
 

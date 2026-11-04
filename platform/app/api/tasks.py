@@ -144,6 +144,10 @@ def enqueue_manual(account_id: int, task_type: str = "statements", db: Session =
 
 
 ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+LOG_LINE = re.compile(
+    r"^(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s*\|\s*"
+    r"(?P<level>TRACE|DEBUG|INFO|SUCCESS|WARNING|ERROR|CRITICAL)\s*\|\s*(?P<rest>.*)$"
+)
 
 
 def clean_log(text: str | None) -> str:
@@ -151,6 +155,39 @@ def clean_log(text: str | None) -> str:
     clean = ANSI_ESCAPE.sub("", text or "")
     clean = clean.replace("\r\n", "\n").replace("\r", "\n").replace("\x00", "")
     return clean
+
+
+def parse_log_entries(text: str | None) -> list[dict]:
+    """把 loguru 文本日志拆成表格行；没有时间戳的行沿用上一行时间。"""
+    entries: list[dict] = []
+    current_time = ""
+    for raw in clean_log(text).splitlines():
+        line = raw.rstrip()
+        if not line.strip():
+            continue
+        match = LOG_LINE.match(line)
+        if match:
+            current_time = match.group("time")
+            rest = match.group("rest")
+            source, separator, message = rest.partition(" - ")
+            entries.append(
+                {
+                    "time": current_time,
+                    "level": match.group("level"),
+                    "source": source.strip() if separator else "",
+                    "text": (message if separator else rest).strip(),
+                }
+            )
+        else:
+            entries.append(
+                {
+                    "time": current_time,
+                    "level": "OTHER",
+                    "source": "",
+                    "text": line.strip(),
+                }
+            )
+    return entries
 
 
 @router.get("/tasks/{task_id}/log")
@@ -166,6 +203,7 @@ def task_log(task_id: int, db: Session = Depends(get_db)):
                 "exit_code": r.exit_code,
                 "duration_ms": r.duration_ms,
                 "log": clean_log(r.log_text),
+                "entries": parse_log_entries(r.log_text),
             }
             for r in runs
         ]

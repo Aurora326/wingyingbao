@@ -264,29 +264,305 @@ async function toggleAccountFromModal() {
   }
 }
 
+const LOG_LEVELS = {
+  TRACE: { label: "调试", cls: "debug" },
+  DEBUG: { label: "调试", cls: "debug" },
+  INFO: { label: "信息", cls: "info" },
+  SUCCESS: { label: "成功", cls: "success" },
+  WARNING: { label: "警告", cls: "warn" },
+  ERROR: { label: "错误", cls: "error" },
+  CRITICAL: { label: "错误", cls: "error" },
+  OTHER: { label: "其他", cls: "other" },
+};
+
+const logState = {
+  taskId: null,
+  runs: [],
+  entries: [],
+  filtered: [],
+  page: 1,
+  pageSize: 10,
+  attempt: "",
+};
+
+function logLevelMeta(level) {
+  return LOG_LEVELS[level] || LOG_LEVELS.OTHER;
+}
+
+function logDuration(ms) {
+  const value = Number(ms || 0);
+  return value >= 1000 ? `${(value / 1000).toFixed(1)} 秒` : `${value} 毫秒`;
+}
+
+function showLogMessage(message) {
+  const table = document.querySelector(".log-viewer-table");
+  const empty = document.getElementById("log-empty");
+  const pager = document.getElementById("log-pager");
+  const total = document.getElementById("log-total");
+  const download = document.getElementById("log-download");
+  const tbody = document.getElementById("log-rows");
+  if (tbody) tbody.replaceChildren();
+  if (table) table.hidden = true;
+  if (empty) {
+    empty.hidden = false;
+    empty.textContent = message;
+  }
+  if (pager) pager.hidden = true;
+  if (total) total.textContent = "0";
+  if (download) download.disabled = true;
+}
+
+function populateLogAttempts() {
+  const select = document.getElementById("log-attempt");
+  if (!select) return;
+  select.replaceChildren();
+  if (logState.runs.length > 1) {
+    const option = document.createElement("option");
+    option.value = "all";
+    option.textContent = `全部执行记录（${logState.runs.length} 次）`;
+    select.appendChild(option);
+  }
+  logState.runs.forEach((run, index) => {
+    const option = document.createElement("option");
+    option.value = String(run.attempt);
+    const status = run.exit_code === 0 ? "成功" : `exit=${run.exit_code ?? "—"}`;
+    option.textContent = `${index === 0 ? "最近一次 · " : ""}第 ${run.attempt} 次执行 · ${status} · ${logDuration(run.duration_ms)}`;
+    select.appendChild(option);
+  });
+  select.hidden = logState.runs.length <= 1;
+}
+
 async function showLog(taskId) {
-  const box = document.getElementById("log-box");
   const title = document.getElementById("log-title");
+  const subtitle = document.getElementById("log-subtitle");
+  const search = document.getElementById("log-search");
+  const level = document.getElementById("log-level");
+  const pageSize = document.getElementById("log-page-size");
+  const jump = document.getElementById("log-jump");
   if (title) title.textContent = `任务 #${taskId} 执行日志`;
-  if (box) box.textContent = "加载中...";
-  document.getElementById("log-modal")?.classList.add("open");
+  if (subtitle) subtitle.textContent = "供技术人员排查问题，日常使用无需查看";
+  if (search) search.value = "";
+  if (level) level.value = "";
+  if (pageSize) pageSize.value = "10";
+  if (jump) jump.value = "";
+  logState.taskId = taskId;
+  logState.runs = [];
+  logState.entries = [];
+  logState.filtered = [];
+  logState.page = 1;
+  logState.pageSize = 10;
+  logState.attempt = "";
+  showLogMessage("加载中…");
+  openModal("log-modal", "#log-search");
   try {
     const data = await getJSON(`/api/tasks/${taskId}/log`);
-    const runs = data.items || [];
-    if (!runs.length) {
-      box.textContent = "暂无执行记录";
+    logState.runs = data.items || [];
+    if (!logState.runs.length) {
+      showLogMessage("暂无执行记录");
       return;
     }
-    box.textContent = runs
-      .map((run) => `--- 第 ${run.attempt} 次 (exit=${run.exit_code}, ${run.duration_ms}ms) ---\n${run.log || ""}`)
-      .join("\n\n");
+    populateLogAttempts();
+    logState.entries = [];
+    logState.runs.forEach((run) => {
+      (run.entries || []).forEach((entry) => {
+        logState.entries.push({ ...entry, attempt: run.attempt });
+      });
+    });
+    const latest = logState.runs[0];
+    logState.attempt = String(latest.attempt);
+    const attemptSelect = document.getElementById("log-attempt");
+    if (attemptSelect) attemptSelect.value = logState.attempt;
+    if (subtitle) {
+      const prefix = logState.runs.length > 1 ? `共 ${logState.runs.length} 次执行，默认显示最近一次 · ` : "";
+      subtitle.textContent = `${prefix}第 ${latest.attempt} 次 · 退出码 ${latest.exit_code ?? "—"} · 耗时 ${logDuration(latest.duration_ms)}`;
+    }
+    applyLogFilters();
   } catch (error) {
-    box.textContent = "读取失败: " + error.message;
+    showLogMessage("读取失败: " + error.message);
   }
 }
 
+function applyLogFilters() {
+  const search = (document.getElementById("log-search")?.value || "").trim().toLowerCase();
+  const level = document.getElementById("log-level")?.value || "";
+  const attempt = document.getElementById("log-attempt")?.value || logState.attempt;
+  const levels = level === "ERROR" ? ["ERROR", "CRITICAL"] : level === "DEBUG" ? ["DEBUG", "TRACE"] : [level];
+  logState.filtered = logState.entries.filter((entry) => {
+    if (attempt && attempt !== "all" && String(entry.attempt) !== attempt) return false;
+    if (level && !levels.includes(entry.level)) return false;
+    if (search) {
+      const haystack = `${entry.time || ""} ${entry.level || ""} ${entry.source || ""} ${entry.text || ""}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    return true;
+  });
+  logState.page = 1;
+  renderLogPage();
+}
+
+function logPageNumbers(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1);
+  let start = Math.max(2, current - 1);
+  let end = Math.min(total - 1, current + 1);
+  if (current <= 3) {
+    start = 2;
+    end = 4;
+  }
+  if (current >= total - 2) {
+    start = total - 3;
+    end = total - 1;
+  }
+  const pages = [1];
+  if (start > 2) pages.push("…");
+  for (let page = start; page <= end; page += 1) pages.push(page);
+  if (end < total - 1) pages.push("…");
+  pages.push(total);
+  return pages;
+}
+
+function logPageButton(label, page, options = {}) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `log-page${options.active ? " active" : ""}`;
+  button.textContent = label;
+  button.disabled = Boolean(options.disabled);
+  if (options.active) button.setAttribute("aria-current", "page");
+  button.addEventListener("click", () => gotoLogPage(page));
+  return button;
+}
+
+function renderLogPage() {
+  const tbody = document.getElementById("log-rows");
+  const table = document.querySelector(".log-viewer-table");
+  const empty = document.getElementById("log-empty");
+  const pager = document.getElementById("log-pager");
+  const total = document.getElementById("log-total");
+  const pages = document.getElementById("log-pages");
+  const download = document.getElementById("log-download");
+  const jump = document.getElementById("log-jump");
+  if (!tbody || !table || !empty || !pager || !total || !pages) return;
+
+  const totalPages = Math.max(1, Math.ceil(logState.filtered.length / logState.pageSize));
+  logState.page = Math.min(Math.max(1, logState.page), totalPages);
+  const start = (logState.page - 1) * logState.pageSize;
+  const rows = logState.filtered.slice(start, start + logState.pageSize);
+
+  total.textContent = String(logState.filtered.length);
+  if (download) download.disabled = logState.filtered.length === 0;
+  if (jump) {
+    jump.max = String(totalPages);
+    jump.placeholder = `1-${totalPages}`;
+  }
+
+  if (!rows.length) {
+    showLogMessage(logState.entries.length ? "没有匹配的日志，换个关键词或级别试试" : "暂无执行记录");
+    return;
+  }
+
+  table.hidden = false;
+  empty.hidden = true;
+  tbody.replaceChildren();
+  const showAttempt = (document.getElementById("log-attempt")?.value || "") === "all";
+  const fragment = document.createDocumentFragment();
+  rows.forEach((entry) => {
+    const meta = logLevelMeta(entry.level);
+    const tr = document.createElement("tr");
+
+    const when = document.createElement("td");
+    when.className = "when";
+    when.textContent = entry.time || "—";
+    if (showAttempt) {
+      const attempt = document.createElement("div");
+      attempt.className = "log-attempt";
+      attempt.textContent = `第 ${entry.attempt} 次`;
+      when.appendChild(attempt);
+    }
+
+    const content = document.createElement("td");
+    content.className = "log-content";
+    const message = document.createElement("div");
+    message.className = "log-msg";
+    message.textContent = entry.text || "—";
+    content.appendChild(message);
+    if (entry.source) {
+      const source = document.createElement("div");
+      source.className = "log-source";
+      source.textContent = entry.source;
+      content.appendChild(source);
+    }
+
+    const levelCell = document.createElement("td");
+    const tag = document.createElement("span");
+    tag.className = `log-level lv-${meta.cls}`;
+    tag.textContent = meta.label;
+    levelCell.appendChild(tag);
+
+    tr.append(when, content, levelCell);
+    fragment.appendChild(tr);
+  });
+  tbody.appendChild(fragment);
+
+  pager.hidden = false;
+  pages.replaceChildren();
+  pages.appendChild(logPageButton("‹", logState.page - 1, { disabled: logState.page <= 1 }));
+  logPageNumbers(logState.page, totalPages).forEach((page) => {
+    if (page === "…") {
+      const gap = document.createElement("span");
+      gap.className = "log-page-gap";
+      gap.textContent = "…";
+      pages.appendChild(gap);
+    } else {
+      pages.appendChild(logPageButton(String(page), page, { active: page === logState.page }));
+    }
+  });
+  pages.appendChild(logPageButton("›", logState.page + 1, { disabled: logState.page >= totalPages }));
+}
+
+function gotoLogPage(page) {
+  const totalPages = Math.max(1, Math.ceil(logState.filtered.length / logState.pageSize));
+  logState.page = Math.min(Math.max(1, page), totalPages);
+  renderLogPage();
+}
+
+function onLogFilterChange() {
+  applyLogFilters();
+}
+
+function onLogPageSizeChange() {
+  const value = parseInt(document.getElementById("log-page-size")?.value || "10", 10);
+  logState.pageSize = [10, 20, 50, 100].includes(value) ? value : 10;
+  logState.page = 1;
+  renderLogPage();
+}
+
+function onLogJump() {
+  const input = document.getElementById("log-jump");
+  if (!input) return;
+  const page = parseInt(input.value || "1", 10);
+  input.value = "";
+  if (Number.isFinite(page)) gotoLogPage(page);
+}
+
+function downloadLog() {
+  if (!logState.filtered.length) return;
+  const lines = logState.filtered.map((entry) => {
+    const source = entry.source ? `${entry.source} - ` : "";
+    return `${entry.time || ""} | ${entry.level || ""} | ${source}${entry.text || ""}`;
+  });
+  const header = `任务 #${logState.taskId} 执行日志\n\n`;
+  const blob = new Blob([header, lines.join("\n")], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `task_${logState.taskId}_log.txt`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 function closeLog() {
-  document.getElementById("log-modal")?.classList.remove("open");
+  closeModal("log-modal");
 }
 
 async function confirmReconItem(itemId, selectId) {
