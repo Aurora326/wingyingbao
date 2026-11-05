@@ -58,6 +58,10 @@ class AgentConfig:
     report_interval: int = 300
     task_interval: int = 15
     task_timeout: int = 900
+    mingyuan_collector: str = ""
+    payment_interval: int = 30
+    payment_timeout: int = 1800
+    auto_start_payment: bool = True
     auto_start_workers: bool = True
     autostart: bool = False
     extras: dict = field(default_factory=dict)
@@ -115,3 +119,18 @@ class AgentConfig:
 
     def agent_script(self, name: str) -> Path:
         return app_root() / "agent" / name
+
+    def mingyuan_script(self) -> Path:
+        """明源云采集脚本：优先配置路径，其次安装目录，最后开发仓库。"""
+        if self.mingyuan_collector:
+            path = Path(self.mingyuan_collector)
+            if path.exists():
+                return path
+        root = app_root()
+        for candidate in (
+            root / "mingyuan" / "采集明源云审批过程.py",
+            root.parent / "地产项目资料" / "采集明源云审批过程.py",
+        ):
+            if candidate.exists():
+                return candidate
+        return root / "mingyuan" / "采集明源云审批过程.py"

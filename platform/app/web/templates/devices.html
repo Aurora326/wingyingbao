@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% from "_ui.html" import bank_name, device_status %}
-{% block title %}采集设备 · 银行财务平台{% endblock %}
+{% block title %}UKey 设备 · 银行财务平台{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <div class="eyebrow">配置</div>
-    <h1>采集设备</h1>
-    <div class="sub">查看执行采集任务的电脑、UKey 所在机柜与端口编号。设备状态优先从本地 mb.exe 读取，本地不可用时回退到服务商接口。</div>
+    <div class="eyebrow">设置</div>
+    <h1>UKey 设备</h1>
+    <div class="sub">查看 UKey 所在机柜、端口和执行采集的电脑。设备状态优先从本地 mb.exe 读取，本地不可用时回退到服务商接口。</div>
   </div>
   <div class="head-meta">
     <button class="small" onclick="syncRobotDevices()">
@@ -89,7 +89,7 @@
   </div>
 
   {% if devices %}
-  <div class="table-scroll">
+  <div class="table-scroll" data-page-size="10" data-page-items=":scope > table > tbody > tr" data-page-unit="台设备">
   <table id="device-table">
     <thead><tr><th>设备</th><th>银行</th><th>类型</th><th>机柜 / 端口</th><th>终端编号</th><th>设备编号</th><th>执行机</th><th>状态</th><th>心跳</th></tr></thead>
     <tbody>

@@ -1,3 +1,7 @@
 {% include "_tasks_chip.html" %}
-<div id="task-stats" data-active="{{ stats.running }}">{% include "_tasks_stats.html" %}</div>
-<div id="task-table">{% include "_tasks_table.html" %}</div>
+<div id="task-stats" data-active="{{ stats.running }}">
+  {% if task_source == 'payment' %}{% include "_payment_tasks_stats.html" %}{% else %}{% include "_tasks_stats.html" %}{% endif %}
+</div>
+<div id="task-table">
+  {% if task_source == 'payment' %}{% include "_payment_tasks_table.html" %}{% else %}{% include "_tasks_table.html" %}{% endif %}
+</div>

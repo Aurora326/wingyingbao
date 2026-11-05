@@ -1,17 +1,22 @@
 {% extends "base.html" %}
 {% from "_ui.html" import bank_name, bank_mark, schedule_text, device_status, collect_mode_text %}
-{% block title %}账户与 UKey · 银行财务平台{% endblock %}
+{% block title %}账户管理 · 银行财务平台{% endblock %}
 {% block content %}
+{% set can_edit = can_edit_accounts(request.state.user.role if request.state.user is defined and request.state.user else 'user') %}
+{% set can_collect = can_collect_accounts(request.state.user.role if request.state.user is defined and request.state.user else 'user') %}
+{% set can_manage_devices = can_menu(request.state.user.role if request.state.user is defined and request.state.user else 'user', 'devices') %}
 <div class="page-head">
   <div>
-    <div class="eyebrow">配置</div>
-    <h1>账户与 UKey</h1>
-    <div class="sub">管理需要自动采集的银行账户和对应的 UKey。添加后，系统会按计划自动登录银行取数。</div>
+    <div class="eyebrow">资金</div>
+    <h1>账户管理</h1>
+    <div class="sub">查看银行账户余额和采集状态；添加账户、绑定 UKey 和调整采集计划也在这里完成。</div>
   </div>
   <div class="head-meta">
+    {% if can_edit %}
     <button class="primary" onclick="openAccountModal()">
       <svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg>添加银行账户
     </button>
+    {% endif %}
   </div>
 </div>
 
@@ -32,121 +37,109 @@
 </div>
 
 <div data-pane="accounts">
-  <div class="stat-row">
-    <div class="stat">
-      <span class="k">银行账户</span>
-      <span class="v">{{ accounts | length }}</span>
-      <span class="f">已接入自动采集</span>
-    </div>
-    <div class="stat">
-      <span class="k">自动采集开启</span>
-      <span class="v">{{ ns.enabled }}</span>
-      <span class="f">按计划自动登录取数</span>
-    </div>
-    <div class="stat">
-      <span class="k">已绑定 UKey</span>
-      <span class="v">{{ ns.bound }}</span>
-      <span class="f">采集时需要对应的电子钥匙</span>
-    </div>
-    <div class="stat">
-      <span class="k">尚未采集</span>
-      <span class="v {{ 'amber' if ns.pending else '' }}">{{ ns.pending }}</span>
-      <span class="f">账户还没有历史数据</span>
-    </div>
-  </div>
-
   <div class="section-head">
     <div>
       <h2>银行账户</h2>
       <p>余额来自最近一次采集，点击「查看流水」可查看该账户的交易明细</p>
     </div>
+    <div class="section-meta">
+      <span>自动采集 <b class="green">{{ ns.enabled }}</b> 个</span>
+      <span>已绑 UKey <b>{{ ns.bound }}</b> 个</span>
+      <span>尚未采集 <b class="{{ 'amber' if ns.pending else '' }}">{{ ns.pending }}</b> 个</span>
+    </div>
   </div>
 
   {% if accounts %}
-  <div class="acct-grid">
-    {% for a in accounts %}
-    <article class="acct-card">
-      <div class="acct-head">
-        {{ bank_mark(a.bank_code) }}
-        <div class="acct-name">
-          <b>{{ bank_name(a.bank_code) }}</b>
-          <span>{{ a.account_name or '未填写户名' }}</span>
-        </div>
-        {% if a.collect_enabled %}<span class="tag green">自动采集</span>{% else %}<span class="tag">已暂停</span>{% endif %}
-      </div>
-
-      <div class="acct-balance">
-        <span class="label">账户余额</span>
-        <div class="value {{ 'pending' if not a.balance else '' }}">{{ '待采集' if not a.balance else a.balance | money }}</div>
-        <span class="hint">
-          {% if a.balance_date %}更新于 {{ a.balance_date | dt }}{% else %}还没有采集到余额{% endif %}
-        </span>
-      </div>
-
-      <div class="acct-meta">
-        <div>
-          <span>账号</span>
-          <b class="mono">{{ a.account_no }}
+  <div class="table-wrap" data-page-size="12" data-page-items=":scope > table > tbody > tr" data-page-unit="个账户">
+    <table class="account-table">
+      <thead>
+        <tr>
+          <th>银行账户</th>
+          <th>账号</th>
+          <th>采集状态</th>
+          <th class="num">账户余额</th>
+          <th>采集计划</th>
+          <th>对应 UKey</th>
+          <th>数据采至</th>
+          <th class="right">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in accounts %}
+        <tr>
+          <td>
+            <div class="acct-cell">
+              {{ bank_mark(a.bank_code) }}
+              <div>
+                <b>{{ bank_name(a.bank_code) }}</b>
+                <span class="cell-sub">{{ a.account_name or '未填写户名' }}</span>
+              </div>
+            </div>
+          </td>
+          <td class="nowrap">
+            <span class="mono">{{ a.account_no }}</span>
             <button class="inline-copy" onclick="copyText('{{ a.account_no }}', '账号已复制')" title="复制账号" aria-label="复制账号">
               <svg class="ico"><use href="#i-copy"/></svg>
             </button>
-          </b>
-        </div>
-        <div><span>采集计划</span><b>{{ schedule_text(a.collect_cron) }}</b></div>
-        <div><span>采集内容</span><b>{{ collect_mode_text(a.collect_mode) }}</b></div>
-        <div><span>对应 UKey</span><b>{{ a.device or '未绑定' }}</b></div>
-        <div>
-          <span>数据采至</span>
-          <b>{% if a.watermark_date %}{{ a.watermark_date | dt }}{% else %}尚未采集{% endif %}</b>
-        </div>
-      </div>
-
-      <div class="acct-actions">
-        <details class="collect-menu">
-          <summary class="btn small primary">立即采集
-            <svg class="ico" style="width:12px;height:12px"><use href="#i-chevron"/></svg>
-          </summary>
-          <div class="collect-menu-list">
-            <button type="button" onclick="collectNow({{ a.id }}, 'statements')">流水采集</button>
-            <button type="button" onclick="collectNow({{ a.id }}, 'receipts')">回单采集</button>
-            <button type="button" onclick="collectNow({{ a.id }}, 'both')">流水 + 回单</button>
-          </div>
-        </details>
-        <a class="btn small" href="/statements?account_id={{ a.id }}">查看流水</a>
-        <button class="icon-btn bordered" onclick="openEditAccountModal(this)"
-                data-id="{{ a.id }}"
-                data-bank="{{ a.bank_code }}"
-                data-account-no="{{ a.account_no }}"
-                data-account-name="{{ a.account_name }}"
-                data-cron="{{ a.collect_cron }}"
-                data-collect-mode="{{ a.collect_mode }}"
-                data-days-back="{{ a.days_back }}"
-                data-device-id="{{ a.device_id or '' }}"
-                title="编辑账户" aria-label="编辑账户">
-          <svg class="ico"><use href="#i-sliders"/></svg>
-        </button>
-        <button class="icon-btn bordered account-delete-btn" onclick="openDeleteAccountModal(this)"
-                data-id="{{ a.id }}"
-                data-label="{{ bank_name(a.bank_code) }} · {{ a.account_no }}"
-                data-account-no="{{ a.account_no }}"
-                data-statements="{{ a.statements }}"
-                data-receipts="{{ a.receipts }}"
-                data-artifacts="{{ a.artifacts }}"
-                data-tasks="{{ a.tasks }}"
-                data-active="{{ a.active_tasks }}"
-                data-enabled="{{ 1 if a.collect_enabled else 0 }}"
-                title="删除账户" aria-label="删除账户">
-          <svg class="ico"><use href="#i-trash"/></svg>
-        </button>
-      </div>
-    </article>
-    {% endfor %}
+          </td>
+          <td>
+            {% if a.collect_enabled %}<span class="tag green">自动采集</span>{% else %}<span class="tag">已暂停</span>{% endif %}
+          </td>
+          <td class="num">
+            <span class="acct-amount {{ 'pending' if not a.balance else '' }}">{{ '待采集' if not a.balance else a.balance | money }}</span>
+            <div class="cell-sub">{% if a.balance_date %}更新于 {{ a.balance_date | dt }}{% else %}还没有采集到余额{% endif %}</div>
+          </td>
+          <td>
+            <span>{{ schedule_text(a.collect_cron) }}</span>
+            <div class="cell-sub">{{ collect_mode_text(a.collect_mode) }}</div>
+          </td>
+          <td class="muted">{{ a.device or '未绑定' }}</td>
+          <td class="nowrap">{% if a.watermark_date %}{{ a.watermark_date | dt }}{% else %}<span class="faint">尚未采集</span>{% endif %}</td>
+          <td class="right nowrap">
+            <div class="row-actions">
+              {% if can_collect %}
+              <button class="small primary" onclick="collectNow({{ a.id }}, 'both')">立即采集</button>
+              {% endif %}
+              <a class="btn small" href="/statements?account_id={{ a.id }}">查看流水</a>
+              {% if can_edit %}
+              <button class="icon-btn bordered" onclick="openEditAccountModal(this)"
+                      data-id="{{ a.id }}"
+                      data-bank="{{ a.bank_code }}"
+                      data-account-no="{{ a.account_no }}"
+                      data-account-name="{{ a.account_name }}"
+                      data-cron="{{ a.collect_cron }}"
+                      data-collect-mode="{{ a.collect_mode }}"
+                      data-days-back="{{ a.days_back }}"
+                      data-device-id="{{ a.device_id or '' }}"
+                      title="编辑账户" aria-label="编辑账户">
+                <svg class="ico"><use href="#i-sliders"/></svg>
+              </button>
+              <button class="icon-btn bordered account-delete-btn" onclick="openDeleteAccountModal(this)"
+                      data-id="{{ a.id }}"
+                      data-label="{{ bank_name(a.bank_code) }} · {{ a.account_no }}"
+                      data-account-no="{{ a.account_no }}"
+                      data-statements="{{ a.statements }}"
+                      data-receipts="{{ a.receipts }}"
+                      data-artifacts="{{ a.artifacts }}"
+                      data-tasks="{{ a.tasks }}"
+                      data-active="{{ a.active_tasks }}"
+                      data-enabled="{{ 1 if a.collect_enabled else 0 }}"
+                      title="删除账户" aria-label="删除账户">
+                <svg class="ico"><use href="#i-trash"/></svg>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
   {% else %}
   <div class="panel">
     <div class="empty">
       还没有添加银行账户。添加后，系统会自动把每天的流水和回单取回来
-      <div class="empty-actions"><button class="btn primary" onclick="openAccountModal()">添加第一个账户</button></div>
+      {% if can_edit %}<div class="empty-actions"><button class="btn primary" onclick="openAccountModal()">添加第一个账户</button></div>{% endif %}
     </div>
   </div>
   {% endif %}
@@ -155,10 +148,10 @@
 <div data-pane="devices" class="hidden">
   <div class="section-head">
     <div>
-      <h2>UKey 与采集设备</h2>
+      <h2>UKey 与设备</h2>
       <p>设备在线才能采集；证书到期前建议及时更换</p>
     </div>
-    <a class="more" href="/devices">管理采集设备 <svg class="ico"><use href="#i-arrow"/></svg></a>
+    {% if can_manage_devices %}<a class="more" href="/devices">管理 UKey 设备 <svg class="ico"><use href="#i-arrow"/></svg></a>{% endif %}
   </div>
 
   <div class="panel">
@@ -171,7 +164,7 @@
     </div>
 
     {% if devices %}
-    <div class="table-scroll">
+    <div class="table-scroll" data-page-size="10" data-page-items=":scope > table > tbody > tr" data-page-unit="台设备">
     <table id="device-table">
       <thead><tr><th>设备名称</th><th>银行</th><th>位置</th><th>绑定账户</th><th>状态</th><th>证书到期</th></tr></thead>
       <tbody>
@@ -200,7 +193,7 @@
     {% else %}
       <div class="empty">
         还没有同步到 UKey 设备
-        <div class="empty-actions"><a class="btn small" href="/devices">去采集设备页同步</a></div>
+        {% if can_manage_devices %}<div class="empty-actions"><a class="btn small" href="/devices">去 UKey 设备页同步</a></div>{% endif %}
       </div>
     {% endif %}
   </div>

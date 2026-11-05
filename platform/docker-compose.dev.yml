@@ -1,0 +1,11 @@
+# 开发环境覆盖文件：把 app 代码挂进容器，改 Python / 模板后自动重载。
+# 用法：
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# 生产环境不要使用本文件，保持镜像不可变：
+#   docker compose up -d --build
+services:
+  platform:
+    volumes:
+      - ./app:/app/app
+      - platform-data:/data
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8800", "--reload"]

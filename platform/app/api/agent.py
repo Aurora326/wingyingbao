@@ -18,6 +18,11 @@ from app.services.agent_tasks import (
     get_agent_task_credentials,
     get_agent_task_status,
 )
+from app.services.payment_collect import (
+    PaymentCollectError,
+    apply_payment_task_result,
+    claim_payment_task,
+)
 from app.tenancy import tenant_context
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
@@ -144,3 +149,30 @@ def report_task_result(
             return apply_agent_task_result(db, task_id, payload)
         except AgentTaskError as exc:
             raise HTTPException(status_code=exc.status_code, detail=str(exc))
+
+
+@router.post("/payment-tasks/claim")
+def claim_payment_task_api(
+    payload: AgentTaskClaim,
+    token: str = Depends(require_agent_token),
+    db: Session = Depends(get_db),
+):
+    agent_code = _authorize_agent(payload.agent_code, token)
+    with _agent_tenant(db, agent_code):
+        return {"ok": True, "task": claim_payment_task(db, agent_code)}
+
+
+@router.post("/payment-tasks/{task_id}/result")
+def report_payment_task_result(
+    task_id: int,
+    payload: AgentTaskResult,
+    token: str = Depends(require_agent_token),
+    db: Session = Depends(get_db),
+):
+    agent_code = _authorize_agent(payload.agent_code, token)
+    payload.agent_code = agent_code
+    with _agent_tenant(db, agent_code):
+        try:
+            return apply_payment_task_result(db, task_id, payload, agent_code)
+        except PaymentCollectError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc

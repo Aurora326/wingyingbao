@@ -82,6 +82,25 @@ COLUMN_ADDITIONS = {
     },
     "bank_account": {
         "collect_mode": "VARCHAR(16) NOT NULL DEFAULT 'both'",
+        "account_type": "VARCHAR(16) NOT NULL DEFAULT ''",
+        "payment_enabled": "BOOLEAN NOT NULL DEFAULT 1",
+        "auto_voucher_enabled": "BOOLEAN NOT NULL DEFAULT 1",
+        "has_ukey": "BOOLEAN NOT NULL DEFAULT 1",
+        "usage_tag": "VARCHAR(64) NOT NULL DEFAULT ''",
+        "account_status": "VARCHAR(16) NOT NULL DEFAULT '正常'",
+        "parent_account_id": "INTEGER",
+        "has_sub_accounts": "BOOLEAN NOT NULL DEFAULT 0",
+    },
+    "payment_doc": {
+        "payer_sub_account_id": "INTEGER",
+    },
+    "payment_collect_task": {
+        "agent_code": "VARCHAR(32) NOT NULL DEFAULT ''",
+    },
+    "payment_source_account": {
+        "collect_enabled": "BOOLEAN NOT NULL DEFAULT 0",
+        "collect_cron": "VARCHAR(64) NOT NULL DEFAULT '0 8 * * *'",
+        "collect_limit": "INTEGER NOT NULL DEFAULT 5",
     },
     "collection_task": {
         "agent_code": "VARCHAR(32) NOT NULL DEFAULT 'local'",

@@ -11,10 +11,20 @@ from app.models import (
     AuditLog,
     BalanceSnapshot,
     BankAccount,
+    BookSet,
+    CashierScope,
     CollectionTask,
     Credential,
     Enterprise,
     InternalDoc,
+    PayeeAccount,
+    PaymentCollectTask,
+    PaymentSourceAccount,
+    PayeeAccountChange,
+    PaymentDoc,
+    PaymentDocChange,
+    PaymentReview,
+    SubAccount,
     Receipt,
     ReconBatch,
     ReconItem,
@@ -42,6 +52,16 @@ TENANT_TABLES = (
     ReconItem,
     AuditLog,
     Enterprise,
+    BookSet,
+    CashierScope,
+    PayeeAccount,
+    PaymentCollectTask,
+    PaymentSourceAccount,
+    PayeeAccountChange,
+    PaymentDoc,
+    PaymentDocChange,
+    PaymentReview,
+    SubAccount,
 )
 
 
@@ -102,4 +122,9 @@ def seed(db: Session) -> None:
             .where(model.tenant_id.is_(None))
             .values(tenant_id=tenant.id)
         )
+    # 付款方名称即账套名称，历史账套名统一回填
+    for book in db.execute(select(BookSet)).scalars().all():
+        enterprise = db.get(Enterprise, book.enterprise_id)
+        if enterprise is not None and book.name != enterprise.name:
+            book.name = enterprise.name
     db.commit()

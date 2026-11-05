@@ -49,6 +49,13 @@ class Settings:
     agent_code: str = os.getenv("PLATFORM_AGENT_CODE", "local")
     agent_name: str = os.getenv("PLATFORM_AGENT_NAME", "")
     collector_python: str = os.getenv("PLATFORM_COLLECTOR_PYTHON", "")
+    mingyuan_username: str = os.getenv("MINGYUAN_USERNAME", "")
+    mingyuan_password: str = os.getenv("MINGYUAN_PASSWORD", "")
+    mingyuan_collector: Path = Path(
+        os.getenv("PLATFORM_MINGYUAN_COLLECTOR")
+        or str(BASE_DIR.parent / "地产项目资料" / "采集明源云审批过程.py")
+    )
+    payment_collect_mode: str = os.getenv("PLATFORM_PAYMENT_COLLECT_MODE", "agent")
     collectors_file: Path = Path(
         os.getenv("PLATFORM_COLLECTORS_FILE") or str(BASE_DIR / "collectors.yaml")
     )

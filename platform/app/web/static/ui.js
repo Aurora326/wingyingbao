@@ -115,6 +115,7 @@ function filterDeviceRows(query) {
   });
   const count = document.getElementById("device-count-visible");
   if (count) count.textContent = visible;
+  if (typeof refreshPagers === "function") refreshPagers(true);
 }
 
 function sanitizeFilterForm(form) {

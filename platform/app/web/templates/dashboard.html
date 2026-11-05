@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% from "_ui.html" import bank_name, bank_mark, task_type_text, trigger_text, error_text %}
-{% block title %}首页 · 银行财务平台{% endblock %}
+{% from "_ui.html" import bank_name, task_type_text, trigger_text, error_text %}
+{% block title %}资金总览 · 银行财务平台{% endblock %}
 {% block content %}
 {% set todo_count = (0 if s.accounts else 1) + s.failed_tasks + (1 if s.unmatched_count else 0) + (s.anomalies | length) %}
 <div class="page-head">
   <div>
-    <div class="eyebrow">工作台</div>
-    <h1><span data-greeting>你好</span></h1>
-    <div class="sub"><span data-today></span> · 这是你所有银行账户的最新情况</div>
+    <div class="eyebrow">资金</div>
+    <h1>资金总览</h1>
+    <div class="sub"><span data-greeting>你好</span> · <span data-today></span> · 所有银行账户的最新情况</div>
   </div>
   <div class="head-meta">
     <button class="small" onclick="location.reload()">
@@ -99,57 +99,7 @@
   </section>
 </div>
 
-<div class="section-head">
-  <div>
-    <h2>我的银行账户</h2>
-    <p>余额来自最近一次采集，点击卡片可查看该账户的流水</p>
-  </div>
-  <a class="more" href="/accounts">管理账户 <svg class="ico"><use href="#i-arrow"/></svg></a>
-</div>
-
-{% if s.accounts %}
-<div class="acct-grid">
-  {% for a in s.accounts %}
-  <article class="acct-card">
-    <div class="acct-head">
-      {{ bank_mark(a.bank_code) }}
-      <div class="acct-name">
-        <b>{{ bank_name(a.bank_code) }}</b>
-        <span>{{ a.account_name or '未填写户名' }}</span>
-      </div>
-      {% if a.balance_date %}<span class="tag green">已采集</span>{% else %}<span class="tag">待采集</span>{% endif %}
-    </div>
-    <div class="acct-balance">
-      <span class="label">账户余额</span>
-      <div class="value {{ 'pending' if not a.balance else '' }}">{{ '待采集' if not a.balance else a.balance | money }}</div>
-      <span class="hint">
-        {% if a.balance_date %}更新于 {{ a.balance_date | dt }}{% else %}还没有采集到余额{% endif %}
-      </span>
-    </div>
-    <div class="acct-meta">
-      <div><span>账号</span><b class="mono">{{ a.account_no }}</b></div>
-      <div>
-        <span>数据采至</span>
-        <b>{% if a.watermark_date %}{{ a.watermark_date | dt }}{% else %}尚未采集{% endif %}</b>
-      </div>
-    </div>
-    <div class="acct-actions">
-      <button class="small primary" onclick="collectNow({{ a.id }})">立即采集</button>
-      <a class="btn small" href="/statements?account_id={{ a.id }}">查看流水</a>
-    </div>
-  </article>
-  {% endfor %}
-</div>
-{% else %}
-<div class="panel">
-  <div class="empty">
-    还没有添加银行账户，添加后系统会自动帮你采集流水和回单
-    <div class="empty-actions"><a class="btn primary" href="/accounts">添加银行账户</a></div>
-  </div>
-</div>
-{% endif %}
-
-<div class="grid-2">
+<div class="grid-2" style="margin-top:16px">
   <div class="panel">
     <div class="panel-head">
       <div>

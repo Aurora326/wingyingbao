@@ -158,6 +158,49 @@ def input_with_aikeyboard(text: str) -> bool:
         return False
 
 
+def type_text_raw(text: str, interval_ms: int = None) -> bool:
+    """
+    直接调用 AiKeyboard 输入文本，**不做输入法切换、不额外延时**。
+
+    与 input_with_aikeyboard 的区别：后者每次调用都会切一次输入法并 sleep 2 秒，
+    适合"一次性打完一整串"；本函数供**逐位闭环输入**使用——那种场景要连续调用
+    很多次，调用方自己负责在开始前切好输入法，不能每字符都重切 + 等 2 秒。
+
+    Args:
+        text: 要输入的文本（逐位场景下通常只有 1 个字符）
+        interval_ms: 按键间隔毫秒；None 用 AiKeyboard 默认值(500)
+
+    Returns:
+        bool: 进程是否成功退出（不代表按键一定落入目标窗口）
+    """
+    aikeyboard_path = get_aikeyboard_path()
+    if not aikeyboard_path:
+        return False
+
+    cmd = [str(aikeyboard_path), "input", "-k", text]
+    if interval_ms:
+        cmd += ["-i", str(interval_ms)]
+
+    # 单字符很快，但冷启动可能慢，给足余量
+    timeout = max(15, int(len(text) * interval_ms / 1000) + 10) if interval_ms else 15
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=str(aikeyboard_path.parent),
+        )
+    except subprocess.TimeoutExpired:
+        logger.error(f"AiKeyboard 超时（{timeout}s）")
+        return False
+
+    if result.returncode != 0:
+        logger.error(f"AiKeyboard 失败: {result.stderr}")
+        return False
+    return True
+
+
 # 常见按键名称映射（小写/错误写法 -> AiKeyboard 正确写法）
 _KEY_NAME_MAP = {
     "return": "Enter",

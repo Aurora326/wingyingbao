@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block title %}付款配置 · 银行财务平台{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">设置</div>
+    <h1>付款配置</h1>
+    <div class="sub">维护银行账户主数据、出纳与账套分配、收款账户库。付款方名称即账套名称。</div>
+  </div>
+  <div class="head-meta">
+    <a class="btn small" href="/payments">返回付款协同</a>
+  </div>
+</div>
+
+{% if msg %}<div class="callout">{{ msg }}</div>{% endif %}
+
+<div class="summary-strip">
+  <span><b>{{ summary.total }}</b> 银行账户</span>
+  <span><b class="green">{{ summary.payable }}</b> 可付款</span>
+  <span><b>{{ summary.loan }}</b> 贷款户</span>
+  <span><b>{{ summary.supervised }}</b> 监管户</span>
+  <span><b>{{ summary.sub_accounts }}</b> 项目子账簿</span>
+</div>
+
+<div class="settings-tabs" role="tablist" aria-label="付款配置">
+  <a class="settings-tab {{ 'active' if tab == 'accounts' }}" href="/payment-settings?tab=accounts" {% if tab == 'accounts' %}aria-current="page"{% endif %}>账户主数据</a>
+  <a class="settings-tab {{ 'active' if tab == 'source' }}" href="/payment-settings?tab=source" {% if tab == 'source' %}aria-current="page"{% endif %}>采集账号</a>
+  <a class="settings-tab {{ 'active' if tab == 'cashiers' }}" href="/payment-settings?tab=cashiers" {% if tab == 'cashiers' %}aria-current="page"{% endif %}>出纳分配</a>
+  <a class="settings-tab {{ 'active' if tab == 'payees' }}" href="/payment-settings?tab=payees" {% if tab == 'payees' %}aria-current="page"{% endif %}>收款账户库</a>
+</div>
+
+{% if tab == 'source' %}
+<div class="panel set-panel">
+  <div class="panel-head">
+    <div>
+      <h2>明源云采集账号</h2>
+      <div class="panel-sub">账号保存在平台侧，领取任务时随任务下发给执行器；客户机不保存明源云密码。</div>
+    </div>
+    {% if source_configured %}<span class="set-pill ok">已配置</span>{% else %}<span class="set-pill off">未配置</span>{% endif %}
+  </div>
+  <form method="post" action="/payment-settings/source-account?tab=source" class="set-form set-form-bar">
+    <label>账号<input type="text" name="username" value="{{ source_username }}" required placeholder="明源云登录账号"></label>
+    <label>密码<input type="password" name="password" placeholder="{{ '已配置，留空不修改' if source_configured else '请输入密码' }}"></label>
+    <button class="primary small" type="submit">保存账号</button>
+  </form>
+</div>
+{% endif %}
+
+{% if tab == 'accounts' %}
+<div class="panel set-panel">
+  <div class="panel-head">
+    <div>
+      <h2>账户主数据</h2>
+      <div class="panel-sub">导入《银行账户信息表.xlsx》，自动识别基本户、一般户、贷款户、监管户和子账簿。</div>
+    </div>
+    <form method="post" action="/payment-settings/accounts/import?tab=accounts" enctype="multipart/form-data" class="set-form">
+      <input type="file" id="account-file" name="file" accept=".xlsx,.xlsm" required hidden>
+      <label class="btn small" for="account-file">选择 Excel</label>
+      <span id="account-file-name" class="set-file-name">未选择文件</span>
+      <button class="primary small" type="submit">导入账户 Excel</button>
+    </form>
+  </div>
+
+  <div class="table-wrap" data-page-size="10" data-page-items=":scope > table > tbody > tr">
+    <table class="set-table">
+      <thead>
+        <tr><th>公司 / 账套</th><th>银行</th><th>账号</th><th>账户性质</th><th>付款权限</th><th>UKey</th><th>子账簿</th><th>状态</th></tr>
+      </thead>
+      <tbody>
+        {% for a in accounts %}
+        {% set book = books.get(a.enterprise_id) %}
+        <tr>
+          <td>
+            <b>{{ enterprises.get(a.enterprise_id, a.account_name) }}</b>
+            <div class="cell-sub">账套：{{ book.name if book else '—' }}</div>
+          </td>
+          <td>{{ bank_names.get(a.bank_code, a.bank_code) }}</td>
+          <td class="mono">{{ a.account_no }}</td>
+          <td><span class="set-pill">{{ a.account_type or '未分类' }}</span>{% if a.usage_tag %}<div class="cell-sub">{{ a.usage_tag }}</div>{% endif %}</td>
+          <td>{% if a.payment_enabled %}<span class="set-pill ok">可付款</span>{% else %}<span class="set-pill off">不可付款</span>{% endif %}</td>
+          <td>{{ '有' if a.has_ukey else '无盾' }}</td>
+          <td>{% if a.has_sub_accounts %}{{ sub_count.get(a.id, 0) }} 个{% else %}—{% endif %}</td>
+          <td>{{ a.account_status }}</td>
+        </tr>
+        {% endfor %}
+        {% if not accounts %}
+        <tr><td colspan="8" class="set-empty">还没有账户主数据，请先导入《银行账户信息表.xlsx》。</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if sub_accounts %}
+  <details class="set-details">
+    <summary>查看项目子账簿（{{ sub_accounts | length }} 条）</summary>
+    <div class="table-wrap" data-page-size="10" data-page-items=":scope > table > tbody > tr">
+      <table class="set-table">
+        <thead><tr><th>父账户</th><th>子账簿号</th><th>账簿名称</th><th>对应项目</th><th>币种</th><th>状态</th></tr></thead>
+        <tbody>
+          {% for s in sub_accounts %}
+          {% set parent = account_map.get(s.parent_account_id) %}
+          <tr>
+            <td class="mono">{{ parent.account_no if parent else '—' }}</td>
+            <td class="mono">{{ s.sub_no }}</td>
+            <td>{{ s.ledger_name }}</td>
+            <td>{{ s.project_name }}</td>
+            <td>{{ s.currency }}</td>
+            <td>{{ s.status }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if tab == 'cashiers' %}
+<div class="panel set-panel">
+  <div class="panel-head">
+    <div>
+      <h2>出纳与账套分配</h2>
+      <div class="panel-sub">一个用户可分配多个账套；分配后只能看到对应账套的付款单据。</div>
+    </div>
+  </div>
+  <form method="post" action="/payment-settings/cashiers?tab=cashiers" class="set-form set-form-bar">
+    <label>用户
+      <select name="user_id" required>
+        <option value="">选择用户</option>
+        {% for u in users %}<option value="{{ u.id }}">{{ u.username }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>账套
+      <select name="book_set_id" required>
+        <option value="">选择账套</option>
+        {% for b in book_sets %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>角色
+      <select name="role">
+        <option value="cashier">出纳</option>
+        <option value="reviewer">复核</option>
+      </select>
+    </label>
+    <button class="primary small" type="submit">新增分配</button>
+  </form>
+  <div class="table-wrap" data-page-size="10" data-page-items=":scope > table > tbody > tr">
+    <table class="set-table">
+      <thead><tr><th>用户</th><th>账套</th><th>角色</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for s in scopes %}
+        <tr>
+          <td>{{ user_map.get(s.user_id).username if user_map.get(s.user_id) else s.user_id }}</td>
+          <td>{{ book_map.get(s.book_set_id).name if book_map.get(s.book_set_id) else s.book_set_id }}</td>
+          <td>{{ '出纳' if s.role == 'cashier' else '复核' }}</td>
+          <td>{{ s.status }}</td>
+          <td>
+            <form method="post" action="/payment-settings/cashiers/{{ s.id }}/delete?tab=cashiers">
+              <button class="small" type="submit">删除</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not scopes %}
+        <tr><td colspan="5" class="set-empty">还没有出纳分配。</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if tab == 'payees' %}
+<div class="panel set-panel">
+  <div class="panel-head">
+    <div>
+      <h2>收款账户库</h2>
+      <div class="panel-sub">收款账户由出纳直接维护，变更保存后立即生效。</div>
+    </div>
+  </div>
+  <form method="post" action="/payment-settings/payees?tab=payees" class="set-form set-form-bar">
+    <label>收款单位<input type="text" name="payee_name" required placeholder="公司名称"></label>
+    <label>账号<input type="text" name="account_no" required placeholder="银行账号"></label>
+    <label>开户行<input type="text" name="bank_name" placeholder="开户行全称"></label>
+    <button class="primary small" type="submit">新增收款账户</button>
+  </form>
+
+  <div class="table-wrap" data-page-size="10" data-page-items=":scope > table > tbody > tr">
+    <table class="set-table">
+      <thead><tr><th>收款单位</th><th>账号</th><th>开户行</th><th>来源</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for p in payees %}
+        <tr>
+          <td><b>{{ p.payee_name }}</b></td>
+          <td class="mono">{{ p.account_no }}</td>
+          <td>{{ p.bank_name }}</td>
+          <td>{{ p.source }}</td>
+          <td>{% if p.status == 'active' %}<span class="set-pill ok">正常</span>{% else %}<span class="set-pill off">停用</span>{% endif %}</td>
+          <td>
+            <details class="set-drawer">
+              <summary class="btn small">变更</summary>
+              <form method="post" action="/payment-settings/payees/{{ p.id }}/change?tab=payees" class="set-change-form">
+                <input type="text" name="payee_name" value="{{ p.payee_name }}" placeholder="收款单位">
+                <input type="text" name="account_no" value="{{ p.account_no }}" placeholder="账号">
+                <input type="text" name="bank_name" value="{{ p.bank_name }}" placeholder="开户行">
+                <input type="text" name="reason" placeholder="变更原因（可选）">
+                <button class="primary small" type="submit">保存变更</button>
+              </form>
+              <form method="post" action="/payment-settings/payees/{{ p.id }}/change?tab=payees" class="set-change-form">
+                <input type="hidden" name="status" value="disabled">
+                <input type="text" name="reason" placeholder="停用原因（可选）">
+                <button class="small" type="submit">停用</button>
+              </form>
+            </details>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not payees %}
+        <tr><td colspan="6" class="set-empty">还没有收款账户。</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  (function () {
+    const input = document.getElementById('account-file');
+    const name = document.getElementById('account-file-name');
+    if (input && name) {
+      input.addEventListener('change', function () {
+        name.textContent = input.files && input.files[0] ? input.files[0].name : '未选择文件';
+      });
+    }
+  })();
+</script>
+
+<style>
+  .head-meta { display:flex; align-items:center; gap:8px; }
+  .callout { margin:0 0 16px; padding:10px 12px; border-left:3px solid var(--brass); border-radius:0 8px 8px 0; background:var(--surface-2); font-size:12.5px; }
+  .settings-tabs { display:flex; flex-wrap:wrap; gap:2px; margin:0 0 18px; border-bottom:1px solid var(--line); }
+  .settings-tab {
+    display:inline-flex; align-items:center; height:38px; padding:0 14px;
+    border-bottom:2px solid transparent; color:var(--muted); font-size:12.5px;
+  }
+  .settings-tab:hover { color:var(--text); }
+  .settings-tab.active { border-bottom-color:var(--primary); color:var(--text); font-weight:600; }
+  .set-panel {
+    padding:0; overflow:visible; margin:0 0 20px;
+    border:0; border-radius:0; background:transparent; box-shadow:none;
+  }
+  .set-panel .panel-head { margin:0; padding:6px 0 12px; align-items:flex-end; }
+  .set-panel h2 .hint { font-weight:400; font-size:11px; color:var(--faint); }
+  .set-form { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .set-form input[type=file] { height:auto; font-size:11.5px; }
+  .set-file-name { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11.5px; color:var(--faint); }
+  .set-form-bar { padding:12px 18px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:var(--surface-2); }
+  .set-form-bar label { display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--muted); }
+  .set-form-bar select, .set-form-bar input[type=text] { height:32px; min-width:140px; }
+  .set-table { min-width:900px; }
+  .set-table th, .set-table td { padding:10px 14px; vertical-align:top; }
+  .set-table td { border-bottom:1px solid var(--line); }
+  .set-table tbody tr:last-child td { border-bottom:0; }
+  .set-table tbody tr:hover td { background:#FCFBF8; }
+  .mono { font-family:var(--mono); font-size:11px; }
+  .set-pill { display:inline-flex; align-items:center; height:22px; padding:0 8px; border-radius:999px; background:#EDE9E1; color:#5b5245; font-size:10.5px; font-weight:600; white-space:nowrap; }
+  .set-pill.ok { background:#E4F1EA; color:var(--green); }
+  .set-pill.off { background:#F8E7E4; color:var(--red); }
+  .set-empty { padding:32px 16px !important; text-align:center; color:var(--muted); }
+  .set-details { padding:0 18px 12px; }
+  .set-details summary { cursor:pointer; font-size:12px; color:var(--muted); padding:6px 0; }
+  .set-drawer summary { list-style:none; }
+  .set-drawer summary::-webkit-details-marker { display:none; }
+  .set-change-form { display:grid; gap:6px; margin-top:8px; min-width:260px; }
+  .set-change-form input { height:30px; }
+  .set-actions { display:flex; gap:6px; }
+</style>
+{% endblock %}

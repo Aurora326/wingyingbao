@@ -5,9 +5,12 @@ import threading
 
 from sqlalchemy import select
 
+from app.config import settings
 from app.db import SessionLocal
-from app.models import BankAccount, CollectionTask
+from app.models import BankAccount, CollectionTask, PaymentSourceAccount
 from app.services.agents import resolve_agent_code
+from app.services.payment_collect import enqueue_payment_collect, run_payment_collect
+from app.tenancy import tenant_context
 
 
 def _field_matches(field: str, value: int) -> bool:
@@ -111,6 +114,7 @@ class Scheduler(threading.Thread):
         self.interval = interval
         self._stop = threading.Event()
         self._last_slot: dict[int, str] = {}
+        self._last_payment_slot: dict[int, str] = {}
 
     def stop(self) -> None:
         self._stop.set()
@@ -129,6 +133,34 @@ class Scheduler(threading.Thread):
                 start, end = task_range(account, now.date())
                 for task_type in task_types_for(account.collect_mode):
                     enqueue_task(db, account, task_type, start, end, trigger="schedule", created_by="scheduler")
+
+            sources = [
+                (source.id, source.tenant_id, source.collect_cron, source.collect_limit or 5)
+                for source in db.execute(
+                    select(PaymentSourceAccount).where(PaymentSourceAccount.collect_enabled.is_(True))
+                ).scalars().all()
+            ]
+            for source_id, tenant_id, collect_cron, collect_limit in sources:
+                if not cron_matches(collect_cron, now):
+                    continue
+                if self._last_payment_slot.get(source_id) == slot:
+                    continue
+                self._last_payment_slot[source_id] = slot
+                try:
+                    with tenant_context(tenant_id):
+                        task = enqueue_payment_collect(
+                            db,
+                            limit=collect_limit,
+                            created_by="scheduler",
+                        )
+                        if settings.payment_collect_mode == "local":
+                            threading.Thread(
+                                target=run_payment_collect,
+                                args=(task.id,),
+                                daemon=True,
+                            ).start()
+                except Exception:
+                    continue
 
     def run(self) -> None:
         while not self._stop.is_set():

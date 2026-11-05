@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <div class="eyebrow">账务</div>
+    <div class="eyebrow">对账</div>
     <h1>智能对账</h1>
     <div class="sub">把银行流水和公司内部单据自动配对，帮你快速找出对不上的记录。</div>
   </div>
@@ -78,7 +78,7 @@
 
 <div class="panel">
   {% if batches %}
-  <div class="table-wrap">
+  <div class="table-wrap" data-page-size="10" data-page-items=":scope > table > tbody > tr">
   <table>
     <thead>
       <tr><th>批次</th><th>期间</th><th>结果</th><th>匹配情况</th><th class="num">差额</th><th></th></tr>
@@ -151,7 +151,7 @@
     <a class="more" href="/recon">返回全部批次 <svg class="ico"><use href="#i-arrow"/></svg></a>
   </div>
   {% if items %}
-  <div class="table-wrap">
+  <div class="table-wrap" data-page-size="10" data-page-items=":scope > table > tbody > tr">
   <table>
     <thead><tr><th>状态</th><th>银行流水</th><th>内部单据</th><th>匹配方式</th><th class="num">差额</th><th></th></tr></thead>
     <tbody>

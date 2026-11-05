@@ -1,29 +1,46 @@
 {% extends "base.html" %}
-{% block title %}自动采集 · 银行财务平台{% endblock %}
+{% block title %}采集任务 · 银行财务平台{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <div class="eyebrow">工作台</div>
-    <h1>自动采集</h1>
-    <div class="sub">系统会按计划自动登录每家银行，把流水和回单取回来。这里能看到每次采集的结果。</div>
+    <div class="eyebrow">设置</div>
+    <h1>采集任务</h1>
+    <div class="sub">{% if task_source == 'payment' %}明源云付款单据的采集记录，支持定时调度和客户机 Agent 执行。{% else %}系统会按计划自动登录每家银行，把流水和回单取回来。这里能看到每次采集的结果。{% endif %}</div>
   </div>
   <div class="head-meta">
     {% include "_tasks_chip.html" %}
   </div>
 </div>
 
-<div id="task-stats" data-active="{{ stats.running }}">{% include "_tasks_stats.html" %}</div>
+<div class="tabs source-tabs">
+  <a class="{{ 'active' if task_source != 'payment' }}" href="/tasks">银行采集</a>
+  <a class="{{ 'active' if task_source == 'payment' }}" href="/tasks?source=payment">明源云付款</a>
+</div>
+
+<div id="task-stats" data-active="{{ stats.running }}">
+  {% if task_source == 'payment' %}{% include "_payment_tasks_stats.html" %}{% else %}{% include "_tasks_stats.html" %}{% endif %}
+</div>
 
 <div class="tabs">
+  {% if task_source == 'payment' %}
+  <a class="{{ 'active' if not status }}" href="/tasks?source=payment">全部</a>
+  <a class="{{ 'active' if status == 'queued' }}" href="/tasks?source=payment&status=queued">等待中</a>
+  <a class="{{ 'active' if status == 'running' }}" href="/tasks?source=payment&status=running">进行中</a>
+  <a class="{{ 'active' if status == 'succeeded' }}" href="/tasks?source=payment&status=succeeded">已完成</a>
+  <a class="{{ 'active' if status == 'failed' }}" href="/tasks?source=payment&status=failed">需处理</a>
+  {% else %}
   <a class="{{ 'active' if not status }}" href="/tasks">全部</a>
   <a class="{{ 'active' if status == 'queued' }}" href="/tasks?status=queued">等待中</a>
   <a class="{{ 'active' if status == 'leased' }}" href="/tasks?status=leased">进行中</a>
   <a class="{{ 'active' if status == 'succeeded' }}" href="/tasks?status=succeeded">已完成</a>
   <a class="{{ 'active' if status == 'cancelled' }}" href="/tasks?status=cancelled">已停止</a>
   <a class="{{ 'active' if status == 'failed' }}" href="/tasks?status=failed">需处理</a>
+  {% endif %}
 </div>
 
-<div id="task-table">{% include "_tasks_table.html" %}</div>
+<div id="task-table">
+  {% if task_source == 'payment' %}{% include "_payment_tasks_table.html" %}{% else %}{% include "_tasks_table.html" %}{% endif %}
+</div>
 
 <div class="modal" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
   <div class="box form-box confirm-box">

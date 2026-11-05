@@ -1,5 +1,5 @@
 <!doctype html>
-{% set asset_v = '20261104-1' %}
+{% set asset_v = asset_version() %}
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
@@ -62,44 +62,66 @@
     </span>
   </a>
 
+  {% set nav_role = request.state.user.role if request.state.user is defined and request.state.user else 'user' %}
   <nav class="nav" aria-label="主导航">
-    <div class="group">司库</div>
-    <a href="/treasury" class="{{ 'active' if page == 'treasury' }}" {% if page == 'treasury' %}aria-current="page"{% endif %}>
-      <svg class="ico"><use href="#i-wallet"/></svg><span>资金驾驶舱</span>
-    </a>
-    <a href="/special-accounts" class="{{ 'active' if page == 'special_accounts' }}" {% if page == 'special_accounts' %}aria-current="page"{% endif %}>
-      <svg class="ico"><use href="#i-lock"/></svg><span>资金专户</span>
-    </a>
-
-    <div class="group">工作台</div>
+    {% if can_menu(nav_role, 'dashboard') or can_menu(nav_role, 'accounts') %}
+    <div class="group">资金</div>
+    {% if can_menu(nav_role, 'dashboard') %}
     <a href="/" class="{{ 'active' if page == 'dashboard' }}" {% if page == 'dashboard' %}aria-current="page"{% endif %}>
-      <svg class="ico"><use href="#i-grid"/></svg><span>首页</span>
+      <svg class="ico"><use href="#i-grid"/></svg><span>资金总览</span>
     </a>
-    <a href="/tasks" class="{{ 'active' if page == 'tasks' }}" {% if page == 'tasks' %}aria-current="page"{% endif %}>
-      <svg class="ico"><use href="#i-clock"/></svg><span>自动采集</span>
+    {% endif %}
+    {% if can_menu(nav_role, 'accounts') %}
+    <a href="/accounts" class="{{ 'active' if page == 'accounts' }}" {% if page == 'accounts' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-card"/></svg><span>账户管理</span>
     </a>
+    {% endif %}
+    {% endif %}
 
-    <div class="group">账务</div>
+    {% if can_menu(nav_role, 'statements') or can_menu(nav_role, 'receipts') or can_menu(nav_role, 'payments') %}
+    <div class="group">收付款</div>
+    {% if can_menu(nav_role, 'statements') %}
     <a href="/statements" class="{{ 'active' if page == 'statements' }}" {% if page == 'statements' %}aria-current="page"{% endif %}>
       <svg class="ico"><use href="#i-file"/></svg><span>银行流水</span>
     </a>
+    {% endif %}
+    {% if can_menu(nav_role, 'receipts') %}
     <a href="/receipts" class="{{ 'active' if page == 'receipts' }}" {% if page == 'receipts' %}aria-current="page"{% endif %}>
       <svg class="ico"><use href="#i-receipt"/></svg><span>电子回单</span>
     </a>
+    {% endif %}
+    {% if can_menu(nav_role, 'payments') %}
+    <a href="/payments" class="{{ 'active' if page == 'payments' }}" {% if page == 'payments' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-out"/></svg><span>付款协同</span>
+    </a>
+    {% endif %}
+    {% endif %}
+
+    {% if can_menu(nav_role, 'recon') %}
+    <div class="group">对账</div>
     <a href="/recon" class="{{ 'active' if page == 'recon' }}" {% if page == 'recon' %}aria-current="page"{% endif %}>
       <svg class="ico"><use href="#i-compare"/></svg><span>智能对账</span>
     </a>
+    {% endif %}
 
-    <div class="group">配置</div>
-    <a href="/accounts" class="{{ 'active' if page == 'accounts' }}" {% if page == 'accounts' %}aria-current="page"{% endif %}>
-      <svg class="ico"><use href="#i-card"/></svg><span>账户与 UKey</span>
-    </a>
+    {% if can_menu(nav_role, 'devices') or can_menu(nav_role, 'payment_settings') or can_menu(nav_role, 'tasks') or can_menu(nav_role, 'settings') %}
+    <div class="group">设置</div>
+    {% if can_menu(nav_role, 'devices') %}
     <a href="/devices" class="{{ 'active' if page == 'devices' }}" {% if page == 'devices' %}aria-current="page"{% endif %}>
-      <svg class="ico"><use href="#i-monitor"/></svg><span>采集设备</span>
+      <svg class="ico"><use href="#i-device"/></svg><span>UKey 设备</span>
     </a>
+    {% endif %}
+    {% if can_menu(nav_role, 'tasks') %}
+    <a href="/tasks" class="{{ 'active' if page == 'tasks' }}" {% if page == 'tasks' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-clock"/></svg><span>采集任务</span>
+    </a>
+    {% endif %}
+    {% if can_menu(nav_role, 'settings') %}
     <a href="/settings" class="{{ 'active' if page == 'settings' }}" {% if page == 'settings' %}aria-current="page"{% endif %}>
-      <svg class="ico"><use href="#i-sliders"/></svg><span>系统设置</span>
+      <svg class="ico"><use href="#i-sliders"/></svg><span>平台管理</span>
     </a>
+    {% endif %}
+    {% endif %}
   </nav>
 
   <div class="side-foot">
@@ -108,7 +130,7 @@
     </a>
     <div class="user">
       <span class="avatar">财</span>
-      <span class="meta"><b>财务管理员</b><span>已安全登录</span></span>
+      <span class="meta"><b>{{ role_label(nav_role) }}</b><span>已安全登录</span></span>
       <a class="logout" href="/logout" title="退出登录" aria-label="退出登录">
         <svg class="ico"><use href="#i-logout"/></svg>
       </a>
@@ -138,7 +160,7 @@
     <div class="guide">
       <div class="guide-step">
         <span class="step-no">1</span>
-        <div><b>添加银行账户</b><p>在「账户与 UKey」里添加账号，填好网银登录信息，并绑定对应的 UKey。</p></div>
+        <div><b>添加银行账户</b><p>在「账户管理」里添加账号，填好网银登录信息，并绑定对应的 UKey。</p></div>
       </div>
       <div class="guide-step">
         <span class="step-no">2</span>

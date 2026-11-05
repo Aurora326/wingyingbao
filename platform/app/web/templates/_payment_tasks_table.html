@@ -1,0 +1,82 @@
+{% from "_ui.html" import task_status %}
+<div class="panel">
+  {% if payment_tasks %}
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>时间 / 触发</th><th>采集范围</th><th>结果</th><th>执行时间</th><th>日志</th></tr>
+    </thead>
+    <tbody>
+      {% for t in payment_tasks %}
+      <tr>
+        <td class="nowrap">
+          <b>{% if t.created_at %}{{ t.created_at[:16] | replace('T', ' ') }}{% else %}—{% endif %}</b>
+          <div class="cell-sub">#{{ t.id }} · {% if t.created_by == 'scheduler' %}定时调度{% else %}{{ t.created_by or '手动' }}{% endif %}</div>
+        </td>
+        <td class="muted">
+          每次 {{ t.limit_count }} 条
+          {% if t.since_date %}<div class="cell-sub">自 {{ t.since_date }}</div>{% endif %}
+        </td>
+        <td>
+          {{ task_status(t.status) }}
+          {% if t.error_msg %}<div class="cell-sub">{{ t.error_msg }}</div>{% endif %}
+        </td>
+        <td class="muted nowrap">
+          {% if t.started_at %}{{ t.started_at[:16] | replace('T', ' ') }}{% else %}—{% endif %}
+          <div class="cell-sub">{% if t.finished_at %}{{ t.finished_at[:16] | replace('T', ' ') }}{% endif %}</div>
+        </td>
+        <td>
+          {% if t.log_text %}
+          <details class="log-detail">
+            <summary>查看日志</summary>
+            <pre class="task-log">{{ t.log_text }}</pre>
+          </details>
+          {% else %}
+          <span class="faint">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    还没有明源云付款采集任务
+    <div class="empty-actions"><a class="btn small" href="/payments">去付款协同采集</a></div>
+  </div>
+  {% endif %}
+  {% set qs = 'source=payment&' ~ ('status=' ~ (status|urlencode) ~ '&' if status else '') %}
+  {% set start = 1 if page_no <= 3 else page_no - 2 %}
+  {% set end = pages if page_no >= pages - 2 else page_no + 2 %}
+  {% if pages > 1 %}
+  <div class="pagination">
+    {% if page_no > 1 %}
+    <a class="page-btn" href="/tasks?{{ qs }}page={{ page_no - 1 }}">上一页</a>
+    {% else %}
+    <span class="page-btn disabled">上一页</span>
+    {% endif %}
+    {% if start > 1 %}
+    <a class="page-btn" href="/tasks?{{ qs }}page=1">1</a>
+    {% if start > 2 %}<span class="page-gap">…</span>{% endif %}
+    {% endif %}
+    {% for p in range(start, end + 1) %}
+      {% if p == page_no %}
+      <span class="page-btn active">{{ p }}</span>
+      {% else %}
+      <a class="page-btn" href="/tasks?{{ qs }}page={{ p }}">{{ p }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if end < pages %}
+      {% if end < pages - 1 %}<span class="page-gap">…</span>{% endif %}
+      <a class="page-btn" href="/tasks?{{ qs }}page={{ pages }}">{{ pages }}</a>
+    {% endif %}
+    {% if page_no < pages %}
+    <a class="page-btn" href="/tasks?{{ qs }}page={{ page_no + 1 }}">下一页</a>
+    {% else %}
+    <span class="page-btn disabled">下一页</span>
+    {% endif %}
+    <span class="page-info">第 {{ page_no }} / {{ pages }} 页 · 共 {{ total }} 条</span>
+  </div>
+  {% endif %}
+</div>

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
 from app.api import accounts as accounts_api
 from app.api import dashboard as dashboard_api
@@ -15,12 +16,30 @@ from app.api import recon as recon_api
 from app.api import tasks as tasks_api
 from app.config import settings
 from app.db import SessionLocal
-from app.models import AppUser, AuditLog, BankAccount, CollectionTask, Tenant
+from app.models import AppUser, AuditLog, BankAccount, CollectionTask, PaymentCollectTask, Tenant
 from app.services import collectors, security
+from app.services import permissions
 from app.services.banks import list_banks
+from app.services.payment_collect import task_dict
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
+_STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+def _asset_version() -> str:
+    files = [_STATIC_DIR / name for name in ("app.css", "app.js", "ui.js")]
+    try:
+        return str(int(max(path.stat().st_mtime for path in files)))
+    except OSError:
+        return "1"
+
+
+templates.env.globals["asset_version"] = _asset_version
+templates.env.globals["can_menu"] = permissions.can_menu
+templates.env.globals["can_edit_accounts"] = permissions.can_edit_accounts
+templates.env.globals["can_collect_accounts"] = permissions.can_collect_accounts
+templates.env.globals["role_label"] = permissions.role_label
 
 
 def _fmt_money(value) -> str:
@@ -53,12 +72,17 @@ _AUDIT_ACTIONS = {
     "account_update": "更新银行账户",
     "account_device_update": "调整账户 UKey",
     "credential_update": "更新登录信息",
+    "user_create": "新建用户",
+    "user_role": "调整用户角色",
+    "user_toggle": "启用或停用用户",
+    "user_password": "重置用户密码",
 }
 _AUDIT_TARGETS = {
     "collection_task": "采集任务",
     "ukey_device": "UKey 设备",
     "bank_account": "银行账户",
     "agent": "采集 Agent",
+    "app_user": "平台用户",
 }
 _AUDIT_STATUS = {"succeeded": "已完成", "failed": "未完成", "running": "进行中", "cancelled": "已停止"}
 _AUDIT_ERRORS = {
@@ -100,6 +124,14 @@ def _audit_summary(log: AuditLog) -> str:
         return f"采集任务{status}，新增 {inserted} 条数据" if inserted else f"采集任务{status}"
     if log.action == "task_stop":
         return "用户停止采集任务" if detail.get("action") == "cancelled" else "正在停止采集任务"
+    if log.action == "user_create":
+        return f"新建用户 {detail.get('username', '')}"
+    if log.action == "user_role":
+        return f"将用户 {detail.get('username', '')} 的角色改为 {detail.get('role', '')}"
+    if log.action == "user_toggle":
+        return f"{'启用' if detail.get('is_active') else '停用'}用户 {detail.get('username', '')}"
+    if log.action == "user_password":
+        return f"重置用户 {detail.get('username', '')} 的密码"
     if log.action == "usb_robot_sync":
         source = "本地 MB" if detail.get("source") == "local" else "服务商接口"
         suffix = f"，{detail.get('created', 0)} 新增 / {detail.get('updated', 0)} 更新" if detail.get("created") is not None else ""
@@ -258,19 +290,74 @@ def _task_list_context(db, status: str, page: int = 1, size: int = TASK_PAGE_SIZ
     }
 
 
+def _payment_task_list_context(db, status: str, page: int = 1, size: int = 20) -> dict:
+    page = max(page, 1)
+    query = select(PaymentCollectTask)
+    if status:
+        query = query.where(PaymentCollectTask.status == status)
+    total = db.execute(query.with_only_columns(func.count(PaymentCollectTask.id)).order_by(None)).scalar_one()
+    pages = max(1, (total + size - 1) // size)
+    if page > pages:
+        page = pages
+    rows = db.execute(
+        query.order_by(PaymentCollectTask.id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    ).scalars().all()
+    counts = dict(
+        db.execute(
+            select(PaymentCollectTask.status, func.count(PaymentCollectTask.id)).group_by(PaymentCollectTask.status)
+        ).all()
+    )
+    stats = {
+        "total": sum(counts.values()),
+        "running": sum(counts.get(key, 0) for key in ("queued", "running")),
+        "succeeded": counts.get("succeeded", 0),
+        "failed": counts.get("failed", 0),
+        "cancelled": 0,
+    }
+    return {
+        "payment_tasks": [task_dict(item) for item in rows],
+        "status": status,
+        "stats": stats,
+        "page_no": page,
+        "pages": pages,
+        "total": total,
+        "size": size,
+        "task_source": "payment",
+        "source": "payment",
+    }
+
+
 @router.get("/tasks")
-def tasks_page(request: Request, status: str = "", page: int = 1):
+def tasks_page(request: Request, status: str = "", page: int = 1, source: str = ""):
+    denied = _deny_menu(request, "tasks")
+    if denied:
+        return denied
     with SessionLocal() as db:
-        context = _task_list_context(db, status, page)
-        context["accounts"] = accounts_api.list_accounts(db)["items"]
+        if source == "payment":
+            context = _payment_task_list_context(db, status, page)
+        else:
+            context = _task_list_context(db, status, page)
+            context["accounts"] = accounts_api.list_accounts(db)["items"]
+            context["task_source"] = "bank"
+            context["source"] = ""
     context.update(page="tasks")
     return templates.TemplateResponse(request=request, name="tasks.html", context=context)
 
 
 @router.get("/tasks/partial")
-def tasks_partial(request: Request, status: str = "", page: int = 1):
+def tasks_partial(request: Request, status: str = "", page: int = 1, source: str = ""):
+    denied = _deny_menu(request, "tasks")
+    if denied:
+        return denied
     with SessionLocal() as db:
-        context = _task_list_context(db, status, page)
+        if source == "payment":
+            context = _payment_task_list_context(db, status, page)
+        else:
+            context = _task_list_context(db, status, page)
+            context["task_source"] = "bank"
+            context["source"] = ""
     return templates.TemplateResponse(request=request, name="tasks_partial.html", context=context)
 
 
@@ -342,6 +429,9 @@ def receipts_page(
 
 @router.get("/recon")
 def recon_page(request: Request, batch_id: int | None = None):
+    denied = _deny_menu(request, "recon")
+    if denied:
+        return denied
     with SessionLocal() as db:
         batches = recon_api.list_batches(db)["items"]
         items = recon_api.batch_items(batch_id, db=db)["items"] if batch_id else []
@@ -378,6 +468,9 @@ def accounts_page(request: Request):
 
 @router.get("/devices")
 def devices_page(request: Request):
+    denied = _deny_menu(request, "devices")
+    if denied:
+        return denied
     with SessionLocal() as db:
         devices = accounts_api.list_devices(db)["items"]
         agents = accounts_api.list_agents(db)["items"]
@@ -404,25 +497,212 @@ def devices_page(request: Request):
     )
 
 
-@router.get("/settings")
-def settings_page(request: Request):
+SETTINGS_TABS = {"users", "system"}
+ROLE_LABELS = permissions.ROLE_LABELS
+
+
+def _settings_redirect(tab: str, msg: str = "") -> RedirectResponse:
+    target = f"/settings/{tab}"
+    if msg:
+        from urllib.parse import quote
+
+        target += f"?msg={quote(msg)}"
+    return RedirectResponse(target, status_code=303)
+
+
+def _settings_admin(request: Request) -> AppUser:
+    user = getattr(request.state, "user", None)
+    if user is None or user.role != "admin":
+        raise HTTPException(status_code=403, detail="只有管理员可以访问平台管理")
+    return user
+
+
+def _scoped_user(db, admin: AppUser, user_id: int) -> AppUser | None:
+    query = select(AppUser).where(AppUser.id == user_id)
+    if admin.tenant_id is not None:
+        query = query.where(AppUser.tenant_id == admin.tenant_id)
+    return db.execute(query).scalars().first()
+
+
+def _render_settings(request: Request, tab: str):
+    user = getattr(request.state, "user", None)
+    if user is None or user.role != "admin":
+        return RedirectResponse("/", status_code=303)
+    if tab not in SETTINGS_TABS:
+        tab = "users"
     with SessionLocal() as db:
+        user_query = select(AppUser).order_by(AppUser.id)
+        if user.tenant_id is not None:
+            user_query = user_query.where(AppUser.tenant_id == user.tenant_id)
+        users = db.execute(user_query).scalars().all()
         logs = db.execute(select(AuditLog).order_by(AuditLog.id.desc()).limit(50)).scalars().all()
         devices = accounts_api.list_devices(db)["items"]
         tenants = db.execute(select(Tenant).order_by(Tenant.id)).scalars().all()
-    user = getattr(request.state, "user", None)
     return templates.TemplateResponse(
         request=request,
         name="settings.html",
         context={
             "page": "settings",
+            "tab": tab,
+            "users": users,
+            "tenant_map": {t.id: t.name for t in tenants},
+            "role_labels": ROLE_LABELS,
+            "user_count": len(users),
+            "admin_count": sum(1 for item in users if item.role == "admin"),
+            "active_count": sum(1 for item in users if item.is_active),
             "logs": logs,
             "devices": devices,
             "collectors": collectors.status_rows(),
             "collectors_file": str(settings.collectors_file),
             "settings": settings,
             "tenants": tenants,
-            "is_super_admin": bool(user is not None and user.tenant_id is None),
+            "is_super_admin": user.tenant_id is None,
             "current_tenant_id": getattr(request.state, "tenant_id", None),
+            "current_user_id": user.id,
+            "msg": request.query_params.get("msg", ""),
         },
     )
+
+
+def _deny_menu(request: Request, key: str):
+    user = getattr(request.state, "user", None)
+    if user is not None and permissions.can_menu(user.role, key):
+        return None
+    return RedirectResponse("/", status_code=303)
+
+
+@router.get("/settings")
+def settings_page(request: Request, tab: str = "users"):
+    return _render_settings(request, tab)
+
+
+@router.get("/settings/users")
+def settings_users_page(request: Request):
+    return _render_settings(request, "users")
+
+
+@router.get("/settings/system")
+def settings_system_page(request: Request):
+    return _render_settings(request, "system")
+
+
+@router.post("/settings/users")
+def settings_create_user(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    role: str = Form("user"),
+    tenant_id: str = Form(""),
+):
+    admin = _settings_admin(request)
+    username = username.strip()
+    if len(username) < 2:
+        return _settings_redirect("users", "用户名至少 2 个字符")
+    if len(password) < 8:
+        return _settings_redirect("users", "密码至少 8 个字符")
+    role = role if role in ROLE_LABELS else "user"
+    target_tenant = admin.tenant_id
+    if target_tenant is None and tenant_id.isdigit():
+        target_tenant = int(tenant_id)
+    with SessionLocal() as db:
+        if db.execute(select(AppUser).where(AppUser.username == username)).scalars().first():
+            return _settings_redirect("users", f"用户名 {username} 已存在")
+        user = AppUser(
+            username=username,
+            password_hash=security.hash_password(password),
+            role=role,
+            tenant_id=target_tenant,
+            is_active=True,
+        )
+        db.add(user)
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()
+            return _settings_redirect("users", f"用户名 {username} 已存在")
+        db.add(
+            AuditLog(
+                actor=admin.username,
+                action="user_create",
+                target_type="app_user",
+                target_id=str(user.id),
+                detail={"username": username, "role": ROLE_LABELS[role], "tenant_id": target_tenant},
+            )
+        )
+        db.commit()
+    return _settings_redirect("users", f"用户 {username} 已创建")
+
+
+@router.post("/settings/users/{user_id}/role")
+def settings_update_user_role(request: Request, user_id: int, role: str = Form(...)):
+    admin = _settings_admin(request)
+    if role not in ROLE_LABELS:
+        return _settings_redirect("users", "无效的用户角色")
+    with SessionLocal() as db:
+        target = _scoped_user(db, admin, user_id)
+        if target is None:
+            return _settings_redirect("users", "用户不存在")
+        if target.id == admin.id and role != "admin":
+            return _settings_redirect("users", "不能修改当前登录用户的管理员角色")
+        username = target.username
+        target.role = role
+        db.add(
+            AuditLog(
+                actor=admin.username,
+                action="user_role",
+                target_type="app_user",
+                target_id=str(target.id),
+                detail={"username": username, "role": ROLE_LABELS[role]},
+            )
+        )
+        db.commit()
+    return _settings_redirect("users", f"用户 {username} 的角色已更新")
+
+
+@router.post("/settings/users/{user_id}/toggle")
+def settings_toggle_user(request: Request, user_id: int):
+    admin = _settings_admin(request)
+    with SessionLocal() as db:
+        target = _scoped_user(db, admin, user_id)
+        if target is None:
+            return _settings_redirect("users", "用户不存在")
+        if target.id == admin.id:
+            return _settings_redirect("users", "不能停用当前登录用户")
+        username = target.username
+        target.is_active = not target.is_active
+        new_state = target.is_active
+        db.add(
+            AuditLog(
+                actor=admin.username,
+                action="user_toggle",
+                target_type="app_user",
+                target_id=str(target.id),
+                detail={"username": username, "is_active": new_state},
+            )
+        )
+        db.commit()
+    return _settings_redirect("users", f"用户 {username} 已{'启用' if new_state else '停用'}")
+
+
+@router.post("/settings/users/{user_id}/password")
+def settings_reset_user_password(request: Request, user_id: int, password: str = Form(...)):
+    admin = _settings_admin(request)
+    if len(password) < 8:
+        return _settings_redirect("users", "密码至少 8 个字符")
+    with SessionLocal() as db:
+        target = _scoped_user(db, admin, user_id)
+        if target is None:
+            return _settings_redirect("users", "用户不存在")
+        username = target.username
+        target.password_hash = security.hash_password(password)
+        db.add(
+            AuditLog(
+                actor=admin.username,
+                action="user_password",
+                target_type="app_user",
+                target_id=str(target.id),
+                detail={"username": username},
+            )
+        )
+        db.commit()
+    return _settings_redirect("users", f"用户 {username} 的密码已重置")

@@ -12,6 +12,7 @@ from PySide6.QtGui import QColor, QDesktopServices, QFont, QIcon, QPainter, QPix
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QFileDialog,
     QFormLayout,
     QFrame,
     QGroupBox,
@@ -133,6 +134,11 @@ class MainWindow(QMainWindow):
         self.activity_label.setObjectName("activity")
         root.addWidget(self.activity_label)
 
+        note = QLabel("执行器只领取平台下发的采集任务，不创建任务。发起采集请到平台「付款协同」页面操作。")
+        note.setObjectName("note")
+        note.setWordWrap(True)
+        root.addWidget(note)
+
         splitter = QSplitter(Qt.Horizontal)
         root.addWidget(splitter, 1)
 
@@ -144,19 +150,49 @@ class MainWindow(QMainWindow):
         form = QFormLayout(connection)
         form.setLabelAlignment(Qt.AlignRight)
         self.url_edit = QLineEdit()
+        self.url_edit.setPlaceholderText("平台地址")
         self.token_edit = QLineEdit()
         self.token_edit.setEchoMode(QLineEdit.Password)
+        self.token_edit.setPlaceholderText("粘贴平台下发的 Agent 令牌")
         self.code_edit = QLineEdit()
-        self.name_edit = QLineEdit()
+        self.code_edit.setToolTip("一般不用改；需要和平台里的 Agent 记录一致")
         form.addRow("平台地址", self.url_edit)
         form.addRow("Agent 令牌", self.token_edit)
         form.addRow("Agent 编号", self.code_edit)
-        form.addRow("显示名称", self.name_edit)
         left_layout.addWidget(connection)
 
-        device = QGroupBox("MB 机柜与采集环境")
-        device_form = QFormLayout(device)
-        device_form.setLabelAlignment(Qt.AlignRight)
+        mingyuan = QGroupBox("明源云付款采集")
+        mingyuan_form = QFormLayout(mingyuan)
+        mingyuan_form.setLabelAlignment(Qt.AlignRight)
+        auto_note = QLabel("明源云账号由平台下发任务时带入，本机不保存。")
+        auto_note.setWordWrap(True)
+        self.auto_payment = QCheckBox("启动采集时同时运行付款采集")
+        mingyuan_form.addRow("", auto_note)
+        mingyuan_form.addRow("", self.auto_payment)
+        left_layout.addWidget(mingyuan)
+
+        run_buttons = QHBoxLayout()
+        self.save_btn = QPushButton("保存配置")
+        self.test_btn = QPushButton("测试连接")
+        self.start_btn = QPushButton("启动采集")
+        self.start_btn.setObjectName("primary")
+        self.stop_btn = QPushButton("停止采集")
+        run_buttons.addWidget(self.save_btn)
+        run_buttons.addWidget(self.test_btn)
+        run_buttons.addWidget(self.start_btn)
+        run_buttons.addWidget(self.stop_btn)
+        left_layout.addLayout(run_buttons)
+
+        self.advanced_btn = QPushButton("高级设置")
+        self.advanced_btn.setCheckable(True)
+        self.advanced_btn.toggled.connect(self._toggle_advanced)
+        left_layout.addWidget(self.advanced_btn)
+
+        advanced = QGroupBox("高级设置（一般不用改）")
+        advanced.setVisible(False)
+        advanced_form = QFormLayout(advanced)
+        advanced_form.setLabelAlignment(Qt.AlignRight)
+        self.name_edit = QLineEdit()
         self.ter_edit = QLineEdit()
         self.ter_edit.setPlaceholderText("多个 ter_id 用逗号分隔")
         self.mb_edit = QLineEdit()
@@ -165,17 +201,19 @@ class MainWindow(QMainWindow):
         self.work_edit = QLineEdit()
         self.python_edit = QLineEdit()
         self.python_edit.setPlaceholderText("留空自动使用 runtime\\Scripts\\python.exe")
-        device_form.addRow("机柜 ter_id", self.ter_edit)
-        device_form.addRow("mb.exe", self.mb_edit)
-        device_form.addRow("MB 用户", self.mb_user_edit)
-        device_form.addRow("采集器目录", self.collector_edit)
-        device_form.addRow("工作目录", self.work_edit)
-        device_form.addRow("Python", self.python_edit)
-        left_layout.addWidget(device)
-
-        timing = QGroupBox("运行参数")
-        timing_form = QFormLayout(timing)
-        timing_form.setLabelAlignment(Qt.AlignRight)
+        self.my_collector_edit = QLineEdit()
+        self.my_collector_edit.setPlaceholderText("留空使用安装目录 mingyuan\\采集明源云审批过程.py")
+        browse_btn = QPushButton("选择")
+        browse_btn.clicked.connect(self._choose_mingyuan_script)
+        collector_row = QHBoxLayout()
+        collector_row.addWidget(self.my_collector_edit, 1)
+        collector_row.addWidget(browse_btn)
+        self.payment_spin = QSpinBox()
+        self.payment_spin.setRange(5, 3600)
+        self.payment_spin.setSuffix(" 秒")
+        self.payment_timeout_spin = QSpinBox()
+        self.payment_timeout_spin.setRange(120, 7200)
+        self.payment_timeout_spin.setSuffix(" 秒")
         self.report_spin = QSpinBox()
         self.report_spin.setRange(30, 86400)
         self.report_spin.setSuffix(" 秒")
@@ -185,37 +223,31 @@ class MainWindow(QMainWindow):
         self.timeout_spin = QSpinBox()
         self.timeout_spin.setRange(120, 7200)
         self.timeout_spin.setSuffix(" 秒")
-        timing_form.addRow("设备上报间隔", self.report_spin)
-        timing_form.addRow("任务轮询间隔", self.task_spin)
-        timing_form.addRow("单任务超时", self.timeout_spin)
-        left_layout.addWidget(timing)
-
-        options = QGroupBox("启动选项")
-        options_layout = QVBoxLayout(options)
+        advanced_form.addRow("显示名称", self.name_edit)
+        advanced_form.addRow("机柜 ter_id", self.ter_edit)
+        advanced_form.addRow("mb.exe", self.mb_edit)
+        advanced_form.addRow("MB 用户", self.mb_user_edit)
+        advanced_form.addRow("采集器目录", self.collector_edit)
+        advanced_form.addRow("工作目录", self.work_edit)
+        advanced_form.addRow("Python", self.python_edit)
+        advanced_form.addRow("明源云采集脚本", collector_row)
+        advanced_form.addRow("付款轮询间隔", self.payment_spin)
+        advanced_form.addRow("付款采集超时", self.payment_timeout_spin)
+        advanced_form.addRow("设备上报间隔", self.report_spin)
+        advanced_form.addRow("任务轮询间隔", self.task_spin)
+        advanced_form.addRow("单任务超时", self.timeout_spin)
         self.auto_workers = QCheckBox("打开程序后自动开始采集")
         self.autostart_box = QCheckBox("随 Windows 登录自动启动")
-        options_layout.addWidget(self.auto_workers)
-        options_layout.addWidget(self.autostart_box)
-        left_layout.addWidget(options)
-
-        buttons = QHBoxLayout()
-        self.save_btn = QPushButton("保存配置")
-        self.test_btn = QPushButton("测试连接")
+        advanced_form.addRow("", self.auto_workers)
+        advanced_form.addRow("", self.autostart_box)
+        advanced_buttons = QHBoxLayout()
         self.check_btn = QPushButton("检测环境")
-        buttons.addWidget(self.save_btn)
-        buttons.addWidget(self.test_btn)
-        buttons.addWidget(self.check_btn)
-        left_layout.addLayout(buttons)
-
-        run_buttons = QHBoxLayout()
-        self.start_btn = QPushButton("启动采集")
-        self.start_btn.setObjectName("primary")
-        self.stop_btn = QPushButton("停止采集")
         self.log_btn = QPushButton("打开日志")
-        run_buttons.addWidget(self.start_btn)
-        run_buttons.addWidget(self.stop_btn)
-        run_buttons.addWidget(self.log_btn)
-        left_layout.addLayout(run_buttons)
+        advanced_buttons.addWidget(self.check_btn)
+        advanced_buttons.addWidget(self.log_btn)
+        advanced_form.addRow("", advanced_buttons)
+        self.advanced_group = advanced
+        left_layout.addWidget(advanced)
         left_layout.addStretch(1)
 
         scroll = QScrollArea()
@@ -229,10 +261,10 @@ class MainWindow(QMainWindow):
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
         self.log_view.setMaximumBlockCount(5000)
-        self.log_view.setPlaceholderText("启动后这里会显示设备上报和任务执行日志")
+        self.log_view.setPlaceholderText("启动后这里会显示任务领取和执行日志")
         right_layout.addWidget(self.log_view)
         splitter.addWidget(right)
-        splitter.setSizes([500, 580])
+        splitter.setSizes([460, 620])
 
         self.save_btn.clicked.connect(self.save_config)
         self.test_btn.clicked.connect(self.test_connection)
@@ -240,6 +272,10 @@ class MainWindow(QMainWindow):
         self.start_btn.clicked.connect(self.start_workers)
         self.stop_btn.clicked.connect(self.stop_workers)
         self.log_btn.clicked.connect(self.open_logs)
+
+    def _toggle_advanced(self, checked: bool) -> None:
+        self.advanced_group.setVisible(checked)
+        self.advanced_btn.setText("收起高级设置" if checked else "高级设置")
 
     def _apply_style(self) -> None:
         self.setStyleSheet(
@@ -283,6 +319,10 @@ class MainWindow(QMainWindow):
         self.report_spin.setValue(cfg.report_interval)
         self.task_spin.setValue(cfg.task_interval)
         self.timeout_spin.setValue(cfg.task_timeout)
+        self.my_collector_edit.setText(cfg.mingyuan_collector)
+        self.payment_spin.setValue(cfg.payment_interval)
+        self.payment_timeout_spin.setValue(cfg.payment_timeout)
+        self.auto_payment.setChecked(cfg.auto_start_payment)
         self.auto_workers.setChecked(cfg.auto_start_workers)
         self.autostart_box.setChecked(cfg.autostart)
 
@@ -301,6 +341,10 @@ class MainWindow(QMainWindow):
         cfg.report_interval = self.report_spin.value()
         cfg.task_interval = self.task_spin.value()
         cfg.task_timeout = self.timeout_spin.value()
+        cfg.mingyuan_collector = self.my_collector_edit.text().strip()
+        cfg.payment_interval = self.payment_spin.value()
+        cfg.payment_timeout = self.payment_timeout_spin.value()
+        cfg.auto_start_payment = self.auto_payment.isChecked()
         cfg.auto_start_workers = self.auto_workers.isChecked()
         cfg.autostart = self.autostart_box.isChecked()
         return cfg
@@ -344,6 +388,10 @@ class MainWindow(QMainWindow):
         worker = cfg.agent_script("task_worker.py")
         checks.append(("设备上报脚本", device.exists(), str(device)))
         checks.append(("任务执行脚本", worker.exists(), str(worker)))
+        payment = cfg.agent_script("payment_task_worker.py")
+        checks.append(("付款采集脚本", payment.exists(), str(payment)))
+        mingyuan = cfg.mingyuan_script()
+        checks.append(("明源云采集脚本", mingyuan.exists(), str(mingyuan)))
         collectors = cfg.collectors()
         checks.append(("采集器 bankcore", (collectors / "bankcore" / "run_task.py").exists(), str(collectors)))
         mb = Path(cfg.mb_exe) if cfg.mb_exe else None
@@ -355,6 +403,11 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "环境检测", text)
         else:
             QMessageBox.warning(self, "环境检测", text)
+
+    def _choose_mingyuan_script(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "选择明源云采集脚本", str(app_root()), "Python 脚本 (*.py)")
+        if path:
+            self.my_collector_edit.setText(path)
 
     def _process_env(self) -> QProcessEnvironment:
         env = QProcessEnvironment.systemEnvironment()
@@ -378,6 +431,13 @@ class MainWindow(QMainWindow):
         proc.start()
 
     def start_workers(self) -> None:
+        try:
+            self._start_workers()
+        except Exception as exc:  # noqa: BLE001
+            self.append_log(f"启动失败：{type(exc).__name__}: {exc}")
+            QMessageBox.critical(self, "启动失败", f"{type(exc).__name__}: {exc}")
+
+    def _start_workers(self) -> None:
         if any(proc.state() != QProcess.NotRunning for proc in self.procs.values()):
             return
         cfg = self._collect_form()
@@ -393,6 +453,7 @@ class MainWindow(QMainWindow):
         python = cfg.python()
         device = cfg.agent_script("device_report.py")
         worker = cfg.agent_script("task_worker.py")
+        payment = cfg.agent_script("payment_task_worker.py")
         if not device.exists() or not worker.exists():
             QMessageBox.critical(self, "文件缺失", f"未找到 Agent 脚本：\n{device}\n{worker}")
             return
@@ -423,6 +484,18 @@ class MainWindow(QMainWindow):
         self._start_proc("设备上报", python, device_args)
         self.append_log(f"启动任务执行：{worker}")
         self._start_proc("任务执行", python, task_args)
+        if cfg.auto_start_payment:
+            payment_args = [
+                str(payment),
+                "--url", cfg.platform_url,
+                "--agent-code", cfg.agent_code,
+                "--collector", str(cfg.mingyuan_script()),
+                "--work-dir", str(cfg.work() / "payment"),
+                "--interval", str(cfg.payment_interval),
+                "--timeout", str(cfg.payment_timeout),
+            ]
+            self.append_log(f"启动付款采集：{payment}")
+            self._start_proc("付款采集", python, payment_args)
         self.status_label.setText("● 运行中")
         self.status_label.setStyleSheet("color: #2f7d4f; font-weight: 600;")
         self.activity_label.setText(f"Agent {cfg.agent_code} 已启动")

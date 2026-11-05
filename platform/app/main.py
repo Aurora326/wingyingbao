@@ -11,6 +11,8 @@ from app.api import accounts as accounts_api
 from app.api import agent as agent_api
 from app.api import dashboard as dashboard_api
 from app.api import data as data_api
+from app.api import payment as payment_api
+from app.api import payment_settings as payment_settings_api
 from app.api import recon as recon_api
 from app.api import tasks as tasks_api
 from app.config import settings
@@ -19,9 +21,11 @@ from app.models import AppUser
 from app.seed import seed
 from app.services.executor import Worker
 from app.services.scheduler import Scheduler
+from app.services import permissions
 from app.tenancy import reset_current_tenant, set_current_tenant
 from app.web.routes import router as web_router
-from app.web.treasury import router as treasury_router
+from app.web.payments import router as payments_router
+from app.web.payment_settings import router as payment_settings_router
 
 PUBLIC_PREFIXES = ("/static", "/login", "/health", "/docs", "/openapi.json", "/api/agent")
 
@@ -68,6 +72,12 @@ def create_app() -> FastAPI:
                     select(AppUser).where(AppUser.username == username)
                 ).scalars().first()
             if user is not None and user.is_active:
+                if not permissions.can_access_path(user.role, request.method, path):
+                    if path.startswith("/api"):
+                        from fastapi.responses import JSONResponse
+
+                        return JSONResponse({"detail": "没有访问权限"}, status_code=403)
+                    return RedirectResponse("/", status_code=303)
                 tenant_id = user.tenant_id
                 if tenant_id is None:
                     selected = (request.cookies.get("tenant_id") or "").strip()
@@ -87,10 +97,13 @@ def create_app() -> FastAPI:
         return RedirectResponse("/login", status_code=302)
 
     app.include_router(web_router)
-    app.include_router(treasury_router)
+    app.include_router(payments_router)
+    app.include_router(payment_settings_router)
     app.include_router(accounts_api.router)
     app.include_router(tasks_api.router)
     app.include_router(data_api.router)
+    app.include_router(payment_api.router)
+    app.include_router(payment_settings_api.router)
     app.include_router(dashboard_api.router)
     app.include_router(recon_api.router)
     app.include_router(agent_api.router)

@@ -113,55 +113,6 @@ function stopTask(taskId) {
   });
 }
 
-function filterSpecialAccounts() {
-  const search = (document.getElementById("sa-search")?.value || "").trim().toLowerCase();
-  const type = document.getElementById("sa-type")?.value || "";
-  const status = document.getElementById("sa-status-filter")?.value || "";
-  const rows = document.querySelectorAll("#special-account-table tbody tr");
-  let visible = 0;
-  rows.forEach((row) => {
-    const matchesSearch = !search || (row.dataset.search || "").toLowerCase().includes(search);
-    const matchesType = !type || row.dataset.type === type;
-    const matchesStatus = !status || row.dataset.status === status;
-    const show = matchesSearch && matchesType && matchesStatus;
-    row.hidden = !show;
-    if (show) visible += 1;
-  });
-  const counter = document.getElementById("sa-visible");
-  if (counter) counter.textContent = String(visible);
-}
-
-function openSpecialAccountModal(button) {
-  const data = button.dataset;
-  const set = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value || "—";
-  };
-  set("sa-modal-title", data.type || "专户详情");
-  set("sa-subtitle", `${data.project || ""} · ${data.company || ""}`);
-  set("sa-project", data.project);
-  set("sa-company", data.company);
-  set("sa-type", data.type);
-  set("sa-bank", data.bank);
-  set("sa-account", data.account);
-  set("sa-regulator", data.regulator);
-  set("sa-book", data.book);
-  set("sa-restricted", data.restricted);
-  set("sa-available", data.available);
-  set("sa-min", data.min);
-  set("sa-release", data.release);
-  set("sa-last-release", data.lastRelease);
-  set("sa-last-sync", data.lastSync);
-  set("sa-ukey", data.ukey);
-  set("sa-note", data.note);
-  const status = document.getElementById("sa-status");
-  if (status) {
-    status.textContent = data.statusText || "—";
-    status.className = "tag " + (data.statusClass || "");
-  }
-  openModal("special-account-modal", "#special-account-modal .modal-foot .primary");
-}
-
 let deleteAccountContext = null;
 
 function openDeleteAccountModal(button) {
@@ -795,6 +746,7 @@ function initTaskAutoRefresh() {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status") || "";
   const page = params.get("page") || "1";
+  const source = params.get("source") || "";
   const activeCount = () => Number(document.getElementById("task-stats")?.dataset.active || 0);
   let timer = null;
   let refreshing = false;
@@ -816,6 +768,7 @@ function initTaskAutoRefresh() {
       const query = new URLSearchParams();
       if (status) query.set("status", status);
       if (page && page !== "1") query.set("page", page);
+      if (source) query.set("source", source);
       const suffix = query.toString() ? `?${query.toString()}` : "";
       const response = await fetch(`/tasks/partial${suffix}`, {
         cache: "no-store",
@@ -881,3 +834,87 @@ async function importDocs(event) {
     toast("导入失败: " + error.message);
   }
 }
+
+function setupClientPager(container) {
+  if (container.dataset.pagerReady === "1") return;
+  container.dataset.pagerReady = "1";
+
+  const size = Math.max(1, parseInt(container.dataset.pageSize || "10", 10));
+  const selector = container.dataset.pageItems || ":scope > *";
+  const unit = container.dataset.pageUnit || "条";
+  const pager = document.createElement("div");
+  pager.className = "pagination client-pagination";
+  container.insertAdjacentElement("afterend", pager);
+  let page = 1;
+
+  const items = () =>
+    Array.from(container.querySelectorAll(selector)).filter((item) => !item.classList.contains("hidden"));
+
+  const addButton = (label, target, { active = false, disabled = false } = {}) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "page-btn" + (active ? " active" : "") + (disabled ? " disabled" : "");
+    button.textContent = label;
+    button.disabled = disabled;
+    if (active) button.setAttribute("aria-current", "page");
+    button.addEventListener("click", () => {
+      page = target;
+      render();
+    });
+    pager.appendChild(button);
+  };
+
+  const render = () => {
+    const rows = items();
+    const pages = Math.max(1, Math.ceil(rows.length / size));
+    page = Math.min(Math.max(1, page), pages);
+    rows.forEach((item, index) => {
+      item.classList.toggle("page-hidden", index < (page - 1) * size || index >= page * size);
+    });
+
+    pager.replaceChildren();
+    if (rows.length <= size) {
+      pager.classList.add("page-hidden");
+      rows.forEach((item) => item.classList.remove("page-hidden"));
+      return;
+    }
+    pager.classList.remove("page-hidden");
+
+    const info = document.createElement("span");
+    info.className = "page-info client-page-info";
+    info.textContent = `共 ${rows.length} ${unit} · 第 ${page} / ${pages} 页`;
+    pager.appendChild(info);
+
+    addButton("‹", page - 1, { disabled: page <= 1 });
+    const numbers = typeof logPageNumbers === "function" ? logPageNumbers(page, pages) : [1];
+    numbers.forEach((number) => {
+      if (number === "…") {
+        const gap = document.createElement("span");
+        gap.className = "page-gap";
+        gap.textContent = "…";
+        pager.appendChild(gap);
+      } else {
+        addButton(String(number), number, { active: number === page });
+      }
+    });
+    addButton("›", page + 1, { disabled: page >= pages });
+  };
+
+  container._pagerRefresh = (reset = false) => {
+    if (reset) page = 1;
+    render();
+  };
+  render();
+}
+
+function initClientPagers() {
+  document.querySelectorAll("[data-page-size]").forEach(setupClientPager);
+}
+
+function refreshPagers(reset = false) {
+  document.querySelectorAll("[data-page-size]").forEach((container) => {
+    if (typeof container._pagerRefresh === "function") container._pagerRefresh(reset);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", initClientPagers);

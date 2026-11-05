@@ -1,0 +1,567 @@
+{% extends "base.html" %}
+{% block title %}付款协同 · 银行财务平台{% endblock %}
+{% block content %}
+{% set pages = ((total - 1) // size) + 1 if total else 1 %}
+
+<div class="page-head">
+  <div>
+    <div class="eyebrow">收付款</div>
+    <h1>付款协同</h1>
+    <div class="sub">明源云付款单据入库后，可直接修改单据信息；银行侧复核与授权不在平台内完成。</div>
+  </div>
+  <div class="pay-head-actions">
+    <span class="chip"><span class="dot"></span>{{ total }} 张单据</span>
+    <button class="small" type="button" onclick="openPayConfig()">
+      <svg class="ico" style="width:14px;height:14px"><use href="#i-sliders"/></svg>采集配置
+    </button>
+    <a class="btn small" href="/payments">刷新</a>
+  </div>
+</div>
+
+{% if msg %}<div class="callout">{{ msg }}</div>{% endif %}
+
+<div class="panel pay-panel">
+  <div class="panel-head">
+    <div>
+      <h2>付款单据 <span class="hint">{{ total }} 条</span></h2>
+      <div class="panel-sub">审批过程来自明源云 BPM，平台只读留存。</div>
+    </div>
+    <nav class="pay-tabs" aria-label="按状态筛选">
+      <a class="pay-tab {{ 'active' if not status }}" href="/payments">全部 <span>{{ total }}</span></a>
+      {% for key in status_order %}
+      <a class="pay-tab {{ 'active' if status == key }}" href="/payments?status={{ key }}">
+        {{ status_labels.get(key, key) }} <span>{{ counts.get(key, 0) }}</span>
+      </a>
+      {% endfor %}
+    </nav>
+  </div>
+
+  <form method="get" action="/payments" class="pay-filters">
+    <div class="search-box">
+      <svg class="ico"><use href="#i-search"/></svg>
+      <input type="search" name="q" value="{{ q }}" placeholder="申请编号 / 主题 / 收款单位 / 项目">
+    </div>
+    <input type="hidden" name="status" value="{{ status }}">
+    <button class="small" type="submit">搜索</button>
+    {% if q %}
+    <a class="btn small" href="/payments?status={{ status }}&size={{ size }}">清除</a>
+    {% endif %}
+    <label class="pay-size">每页
+      <select name="size" onchange="this.form.submit()">
+        {% for n in (10, 20, 50, 100) %}
+        <option value="{{ n }}" {{ 'selected' if size == n }}>{{ n }} 条</option>
+        {% endfor %}
+      </select>
+    </label>
+    <span class="muted pay-count">共 {{ total }} 条 · 第 {{ page_no }} / {{ pages }} 页</span>
+  </form>
+
+  <div class="table-wrap">
+    <table class="pay-table">
+      <thead>
+        <tr>
+          <th style="min-width:250px">单据</th>
+          <th style="min-width:190px">收款方</th>
+          <th style="min-width:190px">付款方</th>
+          <th class="num" style="min-width:110px">金额</th>
+          <th style="min-width:210px">项目 / 合同</th>
+          <th style="min-width:130px">审批</th>
+          <th style="min-width:100px">状态</th>
+          <th style="min-width:170px">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for doc in docs %}
+        <tr>
+          <td class="pay-main">
+            <b>{{ doc.apply_no }}</b>
+            <div class="cell-sub">{{ doc.subject }}</div>
+            <div class="cell-sub">{{ doc.applicant }} · {{ doc.department }} · {{ doc.apply_date | dt }}</div>
+          </td>
+          <td>
+            <div class="pay-party">{{ doc.payee_name }}</div>
+            <div class="cell-sub mono">{{ doc.payee_account_no or '—' }}</div>
+            <div class="cell-sub">{{ doc.payee_bank or '—' }}</div>
+          </td>
+          <td>
+            <div class="pay-party">{{ doc.payer_name }}</div>
+            <div class="cell-sub mono">{{ doc.payer_account_no or '—' }}</div>
+            <div class="cell-sub">{{ doc.payer_bank or '—' }}</div>
+          </td>
+          <td class="num pay-amount">{{ doc.amount | money }}<div class="cell-sub">{{ doc.currency }}</div></td>
+          <td>
+            <div class="pay-project">{{ doc.project_name or '—' }}</div>
+            <div class="cell-sub">{{ doc.contract_name or '' }} {{ doc.contract_no or '' }}</div>
+          </td>
+          <td>
+            <div class="cell-sub">{{ doc.approval_status or '—' }}</div>
+            {% if doc.approval_steps %}
+            <details class="approval-detail">
+              <summary>审批过程 {{ doc.approval_steps | length }} 步</summary>
+              <table class="kv">
+                <thead><tr><th>节点</th><th>审批人</th><th>结果</th><th>意见</th><th>时间</th></tr></thead>
+                <tbody>
+                  {% for step in doc.approval_steps %}
+                  <tr>
+                    <td>{{ step.get('审批节点', '') }}</td>
+                    <td>{{ step.get('审批人', '') }}</td>
+                    <td>{{ step.get('审批结果', '') }}</td>
+                    <td>{{ step.get('审批意见', '') }}</td>
+                    <td class="nowrap">{{ step.get('审批时间', '') }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </details>
+            {% endif %}
+          </td>
+          <td>
+            <span class="pay-status status-{{ doc.status }}">{{ status_labels.get(doc.status, doc.status) }}</span>
+            {% if doc.reject_reason %}<div class="cell-sub danger">{{ doc.reject_reason }}</div>{% endif %}
+          </td>
+          <td>
+            <div class="pay-row-actions">
+            <button class="small" type="button" onclick="openPayEdit(this)" data-doc="{{ doc.id }}">编辑</button>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="pay-empty">
+            暂无付款单据。{% if collector_available %}可以点上方「立即采集明源云」，或导入 Excel。{% else %}请先导入明源云 Excel。{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages > 1 %}
+  <div class="pay-pager">
+    {% if page_no > 1 %}
+    <a class="btn small" href="/payments?status={{ status }}&q={{ q }}&size={{ size }}&page={{ page_no - 1 }}">上一页</a>
+    {% endif %}
+    <span class="muted">第 {{ page_no }} / {{ pages }} 页</span>
+    {% if page_no < pages %}
+    <a class="btn small" href="/payments?status={{ status }}&q={{ q }}&size={{ size }}&page={{ page_no + 1 }}">下一页</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal" id="pay-config-modal" role="dialog" aria-modal="true" aria-labelledby="pay-config-title">
+  <div class="box pay-config-box">
+    <div class="head">
+      <div>
+        <strong id="pay-config-title">采集配置</strong>
+        <div class="modal-sub">明源云采集账号、采集范围、Excel 导入和最近任务</div>
+      </div>
+      <button class="icon-btn" type="button" onclick="closeModal('pay-config-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+
+    <div class="pay-config-body">
+      {% if is_admin %}
+      <form method="post" action="/payment-settings/source-account?tab=source" class="pay-config-section">
+        <div class="pay-config-head">
+          <b>明源云采集账号</b>
+          <span class="tag {{ 'green' if source_configured else 'red' }}">{{ '已配置' if source_configured else '未配置' }}</span>
+        </div>
+        <div class="pay-config-row">
+          <label>账号<input type="text" name="username" value="{{ source_username }}" required placeholder="明源云登录账号"></label>
+          <label>密码<input type="password" name="password" placeholder="{{ '已配置，留空不修改' if source_configured else '请输入密码' }}"></label>
+          <button class="primary small" type="submit">保存账号</button>
+        </div>
+        <input type="hidden" name="next" value="payments">
+      </form>
+      {% else %}
+      <div class="pay-config-section">
+        <div class="pay-config-head">
+          <b>明源云采集账号</b>
+          <span class="tag {{ 'green' if source_configured else 'red' }}">{{ '已配置' if source_configured else '未配置' }}</span>
+        </div>
+        <div class="form-note">采集账号由管理员维护，当前{{ '已配置' if source_configured else '未配置' }}。</div>
+      </div>
+      {% endif %}
+
+      <div class="pay-config-section">
+        <div class="pay-config-head">
+          <b>定时采集</b>
+          <span class="tag {{ 'green' if schedule_enabled else '' }}">{{ '已启用' if schedule_enabled else '未启用' }}</span>
+        </div>
+        {% if is_admin %}
+        <form method="post" action="/payment-settings/source-schedule?tab=source" class="pay-config-row">
+          <label class="check"><input type="checkbox" name="enabled" value="1" {{ 'checked' if schedule_enabled }}> 启用定时采集</label>
+          <label>计划<input type="text" name="cron" value="{{ schedule_cron }}" placeholder="0 8,18 * * *"></label>
+          <label>每次条数<input type="number" name="limit" value="{{ schedule_limit }}" min="0" max="100"></label>
+          <button class="primary small" type="submit">保存计划</button>
+          <input type="hidden" name="next" value="payments">
+        </form>
+        <div class="form-note">5 段 cron：分 时 日 月 周；例如每天 8:00 和 18:00 写 0 8,18 * * *。</div>
+        {% else %}
+        <div class="form-note">
+          {% if schedule_enabled %}已启用：{{ schedule_cron }}，每次 {{ schedule_limit }} 条{% else %}未启用，由管理员维护{% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="pay-config-section">
+        <div class="pay-config-head"><b>立即采集</b><span class="muted">从明源云拉取付款单据</span></div>
+        {% if collector_available %}
+        <form method="post" action="/payments/collect" class="pay-config-row">
+          <label>条数<input type="number" name="limit" value="5" min="0" max="100"></label>
+          <label>起始日期<input type="date" name="since"></label>
+          <button class="primary small" type="submit">立即采集明源云</button>
+        </form>
+        {% else %}
+        <div class="form-note">当前部署未配置明源云采集器，请在客户机采集后导入 Excel。</div>
+        {% endif %}
+      </div>
+
+      <div class="pay-config-section">
+        <div class="pay-config-head"><b>导入 Excel</b><span class="muted">客户机导出的付款单据</span></div>
+        <form method="post" action="/payments/import" enctype="multipart/form-data" class="pay-config-row">
+          <input type="file" id="pay-file" name="file" accept=".xlsx,.xlsm" required hidden>
+          <label class="btn small" for="pay-file">选择 Excel</label>
+          <span id="pay-file-name" class="pay-file-name">未选择文件</span>
+          <label class="check"><input type="checkbox" name="force" value="true"> 覆盖已存在</label>
+          <button class="small" type="submit">导入</button>
+        </form>
+      </div>
+
+      <div class="pay-config-section">
+        <div class="pay-config-head">
+          <b>最近采集任务</b>
+          <span class="muted">
+            {{ collect_tasks | length }} 条
+            {% if is_admin %}<a class="more" href="/tasks?source=payment" style="margin-left:8px">查看全部</a>{% endif %}
+          </span>
+        </div>
+        {% if collect_tasks %}
+        {% set task_labels = {'queued':'排队中','running':'采集中','succeeded':'已完成','failed':'失败'} %}
+        <table class="pay-task-table">
+          <thead><tr><th>任务</th><th>状态</th><th>范围</th><th>时间</th><th>结果 / 日志</th></tr></thead>
+          <tbody>
+            {% for t in collect_tasks %}
+            <tr>
+              <td><b>#{{ t.id }}</b><div class="cell-sub">{{ t.created_by }}</div></td>
+              <td><span class="pay-status task-status-{{ t.status }}">{{ task_labels.get(t.status, t.status) }}</span></td>
+              <td class="muted">条数 {{ t.limit_count }}{% if t.since_date %}<div class="cell-sub">自 {{ t.since_date }}</div>{% endif %}</td>
+              <td class="muted nowrap">{{ t.started_at[:16] | replace('T', ' ') if t.started_at else '—' }}<div class="cell-sub">{{ t.finished_at[:16] | replace('T', ' ') if t.finished_at else '' }}</div></td>
+              <td>
+                <span class="muted">{{ t.error_msg or '—' }}</span>
+                {% if t.log_text %}
+                <details class="approval-detail">
+                  <summary>查看日志</summary>
+                  <pre class="task-log">{{ t.log_text }}</pre>
+                </details>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="form-note">还没有采集任务。</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      {% if is_admin %}<a class="btn small" href="/payment-settings">账户主数据 / 出纳分配 / 收款账户库</a>{% endif %}
+      <button type="button" onclick="closeModal('pay-config-modal')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="pay-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="pay-confirm-title">
+  <div class="box form-box pay-action-box">
+    <div class="head">
+      <div>
+        <strong id="pay-confirm-title">确认付款账户</strong>
+        <div class="modal-sub" id="pay-confirm-subtitle"></div>
+      </div>
+      <button class="icon-btn" type="button" onclick="closeModal('pay-confirm-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <form method="post" id="pay-confirm-form">
+      <div class="form-grid">
+        <div class="field full">
+          <label for="pay-confirm-payer">付款账户</label>
+          <select id="pay-confirm-payer" name="payer_account_id" required>
+            <option value="">选择付款账户</option>
+            {% for a in accounts %}
+            <option value="{{ a.id }}" data-account-no="{{ a.account_no }}">{{ a.bank_code }} · {{ a.account_no }} · {{ a.account_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field full">
+          <label for="pay-confirm-payee">收款账户</label>
+          <select id="pay-confirm-payee" name="payee_account_id" required>
+            <option value="">选择收款账户</option>
+            {% for p in payees %}
+            <option value="{{ p.id }}" data-account-no="{{ p.account_no }}">{{ p.payee_name }} · {{ p.account_no }} · {{ p.bank_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field full">
+          <label for="pay-confirm-reason">调整原因</label>
+          <input id="pay-confirm-reason" type="text" name="reason" placeholder="与申请单不一致时填写，可选">
+        </div>
+      </div>
+      <div class="form-note">确认后提交出纳审核。平台只生成制单草稿，银行侧复核与授权仍需在网银完成。</div>
+      <div class="modal-foot">
+        <button type="button" onclick="closeModal('pay-confirm-modal')">取消</button>
+        <button type="submit" class="primary">确认并提交审核</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="pay-review-modal" role="dialog" aria-modal="true" aria-labelledby="pay-review-title">
+  <div class="box form-box pay-action-box">
+    <div class="head">
+      <div>
+        <strong id="pay-review-title">确认可制单</strong>
+        <div class="modal-sub" id="pay-review-subtitle"></div>
+      </div>
+      <button class="icon-btn" type="button" onclick="closeModal('pay-review-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <form method="post" id="pay-review-form">
+      <div class="field">
+        <label for="pay-review-opinion">审核意见</label>
+        <input id="pay-review-opinion" type="text" name="opinion" placeholder="退回时请填写原因">
+      </div>
+      <div class="form-note">确认可制单后，单据进入可制单队列；退回后由业务重新确认账户。</div>
+      <div class="modal-foot">
+        <button type="button" onclick="closeModal('pay-review-modal')">取消</button>
+        <button type="submit" class="small" name="action" value="reject">退回</button>
+        <button type="submit" class="primary" name="action" value="approve">确认可制单</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="pay-edit-modal" role="dialog" aria-modal="true" aria-labelledby="pay-edit-title">
+  <div class="box form-box pay-action-box pay-edit-box">
+    <div class="head">
+      <div>
+        <strong id="pay-edit-title">编辑付款单据</strong>
+        <div class="modal-sub" id="pay-edit-subtitle"></div>
+      </div>
+      <button class="icon-btn" type="button" onclick="closeModal('pay-edit-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <form method="post" id="pay-edit-form">
+      <div class="form-grid">
+        <div class="field"><label for="pay-edit-apply-no">申请编号</label><input id="pay-edit-apply-no" name="apply_no" required></div>
+        <div class="field"><label for="pay-edit-date">申请日期</label><input id="pay-edit-date" type="date" name="apply_date"></div>
+        <div class="field full"><label for="pay-edit-subject">申请主题</label><input id="pay-edit-subject" name="subject"></div>
+        <div class="field"><label for="pay-edit-applicant">申请人</label><input id="pay-edit-applicant" name="applicant"></div>
+        <div class="field"><label for="pay-edit-department">申请部门</label><input id="pay-edit-department" name="department"></div>
+        <div class="field"><label for="pay-edit-approval-type">付款审批类型</label><input id="pay-edit-approval-type" name="approval_type"></div>
+        <div class="field"><label for="pay-edit-currency">币种</label><input id="pay-edit-currency" name="currency"></div>
+        <div class="field"><label for="pay-edit-payee-name">收款单位</label><input id="pay-edit-payee-name" name="payee_name"></div>
+        <div class="field"><label for="pay-edit-payee-account">收款账号</label><input id="pay-edit-payee-account" name="payee_account_no"></div>
+        <div class="field"><label for="pay-edit-payee-bank">收款开户行</label><input id="pay-edit-payee-bank" name="payee_bank"></div>
+        <div class="field"><label for="pay-edit-payee-branch">收款支行</label><input id="pay-edit-payee-branch" name="payee_branch"></div>
+        <div class="field"><label for="pay-edit-payer-name">付款单位</label><input id="pay-edit-payer-name" name="payer_name"></div>
+        <div class="field"><label for="pay-edit-payer-account">付款账号</label><input id="pay-edit-payer-account" name="payer_account_no"></div>
+        <div class="field"><label for="pay-edit-payer-bank">付款开户行</label><input id="pay-edit-payer-bank" name="payer_bank"></div>
+        <div class="field"><label for="pay-edit-amount">申请金额</label><input id="pay-edit-amount" type="number" step="0.01" name="amount" required></div>
+        <div class="field"><label for="pay-edit-paid">实付金额</label><input id="pay-edit-paid" type="number" step="0.01" name="paid_amount"></div>
+        <div class="field full"><label for="pay-edit-project">项目信息</label><input id="pay-edit-project" name="project_name"></div>
+        <div class="field full"><label for="pay-edit-contract-name">合同名称</label><input id="pay-edit-contract-name" name="contract_name"></div>
+        <div class="field"><label for="pay-edit-contract-no">合同编号</label><input id="pay-edit-contract-no" name="contract_no"></div>
+        <div class="field"><label for="pay-edit-approval-status">审批状态</label><input id="pay-edit-approval-status" name="approval_status"></div>
+        <div class="field"><label for="pay-edit-status">单据状态</label>
+          <select id="pay-edit-status" name="status">
+            {% for key in status_order %}<option value="{{ key }}">{{ status_labels.get(key, key) }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field full"><label for="pay-edit-description">说明</label><textarea id="pay-edit-description" name="description" rows="3"></textarea></div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" onclick="closeModal('pay-edit-modal')">取消</button>
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function setPayAccount(select, accountNo) {
+    if (!select) return;
+    select.value = "";
+    if (!accountNo) return;
+    for (const option of select.options) {
+      if (option.dataset.accountNo === accountNo) {
+        select.value = option.value;
+        return;
+      }
+    }
+  }
+
+  function openPayConfirm(button) {
+    const form = document.getElementById('pay-confirm-form');
+    if (!form) return;
+    form.reset();
+    form.action = `/payments/${button.dataset.doc}/confirm`;
+    document.getElementById('pay-confirm-subtitle').textContent =
+      button.dataset.apply ? `单据 ${button.dataset.apply}` : '';
+    setPayAccount(document.getElementById('pay-confirm-payer'), button.dataset.payer);
+    setPayAccount(document.getElementById('pay-confirm-payee'), button.dataset.payee);
+    openModal('pay-confirm-modal', '#pay-confirm-payer');
+  }
+
+  function openPayReview(button) {
+    const form = document.getElementById('pay-review-form');
+    if (!form) return;
+    form.reset();
+    form.action = `/payments/${button.dataset.doc}/review`;
+    document.getElementById('pay-review-subtitle').textContent =
+      button.dataset.apply ? `单据 ${button.dataset.apply}` : '';
+    openModal('pay-review-modal', '#pay-review-opinion');
+  }
+
+  async function openPayEdit(button) {
+    const id = button.dataset.doc;
+    const form = document.getElementById('pay-edit-form');
+    if (!form) return;
+    try {
+      const resp = await fetch(`/api/payment/docs/${id}`, {headers: {'Accept': 'application/json'}});
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const doc = await resp.json();
+      form.action = `/payments/${id}/edit`;
+      document.getElementById('pay-edit-subtitle').textContent = doc.apply_no || '';
+      for (const [name, val] of Object.entries(doc)) {
+        const field = form.elements.namedItem(name);
+        if (field && 'value' in field) field.value = val == null ? '' : val;
+      }
+      openModal('pay-edit-modal', '#pay-edit-apply-no');
+    } catch (err) {
+      alert(`加载单据失败：${err.message}`);
+    }
+  }
+
+  function openPayConfig() {
+    openModal('pay-config-modal');
+  }
+
+  (function () {
+    const input = document.getElementById('pay-file');
+    const name = document.getElementById('pay-file-name');
+    if (input && name) {
+      input.addEventListener('change', function () {
+        name.textContent = input.files && input.files[0] ? input.files[0].name : '未选择文件';
+      });
+    }
+  })();
+</script>
+
+<style>
+  .pay-head-actions { display:flex; align-items:center; gap:10px; }
+  .pay-head-actions .chip { gap:7px; }
+  .pay-file-name { max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11.5px; color:var(--faint); }
+  .callout { margin:0 0 16px; padding:10px 12px; border-left:3px solid var(--brass); border-radius:0 8px 8px 0; background:var(--surface-2); font-size:12.5px; }
+  .pay-config-box {
+    display:flex; flex-direction:column; width:min(900px,100%); max-height:88vh;
+    padding:20px 22px; overflow:hidden;
+  }
+  .pay-edit-box { width:min(900px,100%); max-height:88vh; overflow-y:auto; }
+  .pay-edit-box textarea { width:100%; resize:vertical; }
+  .pay-row-actions { display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
+  .pay-config-box .head { flex:none; }
+  .pay-config-body { flex:1; min-height:0; overflow-y:auto; }
+  .pay-config-section { padding:14px 0; border-bottom:1px solid var(--line); }
+  .pay-config-section:last-child { border-bottom:0; padding-bottom:4px; }
+  .pay-config-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; font-size:12.5px; }
+  .pay-config-head b { font-size:12.5px; }
+  .pay-config-row { display:flex; align-items:flex-end; flex-wrap:wrap; gap:8px; }
+  .pay-config-row label { display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--muted); }
+  .pay-config-row input[type=text], .pay-config-row input[type=password] { width:210px; height:32px; }
+  .pay-config-row input[type=number] { width:80px; height:32px; }
+  .pay-config-row input[type=date] { width:150px; height:32px; }
+  .pay-config-row .check { display:flex; flex-direction:row; align-items:center; gap:5px; height:32px; font-size:11.5px; color:var(--muted); white-space:nowrap; }
+  .pay-config-row input[type=checkbox] { width:14px; height:14px; min-width:0; padding:0; margin:0; accent-color:var(--primary); }
+  .pay-config-box .modal-foot { flex:none; margin:0; padding-top:14px; }
+  .pay-config-box .pay-task-table { min-width:0; margin:0; }
+  .pay-config-box .pay-task-table th, .pay-config-box .pay-task-table td { padding:8px 10px; vertical-align:top; }
+  .pay-config-box .task-log { max-height:160px; }
+
+  .pay-panel { padding:0; overflow:hidden; }
+  .pay-panel .panel-head { margin:0; padding:16px 18px 12px; align-items:flex-end; }
+  .pay-panel h2 .hint { font-weight:400; font-size:11px; color:var(--faint); }
+  .pay-tabs { display:flex; flex-wrap:wrap; gap:4px; }
+  .pay-tab {
+    display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 10px;
+    border:1px solid transparent; border-radius:7px; font-size:12px; color:var(--muted); white-space:nowrap;
+  }
+  .pay-tab:hover { background:var(--surface-2); color:var(--text); }
+  .pay-tab.active { background:var(--surface-2); border-color:var(--line); color:var(--text); font-weight:600; }
+  .pay-tab span { color:var(--faint); font-weight:400; font-variant-numeric:tabular-nums; }
+  .pay-filters { display:flex; align-items:center; gap:8px; padding:10px 18px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:var(--surface-2); }
+  .pay-filters .search-box { max-width:360px; }
+  .pay-count { margin-left:auto; font-size:11.5px; }
+  .pay-size { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--muted); white-space:nowrap; }
+  .pay-size select { height:30px; padding:0 6px; }
+  .pay-panel .table-wrap { margin:0; padding:0; }
+  .pay-table { min-width:1280px; }
+  .pay-table th, .pay-table td { padding:12px 14px; vertical-align:top; }
+  .pay-table td { border-bottom:1px solid var(--line); }
+  .pay-table tbody tr:last-child td { border-bottom:0; }
+  .pay-table tbody tr:hover td { background:#FCFBF8; }
+  .pay-main b { font-size:12.5px; letter-spacing:-.005em; }
+  .pay-party { font-size:12.5px; font-weight:500; }
+  .pay-amount { font-size:13px; font-weight:600; white-space:nowrap; }
+  .pay-project { font-size:12px; line-height:1.45; }
+  .mono { font-family:var(--mono); font-size:11px; }
+  .danger { color:var(--red); }
+  .pay-status {
+    display:inline-flex; align-items:center; height:24px; padding:0 8px; border-radius:999px;
+    font-size:11px; font-weight:600; white-space:nowrap;
+  }
+  .status-pending_confirm { background:#F6EDDD; color:var(--amber); }
+  .status-pending_review { background:#EDF0F8; color:#3d5b93; }
+  .status-ready { background:#E4F1EA; color:var(--green); }
+  .status-drafted { background:#EDE9E1; color:#5b5245; }
+  .status-rejected { background:#F8E7E4; color:var(--red); }
+  .task-status-queued { background:#EDE9E1; color:#5b5245; }
+  .task-status-running { background:#EDF0F8; color:#3d5b93; }
+  .task-status-succeeded { background:#E4F1EA; color:var(--green); }
+  .task-status-failed { background:#F8E7E4; color:var(--red); }
+
+  .approval-detail { margin-top:6px; }
+  .approval-detail summary { cursor:pointer; font-size:11px; color:var(--muted); }
+  .approval-detail summary:hover { color:var(--primary); }
+  .approval-detail .kv { margin-top:6px; font-size:11px; }
+  .approval-detail .kv th, .approval-detail .kv td { padding:5px 7px; }
+  .pay-empty { padding:42px 16px !important; text-align:center; color:var(--muted); }
+  .pay-pager { display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:10px 18px; border-top:1px solid var(--line); }
+
+  .pay-task-table { min-width:0; }
+  .pay-task-table th, .pay-task-table td { padding:10px 14px; }
+  .task-log {
+    max-height:240px; overflow:auto; margin:6px 0 0; padding:10px;
+    white-space:pre-wrap; font-size:11px; line-height:1.55;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+  }
+  @media (max-width: 900px) {
+    .pay-panel .panel-head { align-items:flex-start; flex-direction:column; }
+    .pay-tabs { width:100%; }
+    .pay-filters { flex-wrap:wrap; }
+    .pay-count { margin-left:0; }
+    .pay-config-box { padding:16px; }
+    .pay-config-row label { flex:1 1 100%; }
+    .pay-config-row input[type=text],
+    .pay-config-row input[type=password],
+    .pay-config-row input[type=date],
+    .pay-config-row input[type=number] { width:100%; }
+  }
+</style>
+{% endblock %}

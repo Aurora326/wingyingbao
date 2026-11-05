@@ -1,164 +1,400 @@
 {% extends "base.html" %}
-{% block title %}系统设置 · 银行财务平台{% endblock %}
+{% block title %}平台管理 · 银行财务平台{% endblock %}
 {% block content %}
-<div class="page-head">
-  <div>
-    <div class="eyebrow">配置</div>
-    <h1>系统设置</h1>
-    <div class="sub">查看系统运行状态和操作记录；技术参数默认收起，日常使用无需关心。</div>
-  </div>
-</div>
+<div class="settings-shell">
+  <aside class="settings-nav" aria-label="平台管理">
+    <a class="{{ 'active' if tab == 'users' }}" href="/settings/users" {% if tab == 'users' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-shield"/></svg><span>用户与权限</span>
+    </a>
+    <a class="{{ 'active' if tab == 'system' }}" href="/settings/system" {% if tab == 'system' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-sliders"/></svg><span>系统维护</span>
+    </a>
+  </aside>
 
-<div class="status-grid">
-  <div class="status-card">
-    <span class="status-ico {{ 'green' if settings.enable_worker else 'gray' }}"><svg class="ico"><use href="#i-clock"/></svg></span>
-    <div class="status-text">
-      <span>自动采集服务</span>
-      <b>{{ '运行中' if settings.enable_worker else '已停止' }}</b>
-    </div>
-    <span class="tag {{ 'green' if settings.enable_worker else 'red' }}">{{ '正常' if settings.enable_worker else '未启用' }}</span>
-  </div>
+  <div class="settings-content">
+    {% if msg %}<div class="callout">{{ msg }}</div>{% endif %}
 
-  <div class="status-card">
-    <span class="status-ico {{ 'green' if settings.enable_scheduler else 'gray' }}"><svg class="ico"><use href="#i-refresh"/></svg></span>
-    <div class="status-text">
-      <span>定时采集计划</span>
-      <b>{{ '运行中' if settings.enable_scheduler else '已停止' }}</b>
+    {% if tab == 'users' %}
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">平台管理</div>
+        <h1>用户与权限</h1>
+        <div class="sub">管理平台登录用户、角色和启停状态；密码只保存加密摘要，不展示明文。</div>
+      </div>
+      <div class="head-meta">
+        <button class="primary small" type="button" onclick="openUserModal()">
+          <svg class="ico"><use href="#i-plus"/></svg>新建用户
+        </button>
+      </div>
     </div>
-    <span class="tag {{ 'green' if settings.enable_scheduler else 'red' }}">{{ '正常' if settings.enable_scheduler else '未启用' }}</span>
-  </div>
 
-  <div class="status-card">
-    <span class="status-ico blue"><svg class="ico"><use href="#i-key"/></svg></span>
-    <div class="status-text">
-      <span>已接入 UKey</span>
-      <b>{{ devices | length }} 台</b>
+    <div class="summary-strip">
+      <span><b>{{ user_count }}</b> 用户</span>
+      <span><b>{{ admin_count }}</b> 管理员</span>
+      <span><b class="green">{{ active_count }}</b> 已启用</span>
+      <span><b class="amber">{{ user_count - active_count }}</b> 已停用</span>
     </div>
-    <a class="tag blue" href="/devices" style="text-decoration:none">去管理</a>
-  </div>
-</div>
 
-{% if is_super_admin %}
-<div class="panel">
-  <div class="panel-head">
-    <div>
-      <h2>租户上下文</h2>
-      <div class="panel-sub">选择租户后，账户、任务、设备和流水只显示该租户的数据</div>
-    </div>
-  </div>
-  <form method="post" action="/tenant/switch" style="display:flex;gap:10px;align-items:center;padding:4px 0 8px">
-    <select name="tenant_id" onchange="this.form.submit()" style="max-width:360px">
-      <option value="">全部租户（仅查看）</option>
-      {% for t in tenants %}
-      <option value="{{ t.id }}" {{ 'selected' if current_tenant_id == t.id }}>{{ t.name }}（{{ t.code }}）</option>
-      {% endfor %}
-    </select>
-    <span class="muted">切换后写入的数据会归入当前租户</span>
-  </form>
-</div>
-{% endif %}
-
-<div class="panel">
-  <div class="panel-head">
-    <div>
-      <h2>采集程序</h2>
-      <div class="panel-sub">平台按这里的配置调用各家银行的采集程序 · 配置文件 <span class="mono">{{ collectors_file }}</span></div>
-    </div>
-  </div>
-  <table>
-    <thead><tr><th>银行</th><th>命令</th><th>工作目录</th><th>状态</th></tr></thead>
-    <tbody>
-      {% for c in collectors %}
-      <tr>
-        <td>
-          <b>{{ c.name }}</b>
-          <div class="cell-sub mono">{{ c.code }}</div>
-        </td>
-        <td class="mono">{{ c.command or '—' }}</td>
-        <td class="mono">{{ c.cwd or '—' }}</td>
-        <td>
-          {% if c.state == 'ready' %}<span class="tag green">就绪</span>
-          {% elif c.state == 'unconfigured' %}<span class="tag gray">未配置</span>
-          {% else %}<span class="tag red">{{ c.detail }}</span>{% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-
-<div class="panel">
-  <div class="panel-head">
-    <div>
-      <h2>账户安全</h2>
-      <div class="panel-sub">平台如何保管你的银行登录信息</div>
-    </div>
-  </div>
-  <div class="security-note">
-    <span class="security-ico"><svg class="ico"><use href="#i-shield"/></svg></span>
-    <div>
-      <b>银行密码和 UKey PIN 都已加密保存</b>
-      <p>登录信息使用 Fernet 加密存储，只有在采集任务执行时才会临时解密，磁盘上不会出现明文密码。操作记录会保留每一次修改。</p>
-    </div>
-  </div>
-</div>
-
-<div class="panel">
-  <div class="panel-head">
-    <div>
-      <h2>操作记录</h2>
-      <div class="panel-sub">最近 {{ logs | length }} 条系统操作，点击「详情」可查看原始字段</div>
-    </div>
-  </div>
-  {% if logs %}
-  <div class="table-scroll">
-  <table class="log-table">
-    <thead><tr><th>时间</th><th>操作</th><th>对象</th><th>发生了什么</th></tr></thead>
-    <tbody>
-      {% for log in logs %}
-      {% set details = log | audit_details %}
-      <tr>
-        <td class="when">{{ log.created_at.strftime('%m-%d %H:%M') if log.created_at else '—' }}</td>
-        <td>
-          <b>{{ log.action | audit_action }}</b>
-          <div class="cell-sub">{{ log.actor | audit_actor }}</div>
-        </td>
-        <td class="muted nowrap">{{ log | audit_target }}</td>
-        <td class="summary">
-          {{ log | audit_summary }}
-          {% if details %}
-          <details class="log-detail">
-            <summary>详情</summary>
-            <dl class="log-kv">
-              {% for key, value in details %}
-              <dt>{{ key }}</dt><dd>{{ value }}</dd>
-              {% endfor %}
-            </dl>
-          </details>
+    <div class="table-wrap" data-page-size="10" data-page-items=":scope > table > tbody > tr" data-page-unit="个用户">
+      <table class="user-table">
+        <thead>
+          <tr><th>用户</th><th>角色</th><th>租户</th><th>状态</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>
+              <b>{{ u.username }}</b>
+              {% if u.id == current_user_id %}<span class="tag user-current">当前账号</span>{% endif %}
+              <div class="cell-sub">{% if u.created_at %}创建于 {{ u.created_at | dt }}{% else %}—{% endif %}</div>
+            </td>
+            <td>
+              {% if u.id == current_user_id %}
+              <span class="tag">{{ role_labels.get(u.role, u.role) }}</span>
+              {% else %}
+              <form method="post" action="/settings/users/{{ u.id }}/role" class="inline-role">
+                <select name="role" aria-label="{{ u.username }} 的角色">
+                  {% for key, label in role_labels.items() %}
+                  <option value="{{ key }}" {{ 'selected' if u.role == key }}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <button class="small" type="submit">保存</button>
+              </form>
+              {% endif %}
+            </td>
+            <td>{{ tenant_map.get(u.tenant_id, '平台级') }}</td>
+            <td>
+              {% if u.is_active %}<span class="tag green">启用</span>{% else %}<span class="tag">停用</span>{% endif %}
+            </td>
+            <td class="user-actions">
+              {% if u.id != current_user_id %}
+              <form method="post" action="/settings/users/{{ u.id }}/toggle">
+                <button class="small" type="submit">{{ '停用' if u.is_active else '启用' }}</button>
+              </form>
+              {% endif %}
+              <button class="small" type="button" onclick="openUserPassword(this)"
+                      data-user-id="{{ u.id }}" data-username="{{ u.username }}">重置密码</button>
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not users %}
+          <tr><td colspan="5" class="set-empty">还没有用户</td></tr>
           {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="form-note" style="margin-top:16px">
+      管理员可进入平台管理；资金经理可查看全部业务；出纳负责收付款，会计负责对账；普通用户为兼容旧账号，按资金经理权限处理。
+    </div>
+
+    {% else %}
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">平台管理</div>
+        <h1>系统维护</h1>
+        <div class="sub">查看系统运行状态、采集程序、租户上下文和操作记录；技术参数默认收起。</div>
+      </div>
+    </div>
+
+    <div class="status-grid">
+      <div class="status-card">
+        <span class="status-ico {{ 'green' if settings.enable_worker else 'gray' }}"><svg class="ico"><use href="#i-clock"/></svg></span>
+        <div class="status-text">
+          <span>自动采集服务</span>
+          <b>{{ '运行中' if settings.enable_worker else '已停止' }}</b>
+        </div>
+        <span class="tag {{ 'green' if settings.enable_worker else 'red' }}">{{ '正常' if settings.enable_worker else '未启用' }}</span>
+      </div>
+
+      <div class="status-card">
+        <span class="status-ico {{ 'green' if settings.enable_scheduler else 'gray' }}"><svg class="ico"><use href="#i-refresh"/></svg></span>
+        <div class="status-text">
+          <span>定时采集计划</span>
+          <b>{{ '运行中' if settings.enable_scheduler else '已停止' }}</b>
+        </div>
+        <span class="tag {{ 'green' if settings.enable_scheduler else 'red' }}">{{ '正常' if settings.enable_scheduler else '未启用' }}</span>
+      </div>
+
+      <div class="status-card">
+        <span class="status-ico blue"><svg class="ico"><use href="#i-key"/></svg></span>
+        <div class="status-text">
+          <span>已接入 UKey</span>
+          <b>{{ devices | length }} 台</b>
+        </div>
+        <a class="tag blue" href="/devices" style="text-decoration:none">去管理</a>
+      </div>
+    </div>
+
+    {% if is_super_admin %}
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>租户上下文</h2>
+          <div class="panel-sub">选择租户后，账户、任务、设备和流水只显示该租户的数据</div>
+        </div>
+      </div>
+      <form method="post" action="/tenant/switch" style="display:flex;gap:10px;align-items:center;padding:4px 0 8px">
+        <select name="tenant_id" onchange="this.form.submit()" style="max-width:360px">
+          <option value="">全部租户（仅查看）</option>
+          {% for t in tenants %}
+          <option value="{{ t.id }}" {{ 'selected' if current_tenant_id == t.id }}>{{ t.name }}（{{ t.code }}）</option>
+          {% endfor %}
+        </select>
+        <span class="muted">切换后写入的数据会归入当前租户</span>
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>采集程序</h2>
+          <div class="panel-sub">平台按这里的配置调用各家银行的采集程序 · 配置文件 <span class="mono">{{ collectors_file }}</span></div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>银行</th><th>命令</th><th>工作目录</th><th>状态</th></tr></thead>
+        <tbody>
+          {% for c in collectors %}
+          <tr>
+            <td>
+              <b>{{ c.name }}</b>
+              <div class="cell-sub mono">{{ c.code }}</div>
+            </td>
+            <td class="mono">{{ c.command or '—' }}</td>
+            <td class="mono">{{ c.cwd or '—' }}</td>
+            <td>
+              {% if c.state == 'ready' %}<span class="tag green">就绪</span>
+              {% elif c.state == 'unconfigured' %}<span class="tag gray">未配置</span>
+              {% else %}<span class="tag red">{{ c.detail }}</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>账户安全</h2>
+          <div class="panel-sub">平台如何保管你的银行登录信息</div>
+        </div>
+      </div>
+      <div class="security-note">
+        <span class="security-ico"><svg class="ico"><use href="#i-shield"/></svg></span>
+        <div>
+          <b>银行密码和 UKey PIN 都已加密保存</b>
+          <p>登录信息使用 Fernet 加密存储，只有在采集任务执行时才会临时解密，磁盘上不会出现明文密码。操作记录会保留每一次修改。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>操作记录</h2>
+          <div class="panel-sub">最近 {{ logs | length }} 条系统操作，点击「详情」可查看原始字段</div>
+        </div>
+      </div>
+      {% if logs %}
+      <div class="table-scroll" data-page-size="10" data-page-items=":scope > table > tbody > tr" data-page-unit="条记录">
+      <table class="log-table">
+        <thead><tr><th>时间</th><th>操作</th><th>对象</th><th>发生了什么</th></tr></thead>
+        <tbody>
+          {% for log in logs %}
+          {% set details = log | audit_details %}
+          <tr>
+            <td class="when">{{ log.created_at.strftime('%m-%d %H:%M') if log.created_at else '—' }}</td>
+            <td>
+              <b>{{ log.action | audit_action }}</b>
+              <div class="cell-sub">{{ log.actor | audit_actor }}</div>
+            </td>
+            <td class="muted nowrap">{{ log | audit_target }}</td>
+            <td class="summary">
+              {{ log | audit_summary }}
+              {% if details %}
+              <details class="log-detail">
+                <summary>详情</summary>
+                <dl class="log-kv">
+                  {% for key, value in details %}
+                  <dt>{{ key }}</dt><dd>{{ value }}</dd>
+                  {% endfor %}
+                </dl>
+              </details>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+        <div class="empty">还没有操作记录</div>
+      {% endif %}
+    </div>
+
+    <details class="tech standalone">
+      <summary>技术信息（供 IT 人员使用）</summary>
+      <div class="tech-body">
+        <table class="kv">
+          <tbody>
+            <tr><th>数据存放位置</th><td class="mono">{{ settings.data_dir }}</td></tr>
+            <tr><th>数据库</th><td class="mono">{{ settings.db_url or '本地文件数据库' }}</td></tr>
+            <tr><th>服务监听地址</th><td class="mono">{{ settings.host }}:{{ settings.port }}</td></tr>
+            <tr><th>采集程序</th><td class="mono">{{ settings.gf3_exe }}</td></tr>
+            <tr><th>采集解释器</th><td class="mono">{{ settings.collector_python or '与平台相同' }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
   </div>
-  {% else %}
-    <div class="empty">还没有操作记录</div>
-  {% endif %}
 </div>
 
-<details class="tech standalone">
-  <summary>技术信息（供 IT 人员使用）</summary>
-  <div class="tech-body">
-    <table class="kv">
-      <tbody>
-        <tr><th>数据存放位置</th><td class="mono">{{ settings.data_dir }}</td></tr>
-        <tr><th>数据库</th><td class="mono">{{ settings.db_url or '本地文件数据库' }}</td></tr>
-        <tr><th>服务监听地址</th><td class="mono">{{ settings.host }}:{{ settings.port }}</td></tr>
-        <tr><th>采集程序</th><td class="mono">{{ settings.gf3_exe }}</td></tr>
-        <tr><th>采集解释器</th><td class="mono">{{ settings.collector_python or '与平台相同' }}</td></tr>
-      </tbody>
-    </table>
+<div class="modal" id="user-modal" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+  <div class="box form-box">
+    <div class="head">
+      <div>
+        <strong id="user-modal-title">新建用户</strong>
+        <div class="modal-sub">新用户创建后立即启用</div>
+      </div>
+      <button class="icon-btn" type="button" onclick="closeModal('user-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <form method="post" action="/settings/users">
+      <div class="form-grid">
+        <div class="field">
+          <label for="user-username">用户名</label>
+          <input id="user-username" name="username" required minlength="2" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="user-password">初始密码</label>
+          <input id="user-password" name="password" type="password" required minlength="8" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="user-role">角色</label>
+          <select id="user-role" name="role">
+            {% for key, label in role_labels.items() %}
+            <option value="{{ key }}" {{ 'selected' if key == 'manager' }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% if is_super_admin %}
+        <div class="field">
+          <label for="user-tenant">所属租户</label>
+          <select id="user-tenant" name="tenant_id">
+            <option value="">平台级（全部租户）</option>
+            {% for t in tenants %}
+            <option value="{{ t.id }}">{{ t.name }}（{{ t.code }}）</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+      </div>
+      <div class="form-note">密码至少 8 位；管理员可进入平台管理，资金经理可看全部业务，出纳负责收付款，会计负责对账。</div>
+      <div class="modal-foot">
+        <button type="button" onclick="closeModal('user-modal')">取消</button>
+        <button class="primary" type="submit">创建用户</button>
+      </div>
+    </form>
   </div>
-</details>
+</div>
+
+<div class="modal" id="user-password-modal" role="dialog" aria-modal="true" aria-labelledby="user-password-title">
+  <div class="box form-box">
+    <div class="head">
+      <div>
+        <strong id="user-password-title">重置密码</strong>
+        <div class="modal-sub" id="user-password-subtitle"></div>
+      </div>
+      <button class="icon-btn" type="button" onclick="closeModal('user-password-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <form method="post" id="user-password-form">
+      <div class="field">
+        <label for="user-new-password">新密码</label>
+        <input id="user-new-password" name="password" type="password" required minlength="8" autocomplete="new-password">
+      </div>
+      <div class="form-note">重置后旧密码立即失效，至少 8 位。</div>
+      <div class="modal-foot">
+        <button type="button" onclick="closeModal('user-password-modal')">取消</button>
+        <button class="primary" type="submit">重置密码</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openUserModal() {
+    document.getElementById('user-modal')?.querySelector('form')?.reset();
+    openModal('user-modal', '#user-username');
+  }
+
+  function openUserPassword(button) {
+    const form = document.getElementById('user-password-form');
+    if (!form) return;
+    form.reset();
+    form.action = `/settings/users/${button.dataset.userId}/password`;
+    document.getElementById('user-password-subtitle').textContent = `用户 ${button.dataset.username}`;
+    openModal('user-password-modal', '#user-new-password');
+  }
+</script>
+
+<style>
+  .settings-shell {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+  .settings-nav {
+    position: sticky;
+    top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-right: 16px;
+    border-right: 1px solid var(--line);
+  }
+  .settings-nav a {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .settings-nav a:hover { background: var(--surface-2); color: var(--text); }
+  .settings-nav a.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+  .settings-nav .ico { width: 15px; height: 15px; }
+  .settings-content { min-width: 0; }
+  .callout { margin: 0 0 16px; padding: 10px 12px; border-left: 3px solid var(--brass); border-radius: 0 8px 8px 0; background: var(--surface-2); font-size: 12.5px; }
+  .user-table th, .user-table td { padding: 10px 12px; vertical-align: middle; }
+  .user-table td { border-bottom: 1px solid var(--line); }
+  .user-table tbody tr:hover td { background: #FCFBF8; }
+  .user-current { margin-left: 7px; }
+  .inline-role { display: flex; align-items: center; gap: 6px; margin: 0; }
+  .inline-role select { width: 112px; height: 30px; }
+  .user-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .user-actions form { display: inline-flex; margin: 0; }
+  .set-empty { padding: 32px 16px !important; text-align: center; color: var(--muted); }
+  @media (max-width: 900px) {
+    .settings-shell { grid-template-columns: 1fr; gap: 16px; }
+    .settings-nav {
+      position: static;
+      flex-direction: row;
+      padding: 0 0 8px;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+    }
+    .settings-nav a { white-space: nowrap; }
+  }
+</style>
 {% endblock %}
