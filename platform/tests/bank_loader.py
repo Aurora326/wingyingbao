@@ -15,7 +15,6 @@ BANKS = {
     "icbc": ("_archive/new_driver/icbc", "IcbcDriver"),
     "citic": ("_archive/new_driver/citic", "CiticDriver"),
     "cib": ("_archive/new_driver/cib", "CibDriver"),
-    "mock": ("模拟银行", "MockDriver"),
 }
 
 

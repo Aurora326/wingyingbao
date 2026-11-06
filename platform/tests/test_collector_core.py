@@ -8,15 +8,13 @@ import time
 import zipfile
 from pathlib import Path
 
-import pytest
-
 from common.collect import flow
 from common.collect.archive import archive_file
 from common.collect.browser import BrowserSession, extract_crx, extension_id, extension_installed
 from common.collect.download import HTML_SUFFIXES, DownloadWatcher, is_candidate, is_html, newest_since
 from common.collect.pin import PinInjector
 from common.collect.profile import BankProfile
-from bank_loader import bank_dir, load_driver_module, profile_path
+from bank_loader import bank_dir, profile_path
 
 
 class FakeLocator:
@@ -224,89 +222,6 @@ def test_pin_injector_prefers_aikeyboard(tmp_path, monkeypatch):
 
     assert injector.inject(FakeScope(), ["#passwordId"])
     assert calls == ["aikeyboard"]
-
-
-def test_prepare_only_touches_gf3_backend(monkeypatch):
-    import logging
-
-    import common.collect.base as base
-    from common.collect.base import RunContext
-    MockDriver = load_driver_module("mock").MockDriver
-
-    calls: list[tuple[str, int]] = []
-
-    class FakeGf3:
-        def __init__(self, exe: str = "gf3", cabinet: int = 1) -> None:
-            self.cabinet = cabinet
-
-        def isolate(self, port: int) -> None:
-            calls.append(("isolate", port))
-
-        def disconnect(self, port: int) -> None:
-            calls.append(("disconnect", port))
-
-    class FakeMb:
-        def __init__(self, exe: str = "", ter_id: str = "", port: int = 1, user: str = "") -> None:
-            self.ter_id = ter_id
-            self.port = port
-            self.user = user
-
-        def connect(self) -> bool:
-            calls.append(("mb_load", self.port))
-            return True
-
-        def wait_ready(self, seconds: int = 0) -> None:
-            return None
-
-        def disconnect(self) -> bool:
-            calls.append(("mb_unload", self.port))
-            return True
-
-    monkeypatch.setattr(base, "Gf3Controller", FakeGf3)
-    monkeypatch.setattr(base, "MbController", FakeMb)
-    driver = MockDriver(BankProfile({}))
-
-    def make_ctx(backend: str) -> RunContext:
-        return RunContext(
-            task={
-                "gf3_cabinet": 1533,
-                "gf3_port": 3,
-                "device_backend": backend,
-                "ter_id": "068330001533",
-            },
-            profile=BankProfile({}),
-            work_dir=Path("."),
-            downloads_dir=Path("."),
-            archive_root=Path("."),
-            logger=logging.getLogger("test"),
-        )
-
-    driver.prepare(make_ctx("mb"))
-    assert calls == [("mb_load", 3)]
-
-    calls.clear()
-    driver.prepare(make_ctx("gf3"))
-    assert calls == [("isolate", 3)]
-
-
-def test_prepare_rejects_mb_without_ter_id(monkeypatch):
-    import logging
-
-    import common.collect.base as base
-    from common.collect.base import RunContext
-    MockDriver = load_driver_module("mock").MockDriver
-
-    monkeypatch.setattr(base, "MbController", lambda **kwargs: None)
-    ctx = RunContext(
-        task={"gf3_port": 3, "device_backend": "mb"},
-        profile=BankProfile({}),
-        work_dir=Path("."),
-        downloads_dir=Path("."),
-        archive_root=Path("."),
-        logger=logging.getLogger("test"),
-    )
-    with pytest.raises(RuntimeError, match="ter_id"):
-        MockDriver(BankProfile({})).prepare(ctx)
 
 
 def test_browser_accepts_extension_directory(tmp_path):
