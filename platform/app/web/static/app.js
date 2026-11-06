@@ -333,8 +333,73 @@ async function showLog(taskId) {
   }
 }
 
-function applyLogFilters() {
-  const search = (document.getElementById("log-search")?.value || "").trim().toLowerCase();
+function paymentLogEntries(text, date) {
+  return (text || "").split(/\r?\n/).filter((line) => line.trim()).map((line) => {
+    const match = line.match(/^\[(\d{2}:\d{2}:\d{2})\]\s*(.*)$/);
+    const message = match ? match[2] : line.trim();
+    let level = "INFO";
+    if (/失败|错误|异常|超时|Traceback|ERROR/i.test(message)) level = "ERROR";
+    else if (/成功|完成|已解析/.test(message)) level = "SUCCESS";
+    else if (/跳过|无审批过程|警告|WARN/i.test(message)) level = "WARNING";
+    return {
+      time: match ? `${date} ${match[1]}` : "",
+      level,
+      source: "付款采集",
+      text: message,
+      attempt: 1,
+    };
+  });
+}
+
+async function showPaymentLog(taskId) {
+  const title = document.getElementById("log-title");
+  const subtitle = document.getElementById("log-subtitle");
+  const search = document.getElementById("log-search");
+  const level = document.getElementById("log-level");
+  const pageSize = document.getElementById("log-page-size");
+  const jump = document.getElementById("log-jump");
+  if (title) title.textContent = `任务 #${taskId} 执行日志`;
+  if (search) search.value = "";
+  if (level) level.value = "";
+  if (pageSize) pageSize.value = "10";
+  if (jump) jump.value = "";
+  logState.taskId = taskId;
+  logState.runs = [];
+  logState.entries = [];
+  logState.filtered = [];
+  logState.page = 1;
+  logState.pageSize = 10;
+  logState.attempt = "1";
+  showLogMessage("加载中…");
+  openModal("log-modal", "#log-search");
+  try {
+    const task = await getJSON(`/api/payment/collect/tasks/${taskId}`);
+    const started = task.started_at ? new Date(task.started_at) : null;
+    const finished = task.finished_at ? new Date(task.finished_at) : null;
+    const duration = started && finished ? finished - started : 0;
+    logState.runs = [{
+      attempt: 1,
+      exit_code: task.status === "succeeded" ? 0 : 1,
+      duration_ms: duration,
+      entries: [],
+    }];
+    populateLogAttempts();
+    logState.entries = paymentLogEntries(task.log_text || "", task.started_at ? task.started_at.slice(0, 10) : new Date().toISOString().slice(0, 10));
+    if (subtitle) {
+      const label = { succeeded: "已完成", failed: "需处理", running: "进行中", queued: "等待中" }[task.status] || task.status;
+      subtitle.textContent = `${label} · 耗时 ${logDuration(duration)}`;
+    }
+    if (!logState.entries.length) {
+      showLogMessage("暂无执行日志");
+      return;
+    }
+    applyLogFilters();
+  } catch (error) {
+    showLogMessage("读取失败: " + error.message);
+  }
+}
+
+function applyLogFilters() {  const search = (document.getElementById("log-search")?.value || "").trim().toLowerCase();
   const level = document.getElementById("log-level")?.value || "";
   const attempt = document.getElementById("log-attempt")?.value || logState.attempt;
   const levels = level === "ERROR" ? ["ERROR", "CRITICAL"] : level === "DEBUG" ? ["DEBUG", "TRACE"] : [level];

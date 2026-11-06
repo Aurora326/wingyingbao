@@ -87,6 +87,11 @@
     <span class="page-btn disabled">下一页</span>
     {% endif %}
     <span class="page-info">第 {{ page_no }} / {{ pages }} 页 · 共 {{ total }} 条</span>
+    <form class="page-jump" method="get" action="/tasks">
+      <input type="hidden" name="status" value="{{ status }}">
+      <label>跳至 <input type="number" name="page" min="1" max="{{ pages }}" value="{{ page_no }}"> 页</label>
+      <button class="small" type="submit">跳转</button>
+    </form>
   </div>
   {% endif %}
 </div>

@@ -9,7 +9,7 @@ from sqlalchemy import select
 from app.models import BankAccount, Enterprise, Statement
 from app.services.ingest import ingest_statement, verify_balance_continuity
 from app.services.parsers.statement import dedupe_hash, parse_statement
-from bank_loader import bank_dir, load_driver_module, make_driver, profile_path
+from bank_loader import REPO_ROOT, bank_dir, load_driver_module, make_driver, profile_path
 
 ICBC_DIR = Path(r"C:\wangyingbao\工商银行\icbc_automation\downloads\statements\2026\04")
 ICBC_SAMPLES = {
@@ -85,9 +85,11 @@ def test_icbc_ingest_idempotent_and_balance_continuous(db):
 
 
 def test_icbc_driver_registered():
-    """每家银行一个独立项目：驱动、配置、入口都在自己的目录里。"""
+    """新套驱动已归档到 _archive/new_driver；旧套入口仍在银行目录里。"""
+    project = REPO_ROOT / "工商银行" / "icbc_automation"
+    assert (project / "run_task.py").exists(), "缺少 run_task.py"
     directory = bank_dir("icbc")
-    for name in ("driver.py", "run_task.py", "profiles/icbc.yaml"):
+    for name in ("driver.py", "profiles/icbc.yaml"):
         assert (directory / name).exists(), f"缺少 {name}"
     driver = make_driver("icbc")
     assert driver.bank_code == "icbc"

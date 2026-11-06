@@ -55,6 +55,12 @@ class Settings:
         os.getenv("PLATFORM_MINGYUAN_COLLECTOR")
         or str(BASE_DIR.parent / "地产项目资料" / "采集明源云审批过程.py")
     )
+    oa_username: str = os.getenv("OA_USERNAME", "")
+    oa_password: str = os.getenv("OA_PASSWORD", "")
+    oa_collector: Path = Path(
+        os.getenv("PLATFORM_OA_COLLECTOR")
+        or str(BASE_DIR.parent / "地产项目资料" / "采集OA付款数据.py")
+    )
     payment_collect_mode: str = os.getenv("PLATFORM_PAYMENT_COLLECT_MODE", "agent")
     collectors_file: Path = Path(
         os.getenv("PLATFORM_COLLECTORS_FILE") or str(BASE_DIR / "collectors.yaml")

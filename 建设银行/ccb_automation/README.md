@@ -269,6 +269,25 @@ python main.py -p
 
 ---
 
+## 平台调用入口（run_task.py）
+
+平台的任务通过 `run_task.py --task task.json` 执行，和工行、中信、兴业保持同一契约：
+
+- 任务文件：`type`（statements/receipts）、`start_date`、`end_date`、`result_path`；
+- 密钥：不写入任务文件，由环境变量 `BANK_USERNAME` / `BANK_PASSWORD` / `BANK_PIN` 传入；
+- 结果：写入 `result_path` 的 JSON（`contract_version` / `ok` / `files` / `no_data` / `error_code` / `message`）；
+- 制单：平台入口固定 `collect_payments=False`，不会触发 `action=submit`。需要制单仍走 `python main.py -p`。
+
+采集程序清单里配置为：
+
+```yaml
+ccb:
+  command: ["python", "run_task.py"]
+  cwd: C:\wangyingbao\建设银行\ccb_automation
+```
+
+---
+
 ## 更新日志
 
 | 日期 | 更新内容 |

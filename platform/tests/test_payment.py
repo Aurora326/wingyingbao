@@ -17,6 +17,7 @@ from app.services.payment import (
     import_payment_excel,
     review_doc,
 )
+from app.services.payment_collect import enqueue_payment_collect, save_source_credentials
 
 
 def _sample_excel(path):
@@ -94,6 +95,83 @@ def test_import_confirm_review_and_draft(db, tmp_path):
     again = import_payment_excel(db, path)
     assert again["skipped"] == 1
     assert again["inserted"] == 0
+
+
+def test_import_non_contract_document(db, tmp_path):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "付款申请"
+    ws.append(
+        [
+            "序号", "业务ID", "单据类型", "申请编号", "申请主题", "申请日期",
+            "付款审批类型", "收款单位", "收款账号", "收款开户行", "付款单位", "付款账户",
+            "付款开户行", "申请金额", "实付金额", "项目信息", "流程状态", "当前节点", "当前处理人",
+        ]
+    )
+    ws.append(
+        [
+            1, "GUID-NC-001", "无合同", "A0298-TEST-NC-0001", "测试无合同付款", "2026-10-28",
+            "无合同付款审批", "测试收款单位", "TEST-ACCT-001", "测试银行第一分行",
+            "测试付款单位", "TEST-ACCT-002", "测试银行第二分行", 1466640, 1466640,
+            "测试项目", "处理中", "出纳", "王庆珍",
+        ]
+    )
+    path = tmp_path / "付款申请_无合同.xlsx"
+    wb.save(path)
+
+    result = import_payment_excel(db, path)
+    assert result["inserted"] == 1
+    doc = db.execute(select(PaymentDoc).where(PaymentDoc.apply_no == "A0298-TEST-NC-0001")).scalars().one()
+    assert doc.doc_type == "non_contract"
+    assert doc.contract_name == ""
+    assert doc.amount == Decimal("1466640")
+    assert doc.approval_node == "出纳"
+    assert doc.approval_handler == "王庆珍"
+
+
+def test_import_skips_unreviewed_document(db, tmp_path):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "付款申请"
+    ws.append(["序号", "业务ID", "单据类型", "审核状态", "申请编号", "申请主题", "收款单位", "申请金额"])
+    ws.append([1, "GUID-NC-002", "无合同", "未审核", "A0298-TEST-NC-SKIP", "未提交单据", "测试收款单位", 100])
+    path = tmp_path / "付款申请_未审核.xlsx"
+    wb.save(path)
+
+    result = import_payment_excel(db, path)
+    assert result["inserted"] == 0
+    assert result["skipped"] == 1
+    doc = db.execute(select(PaymentDoc).where(PaymentDoc.apply_no == "A0298-TEST-NC-SKIP")).scalars().first()
+    assert doc is None
+
+
+def test_import_keeps_blank_and_void_status(db, tmp_path):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "付款申请"
+    ws.append(["序号", "业务ID", "单据类型", "审核状态", "申请编号", "申请主题", "收款单位", "申请金额", "流程状态"])
+    ws.append([1, "GUID-BLANK", "合同", "已审核", "A0298-TEST-BLANK", "历史空状态单", "测试收款单位", 100, ""])
+    ws.append([2, "GUID-VOID", "合同", "已审核", "A0298-TEST-VOID", "已作废单", "测试收款单位", 200, "已作废"])
+    path = tmp_path / "付款申请_历史状态.xlsx"
+    wb.save(path)
+
+    result = import_payment_excel(db, path)
+    assert result["inserted"] == 2
+    blank = db.execute(select(PaymentDoc).where(PaymentDoc.apply_no == "A0298-TEST-BLANK")).scalars().one()
+    void = db.execute(select(PaymentDoc).where(PaymentDoc.apply_no == "A0298-TEST-VOID")).scalars().one()
+    assert blank.approval_status == ""
+    assert void.approval_status == "已作废"
+
+
+def test_oa_collect_uses_lookback_days(db, tmp_path):
+    save_source_credentials(db, "oa-test", "oa-pass", source="oa")
+    task = enqueue_payment_collect(db, source="oa", lookback_days=30)
+    try:
+        assert task.lookback_days == 30
+        assert task.since_date == dt.date.today() - dt.timedelta(days=30)
+    finally:
+        db.delete(task)
+        db.commit()
 
 
 def test_import_is_idempotent_with_force(db, tmp_path):

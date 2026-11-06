@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
-from app.models import CashierScope, PayeeAccount, PaymentCollectTask, PaymentDoc
+from app.models import CashierScope, PayeeAccount, PaymentCollectTask, PaymentDoc, PaymentSourceAccount
 from app.services.payment import (
     PaymentError,
     confirm_accounts,
@@ -45,7 +45,10 @@ class DraftIn(BaseModel):
 
 
 class CollectIn(BaseModel):
+    source: str = "mingyuan"
     limit: int = 5
+    limit_nocontract: int = -1
+    lookback_days: int = 0
     since: str = ""
 
 
@@ -92,6 +95,9 @@ def _doc_dict(doc: PaymentDoc) -> dict:
         "paid_amount": str(doc.paid_amount) if doc.paid_amount is not None else "",
         "currency": doc.currency,
         "approval_status": doc.approval_status,
+        "payment_status": doc.payment_status,
+        "approval_node": doc.approval_node,
+        "approval_handler": doc.approval_handler,
         "description": doc.description,
         "approval_steps": doc.approval_steps or [],
         "status": doc.status,
@@ -270,9 +276,27 @@ def list_payees(q: str | None = None, limit: int = 50, db: Session = Depends(get
 @router.post("/collect")
 def collect(payload: CollectIn, request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     try:
-        task = enqueue_payment_collect(db, limit=payload.limit, since=payload.since, created_by=_operator(request))
+        task = enqueue_payment_collect(
+            db,
+            limit=payload.limit,
+            limit_nocontract=payload.limit_nocontract,
+            lookback_days=payload.lookback_days,
+            since=payload.since,
+            created_by=_operator(request),
+            source=payload.source,
+        )
     except PaymentCollectError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    account = db.execute(
+        select(PaymentSourceAccount).where(PaymentSourceAccount.source == payload.source)
+    ).scalars().first()
+    if account is not None:
+        if payload.source == "oa":
+            account.collect_days = max(1, min(int(payload.lookback_days or 0), 365))
+        else:
+            account.collect_limit = max(0, int(payload.limit))
+            account.collect_nocontract = max(0, int(payload.limit_nocontract))
+        db.commit()
     if settings.payment_collect_mode == "local":
         background_tasks.add_task(run_payment_collect, task.id)
     return task_dict(task)

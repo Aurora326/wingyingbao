@@ -59,6 +59,7 @@ class AgentConfig:
     task_interval: int = 15
     task_timeout: int = 900
     mingyuan_collector: str = ""
+    oa_collector: str = ""
     payment_interval: int = 30
     payment_timeout: int = 1800
     auto_start_payment: bool = True
@@ -134,3 +135,18 @@ class AgentConfig:
             if candidate.exists():
                 return candidate
         return root / "mingyuan" / "采集明源云审批过程.py"
+
+    def oa_script(self) -> Path:
+        """OA 采集脚本：优先配置路径，其次安装目录，最后开发仓库。"""
+        if self.oa_collector:
+            path = Path(self.oa_collector)
+            if path.exists():
+                return path
+        root = app_root()
+        for candidate in (
+            root / "oa" / "采集OA付款数据.py",
+            root.parent / "地产项目资料" / "采集OA付款数据.py",
+        ):
+            if candidate.exists():
+                return candidate
+        return root / "oa" / "采集OA付款数据.py"

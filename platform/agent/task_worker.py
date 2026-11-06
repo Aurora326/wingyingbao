@@ -137,7 +137,11 @@ def collector_command(args, bank_code: str, task_path: Path) -> tuple[list[str],
         Path(args.collector_root),
     )
     path = Path(getattr(args, "collectors_file", "") or "")
-    if not bank_code or not path.is_file():
+    if not bank_code:
+        return fallback
+    if not path.is_file():
+        if not Path(args.collector_root).is_dir():
+            raise RuntimeError(f"未找到采集器清单 {path}，无法执行 {bank_code} 采集")
         return fallback
     try:
         import yaml
@@ -151,6 +155,8 @@ def collector_command(args, bank_code: str, task_path: Path) -> tuple[list[str],
         return fallback
     argv = [str(part) for part in command] if isinstance(command, list) else [str(command)]
     cwd = Path(str(entry.get("cwd") or args.collector_root))
+    if not cwd.is_dir():
+        raise RuntimeError(f"采集器工作目录不存在：{cwd}（请检查 collectors.yaml 的 cwd）")
     return [*argv, "--task", str(task_path)], cwd
 
 

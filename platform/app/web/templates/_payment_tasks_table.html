@@ -1,4 +1,6 @@
 {% from "_ui.html" import task_status %}
+{% set is_oa = source == 'oa' %}
+{% set source_key = 'oa' if is_oa else 'payment' %}
 <div class="panel">
   {% if payment_tasks %}
   <div class="table-wrap">
@@ -11,11 +13,18 @@
       <tr>
         <td class="nowrap">
           <b>{% if t.created_at %}{{ t.created_at[:16] | replace('T', ' ') }}{% else %}—{% endif %}</b>
-          <div class="cell-sub">#{{ t.id }} · {% if t.created_by == 'scheduler' %}定时调度{% else %}{{ t.created_by or '手动' }}{% endif %}</div>
+          <div class="cell-sub">#{{ t.id }} · {{ 'OA' if t.source == 'oa' else '明源云' }} · {% if t.created_by == 'scheduler' %}定时调度{% else %}{{ t.created_by or '手动' }}{% endif %}</div>
         </td>
         <td class="muted">
-          每次 {{ t.limit_count }} 条
+          {% if t.source == 'oa' %}
+          OA 请款
+          {% if t.lookback_days %}<div class="cell-sub">近 {{ t.lookback_days }} 天</div>{% endif %}
           {% if t.since_date %}<div class="cell-sub">自 {{ t.since_date }}</div>{% endif %}
+          {% else %}
+          合同 {{ t.limit_count }} 条
+          {% if t.limit_nocontract is not none and t.limit_nocontract >= 0 %}<div class="cell-sub">无合同 {{ t.limit_nocontract }} 条</div>{% endif %}
+          {% if t.since_date %}<div class="cell-sub">自 {{ t.since_date }}</div>{% endif %}
+          {% endif %}
         </td>
         <td>
           {{ task_status(t.status) }}
@@ -27,10 +36,7 @@
         </td>
         <td>
           {% if t.log_text %}
-          <details class="log-detail">
-            <summary>查看日志</summary>
-            <pre class="task-log">{{ t.log_text }}</pre>
-          </details>
+          <button class="small" type="button" onclick="showPaymentLog({{ t.id }})">查看日志</button>
           {% else %}
           <span class="faint">—</span>
           {% endif %}
@@ -42,11 +48,13 @@
   </div>
   {% else %}
   <div class="empty">
-    还没有明源云付款采集任务
-    <div class="empty-actions"><a class="btn small" href="/payments">去付款协同采集</a></div>
+    {% if is_oa %}还没有 OA 请款采集任务{% else %}还没有明源云付款采集任务{% endif %}
+    <div class="empty-actions">
+      <a class="btn small" href="/tasks?source={{ source_key }}">在当前页发起采集</a>
+    </div>
   </div>
   {% endif %}
-  {% set qs = 'source=payment&' ~ ('status=' ~ (status|urlencode) ~ '&' if status else '') %}
+  {% set qs = 'source=' ~ source_key ~ '&' ~ ('status=' ~ (status|urlencode) ~ '&' if status else '') %}
   {% set start = 1 if page_no <= 3 else page_no - 2 %}
   {% set end = pages if page_no >= pages - 2 else page_no + 2 %}
   {% if pages > 1 %}
@@ -77,6 +85,12 @@
     <span class="page-btn disabled">下一页</span>
     {% endif %}
     <span class="page-info">第 {{ page_no }} / {{ pages }} 页 · 共 {{ total }} 条</span>
+    <form class="page-jump" method="get" action="/tasks">
+      <input type="hidden" name="source" value="{{ source_key }}">
+      <input type="hidden" name="status" value="{{ status }}">
+      <label>跳至 <input type="number" name="page" min="1" max="{{ pages }}" value="{{ page_no }}"> 页</label>
+      <button class="small" type="submit">跳转</button>
+    </form>
   </div>
   {% endif %}
 </div>

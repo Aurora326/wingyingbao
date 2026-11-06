@@ -50,6 +50,14 @@ def _redirect(request: Request, msg: str = "") -> RedirectResponse:
 
 
 def _redirect_after_source(request: Request, next_page: str, msg: str) -> RedirectResponse:
+    if next_page in ("tasks:payment", "tasks:oa"):
+        from urllib.parse import quote
+
+        source = "oa" if next_page == "tasks:oa" else "payment"
+        target = f"/tasks?source={source}"
+        if msg:
+            target += f"&msg={quote(msg)}"
+        return RedirectResponse(target, status_code=303)
     if next_page == "payments":
         from urllib.parse import quote
 
@@ -87,6 +95,8 @@ def payment_settings_page(request: Request, tab: str = "accounts"):
         summary = account_master_summary(db)
         source_username, source_password = get_source_credentials(db)
         source_configured = bool(source_username and source_password)
+        oa_username, oa_password = get_source_credentials(db, "oa")
+        oa_configured = bool(oa_username and oa_password)
 
     return templates.TemplateResponse(
         request=request,
@@ -102,6 +112,8 @@ def payment_settings_page(request: Request, tab: str = "accounts"):
             "summary": summary,
             "source_username": source_username,
             "source_configured": source_configured,
+            "oa_username": oa_username,
+            "oa_configured": oa_configured,
             "sub_count": sub_count,
             "bank_names": BANK_NAMES,
             "scopes": scopes,
@@ -121,13 +133,17 @@ def save_source_account(
     username: str = Form(""),
     password: str = Form(""),
     next: str = Form(""),
+    source: str = Form("mingyuan"),
 ):
+    if source not in ("mingyuan", "oa"):
+        return _redirect_after_source(request, next, "不支持的采集来源")
     try:
         with SessionLocal() as db:
-            save_source_credentials(db, username.strip(), password)
+            save_source_credentials(db, username.strip(), password, source=source)
     except Exception as exc:
         return _redirect_after_source(request, next, f"保存失败：{exc}")
-    return _redirect_after_source(request, next, "明源云采集账号已保存，后续任务会随任务下发给执行器")
+    label = "OA" if source == "oa" else "明源云"
+    return _redirect_after_source(request, next, f"{label}采集账号已保存，后续任务会随任务下发给执行器")
 
 
 @router.post("/payment-settings/source-schedule")
@@ -135,9 +151,11 @@ def save_source_schedule(
     request: Request,
     enabled: str = Form(""),
     cron: str = Form("0 8 * * *"),
-    limit: int = Form(5),
+    source: str = Form("mingyuan"),
     next: str = Form(""),
 ):
+    if source not in ("mingyuan", "oa"):
+        return _redirect_after_source(request, next, "不支持的采集来源")
     cron = " ".join(cron.split())
     if len(cron.split()) != 5:
         return _redirect_after_source(request, next, "定时计划需要 5 段：分 时 日 月 周")
@@ -145,18 +163,18 @@ def save_source_schedule(
         cron_matches(cron, dt.datetime.now())
     except (TypeError, ValueError):
         return _redirect_after_source(request, next, "定时计划格式不正确，请检查分 时 日 月 周")
-    limit = max(0, min(limit, 100))
     with SessionLocal() as db:
         account = db.execute(
-            select(PaymentSourceAccount).where(PaymentSourceAccount.source == "mingyuan")
+            select(PaymentSourceAccount).where(PaymentSourceAccount.source == source)
         ).scalars().first()
         if account is None:
-            return _redirect_after_source(request, next, "请先配置明源云采集账号")
+            label = "OA" if source == "oa" else "明源云"
+            return _redirect_after_source(request, next, f"请先配置{label}采集账号")
         account.collect_enabled = bool(enabled)
         account.collect_cron = cron
-        account.collect_limit = limit
         db.commit()
-    return _redirect_after_source(request, next, "明源云定时采集计划已保存")
+    label = "OA" if source == "oa" else "明源云"
+    return _redirect_after_source(request, next, f"{label}定时采集计划已保存")
 
 
 @router.post("/payment-settings/accounts/import")

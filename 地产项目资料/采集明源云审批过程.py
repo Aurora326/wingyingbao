@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-明源云合同付款申请 + 审批过程采集（生产版）
+明源云付款申请 + 审批过程采集（生产版）
 =================================================
+覆盖范围：合同付款申请、无合同付款申请。
 路径：
   1. Playwright 登录门户 pkjt；
   2. 打开工作台台账页，触发 ERP SSO；
-  3. 用 ERP 台账接口分页拉取全部付款申请（HTFKApplyGUID）；
-  4. 逐条打开详情页，点击「审批过程」，捕获同一浏览器上下文弹出的 BPM 审批页；
-  5. 从审批页提取收付款账户、审批记录等字段。
+  3. 用 ERP 台账接口分页拉取付款申请（HTFKApplyGUID）；
+  4. 优先用台账 GUID 直接请求 BPM 审批接口，失败时回退详情页「审批过程」；
+  5. 从审批数据提取收付款账户、审批记录等字段。
 
 特点：
   - 凭据从环境变量或 config.ini 读取，不硬编码；
@@ -46,6 +47,11 @@ LEDGER_URL = (
     "https://erp-cb.cy.spdegc.com/std/32010404/6c3348e7-a9f3-e911-aa6c-6c4b9033306b"
     "?embedpage=1&workbenchHost=https%3a%2f%2fpkjt.cy.spdegc.com"
 )
+# 无合同付款申请台账
+LEDGER_NC_URL = (
+    "https://erp-cb.cy.spdegc.com/std/32010404/48a98767-4802-11e6-8a1a-104a7d87be86"
+    "?embedpage=1&workbenchHost=https%3a%2f%2fpkjt.cy.spdegc.com"
+)
 
 LIST_URL = "https://erp-cb.cy.spdegc.com/ajax/Mysoft.Map6.Modeling.Controls.AppGridAjaxHandler/LoadData"
 LIST_PARAMS = {
@@ -55,6 +61,30 @@ LIST_PARAMS = {
     "resFilterKey": "08db6a49-2978-4ff5-8376-cf1dd4df4b82",
     "pageId": "6b3348e7-a9f3-e911-aa6c-6c4b9033306b",
     "BUGUID": "08db6a49-2978-4ff5-8376-cf1dd4df4b82",
+}
+NC_LIST_URL = (
+    LIST_URL
+    + "?resFilterKeyType=1&resFilterKeyCode=zb.A0298&_tFields=BUGUID%2CPROJGUID"
+    "&resFilterKey=08db6a49-2978-4ff5-8376-cf1dd4df4b82"
+    "&pageId=48a98766-4802-11e6-8a1a-104a7d87be86"
+    "&BUGUID=08db6a49-2978-4ff5-8376-cf1dd4df4b82"
+)
+NC_FALLBACK_PAYLOAD = {
+    "pageIndex": 0,
+    "pageSize": 100,
+    "sortField": "ApplyDate",
+    "sortOrder": "d",
+    "viewId": "48a98769-4802-11e6-8a1a-104a7d87be86",
+    "controlHandler": "",
+    "options": {
+        "filters": [],
+        "context": {"sourceGUID": "08db6a49-2978-4ff5-8376-cf1dd4df4b82"},
+        "advancedFilterConditions": [],
+    },
+    "idField": "HTFKApplyGUID",
+    "conditionSelectedInfos": [{"field": "ApplyTypeEnum", "values": []}, {"field": "IsIntertemporal", "values": []}],
+    "gridViewId": "appGrid_View",
+    "functionCode": "32010404",
 }
 # ct 是 ERP 的页面签名。优先从浏览器请求里抓取；抓不到时用这个历史值兜底。
 FALLBACK_CT = "68fc3353d62261e27,3243e8-79a3fe-19-1aac66-4c9b303360b"
@@ -92,8 +122,8 @@ def load_credentials() -> tuple[str, str]:
     return user, pwd
 
 
-async def capture_conn(context):
-    """打开付款台账页，截获页面自己的 LoadData 请求，返回当前会话的 ct / viewId / payload。"""
+async def capture_conn(context, ledger_url: str = LEDGER_URL):
+    """打开指定台账页，截获页面自己的 LoadData 请求，返回当前会话的 ct / viewId / payload。"""
     conn = {}
     ledger_page = await context.new_page()
     try:
@@ -101,7 +131,7 @@ async def capture_conn(context):
             lambda r: "erp-cb.cy.spdegc.com" in r.url and "LoadData" in r.url,
             timeout=30000,
         ) as resp_info:
-            await ledger_page.goto(LEDGER_URL, timeout=60000)
+            await ledger_page.goto(ledger_url, timeout=60000)
         resp = await resp_info.value
         req = resp.request
         headers = await req.all_headers()
@@ -109,7 +139,7 @@ async def capture_conn(context):
             "ct": headers.get("ct", ""),
             "url": req.url,
             "payload": json.loads(req.post_data or "{}"),
-            "referer": headers.get("referer", LEDGER_URL),
+            "referer": headers.get("referer", ledger_url),
         }
     except Exception:
         pass
@@ -152,6 +182,7 @@ async def login_and_sso(pw, username: str, password: str, headed: bool):
     await asyncio.sleep(8)
 
     conn = await capture_conn(context)
+    conn_nc = await capture_conn(context, LEDGER_NC_URL)
     cookies = await context.cookies()
     cookie_dict = {c["name"]: c["value"] for c in cookies}
 
@@ -172,10 +203,18 @@ async def login_and_sso(pw, username: str, password: str, headed: bool):
             },
             "referer": LEDGER_URL,
         }
-        log(f"ERP SSO 完成，Cookie {len(cookie_dict)} 个，未捕获 ct，使用兜底值")
+        log(f"ERP SSO 完成，Cookie {len(cookie_dict)} 个，合同台账未捕获 ct，使用兜底值")
     else:
-        log(f"ERP SSO 完成，Cookie {len(cookie_dict)} 个，ct 已捕获")
-    return browser, context, page, cookie_dict, conn
+        log(f"ERP SSO 完成，Cookie {len(cookie_dict)} 个，合同台账 ct 已捕获")
+    if not conn_nc.get("ct"):
+        conn_nc = {
+            "ct": FALLBACK_CT,
+            "url": NC_LIST_URL,
+            "payload": dict(NC_FALLBACK_PAYLOAD),
+            "referer": LEDGER_NC_URL,
+        }
+        log("无合同台账未捕获 ct，使用兜底值")
+    return browser, context, page, cookie_dict, {"contract": conn, "non_contract": conn_nc}
 
 
 def _ledger_headers(conn: dict) -> dict:
@@ -221,15 +260,17 @@ async def fetch_ledger(context, cookie_dict: dict, conn: dict, page_size: int = 
             )
             if resp.status_code == 200:
                 break
-            if resp.status_code in (401, 403, 500) and attempt < 2:
-                log(f"台账第 {page_index + 1} 页返回 {resp.status_code}，刷新 ct 后重试...")
-                await asyncio.sleep(1)
-                new_conn = await capture_conn(context)
-                if new_conn.get("ct"):
-                    conn = new_conn
-                    cookies = await context.cookies()
-                    cookie_dict = {c["name"]: c["value"] for c in cookies}
-                continue
+            if resp.status_code in (401, 403, 500):
+                if attempt < 2:
+                    log(f"台账第 {page_index + 1} 页返回 {resp.status_code}，刷新 ct 后重试...")
+                    await asyncio.sleep(1)
+                    new_conn = await capture_conn(context)
+                    if new_conn.get("ct"):
+                        conn = new_conn
+                        cookies = await context.cookies()
+                        cookie_dict = {c["name"]: c["value"] for c in cookies}
+                    continue
+                break
             resp.raise_for_status()
 
         if resp is None or resp.status_code != 200:
@@ -393,23 +434,26 @@ def parse_approval_json(payload: dict, title: str = "") -> dict:
     main = tpl.get("form", {}).get("form_data", {}).get("main", {}) or {}
 
     payer_bank = ""
-    try:
-        fkyh = main.get("fkyh01")
-        if fkyh:
-            arr = json.loads(fkyh)
-            if isinstance(arr, list) and arr:
-                payer_bank = arr[0].get("BankAddress") or arr[0].get("BankName") or ""
-    except Exception:
-        pass
+    for key in ("fkyh01", "fkyh"):
+        try:
+            fkyh = main.get(key)
+            if fkyh:
+                arr = json.loads(fkyh)
+                if isinstance(arr, list) and arr:
+                    payer_bank = arr[0].get("BankAddress") or arr[0].get("BankName") or ""
+                    if payer_bank:
+                        break
+        except Exception:
+            pass
 
     info = {
         "合同名称": main.get("htmc", ""),
         "合同编号": main.get("htbh", ""),
         "合同金额": main.get("htje", ""),
         "累计实付金额": main.get("ljsfje", ""),
-        "本次申请金额": main.get("sqje_yb_", ""),
-        "本次实付金额": main.get("htfksq_bcsfje", ""),
-        "申请主题": main.get("sqzt", ""),
+        "本次申请金额": main.get("sqje_yb_", "") or main.get("whtfksq_bcsfje", ""),
+        "本次实付金额": main.get("htfksq_bcsfje", "") or main.get("whtfksq_bcsfje", ""),
+        "申请主题": main.get("sqzt", "") or main.get("fkzt", ""),
         "申请编号": main.get("sqbh", ""),
         "申请日期": main.get("sqrq", ""),
         "收款单位": main.get("skdw", ""),
@@ -417,14 +461,16 @@ def parse_approval_json(payload: dict, title: str = "") -> dict:
         "收款单位开户行": main.get("khyx", ""),
         "收款单位开户名称": main.get("skdw", ""),
         "付款单位": main.get("fkdw", ""),
-        "付款单位账户": main.get("htfksq_fkyx", ""),
+        "付款单位账户": main.get("htfksq_fkyx", "") or main.get("whtfksq_fkzh", "") or main.get("fkzh", ""),
         "付款单位开户行": payer_bank,
         "申请人": main.get("sqr", ""),
         "申请部门": main.get("sqbm", ""),
-        "项目信息": main.get("ProjectCostOwnerNames", ""),
+        "项目信息": main.get("ProjectCostOwnerNames", "") or main.get("ssxm", "") or main.get("xmcbgs", ""),
         "申请说明": main.get("sqsm", ""),
         "付款审批类型": main.get("fksplx", ""),
-        "币种": main.get("bzmc", ""),
+        "币种": main.get("bzmc", "") or main.get("bz", ""),
+        "成本归集状态": main.get("cbgjzt", ""),
+        "款项名称": main.get("kxmc", ""),
     }
 
     records = []
@@ -447,11 +493,30 @@ def parse_approval_json(payload: dict, title: str = "") -> dict:
         f"[{x['审批节点']}] {x['审批人']}({x['审批结果']}): {x['审批意见']} ({x['审批时间']})"
         for x in records
     )
+    process_status = tpl.get("ProcessInfo", {}).get("ProcessStatusName", "")
+    active_steps = [
+        step for step in (tpl.get("ApproveSteps", []) or [])
+        if step.get("status_text") in ("待审批", "审批中", "处理中") and not step.get("ended_time")
+    ]
+    current_node = "、".join(
+        dict.fromkeys(step.get("name", "") for step in active_steps if step.get("name"))
+    )
+    handlers = []
+    for step in active_steps:
+        for node in step.get("nodes", []) or []:
+            name = node.get("auditor_name") or node.get("handle_name") or ""
+            if name:
+                handlers.append(name)
+    current_handler = "、".join(dict.fromkeys(handlers))
+    info["当前节点"] = current_node or process_status
+    info["当前处理人"] = current_handler
     return {
         "审批单信息": info,
         "审批记录": records,
         "审批流程": flow,
-        "流程状态": tpl.get("ProcessInfo", {}).get("ProcessStatusName", ""),
+        "流程状态": process_status,
+        "当前节点": current_node or process_status,
+        "当前处理人": current_handler,
         "页面标题": title,
         "审批单原始": main,
     }
@@ -498,10 +563,10 @@ MAIN_SHEET = "付款申请"
 STEP_SHEET = "审批过程"
 
 MAIN_HEADERS = [
-    "序号", "业务ID", "申请编号", "申请主题", "申请人", "申请部门", "申请日期", "付款审批类型",
+    "序号", "业务ID", "单据类型", "审核状态", "申请编号", "申请主题", "申请人", "申请部门", "申请日期", "付款审批类型",
     "收款单位", "收款账号", "收款开户行", "付款单位", "付款账户", "付款开户行",
     "申请金额", "实付金额", "项目信息", "合同名称", "合同编号",
-    "流程状态", "审批节点数", "审批流程", "采集时间",
+    "流程状态", "当前节点", "当前处理人", "审批节点数", "审批流程", "采集时间",
 ]
 STEP_HEADERS = ["序号", "申请编号", "申请主题", "审批节点", "审批人", "审批结果", "审批意见", "审批时间"]
 
@@ -516,12 +581,26 @@ def load_existing_excel():
     if MAIN_SHEET in wb.sheetnames:
         ws = wb[MAIN_SHEET]
         rows = list(ws.iter_rows(values_only=True))
-        for row in rows[1:]:
-            vals = list(row)
-            if any(v is not None and str(v).strip() for v in vals):
-                main_rows.append(vals)
-                if len(vals) > 2 and vals[2]:
-                    codes.add(str(vals[2]))
+        if rows:
+            old_headers = [str(cell or "") for cell in rows[0]]
+            old_index = {name: idx for idx, name in enumerate(old_headers)}
+            for row in rows[1:]:
+                vals = list(row)
+                if not any(v is not None and str(v).strip() for v in vals):
+                    continue
+                # 按表头对齐到当前模板；旧文件没有“单据类型”时默认合同。
+                normalized = []
+                for header in MAIN_HEADERS:
+                    if header == "单据类型" and header not in old_index:
+                        normalized.append("合同")
+                    elif header in old_index and old_index[header] < len(vals):
+                        normalized.append(vals[old_index[header]])
+                    else:
+                        normalized.append("")
+                main_rows.append(normalized)
+                code = normalized[MAIN_HEADERS.index("申请编号")]
+                if code:
+                    codes.add(str(code))
     if STEP_SHEET in wb.sheetnames:
         ws = wb[STEP_SHEET]
         rows = list(ws.iter_rows(values_only=True))
@@ -544,6 +623,8 @@ def _build_main_row(seq: int, rec: dict) -> list:
     return [
         seq,
         rec.get("HTFKApplyGUID", ""),
+        item.get("_DocType", "合同"),
+        item.get("ApplyStateEnum__text", ""),
         _code_of(rec),
         info.get("申请主题", "") or item.get("Subject", ""),
         info.get("申请人", "") or item.get("AppliedByName", ""),
@@ -562,6 +643,8 @@ def _build_main_row(seq: int, rec: dict) -> list:
         info.get("合同名称", "") or item.get("ContractName", ""),
         info.get("合同编号", ""),
         rec.get("流程状态", ""),
+        info.get("当前节点", "") or rec.get("当前节点", "") or rec.get("流程状态", ""),
+        info.get("当前处理人", "") or rec.get("当前处理人", ""),
         len(rec.get("审批记录", []) or []),
         str(rec.get("审批流程", ""))[:1000],
         rec.get("采集时间", ""),
@@ -610,7 +693,8 @@ def export_excel(records: list[dict], existing_main: list | None = None, existin
 
 async def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--limit", type=int, default=0, help="最多采集多少条，0=全部")
+    parser.add_argument("--limit", type=int, default=0, help="合同台账最多采集多少条，0=全部")
+    parser.add_argument("--limit-nocontract", type=int, default=100, help="无合同台账最多采集多少条，默认 100")
     parser.add_argument("--page-size", type=int, default=100)
     parser.add_argument("--concurrency", type=int, default=3)
     parser.add_argument("--headed", action="store_true", help="显示浏览器窗口")
@@ -632,60 +716,78 @@ async def main() -> None:
         log(f"已有 Excel 记录 {len(existing_codes)} 条")
 
     async with async_playwright() as pw:
-        browser, context, _, cookies, conn = await login_and_sso(pw, username, password, args.headed)
+        browser, context, _, cookies, conns = await login_and_sso(pw, username, password, args.headed)
         try:
-            rows, total = await fetch_ledger(context, cookies, conn, args.page_size, args.limit, args.since)
-            log(f"台账共 {len(rows)} 条" + (f"（线上总数 {total}）" if total else ""))
-            if existing_codes:
-                rows = [r for r in rows if (r.get("ApplyCode") or "") not in existing_codes]
-                log(f"过滤已采集后待采集 {len(rows)} 条")
-            if args.limit:
-                rows = rows[:args.limit]
-                log(f"按 --limit 限制为 {len(rows)} 条")
+            all_results: list[dict] = []
+            sources = [
+                ("合同", "contract", conns["contract"]),
+                ("无合同", "non_contract", conns["non_contract"]),
+            ]
+            for label, _key, conn in sources:
+                source_limit = args.limit
+                if _key == "non_contract" and args.limit_nocontract >= 0:
+                    source_limit = args.limit_nocontract
+                rows, total = await fetch_ledger(context, cookies, conn, args.page_size, source_limit, args.since)
+                log(f"{label}台账共 {len(rows)} 条" + (f"（线上总数 {total}）" if total else ""))
+                for row in rows:
+                    row["_DocType"] = label
+                before_filter = len(rows)
+                rows = [r for r in rows if (r.get("ApplyStateEnum__text") or "") != "未审核"]
+                if len(rows) < before_filter:
+                    log(f"{label}跳过未审核 {before_filter - len(rows)} 条")
+                if existing_codes:
+                    rows = [r for r in rows if (r.get("ApplyCode") or "") not in existing_codes]
+                    log(f"{label}过滤已采集后待采集 {len(rows)} 条")
+                if not rows:
+                    continue
 
-            semaphore = asyncio.Semaphore(max(1, args.concurrency))
-            results: list[dict] = []
+                semaphore = asyncio.Semaphore(max(1, args.concurrency))
+                results: list[dict] = []
 
-            async def worker(idx: int, item: dict):
-                async with semaphore:
-                    for attempt in range(1, 4):
-                        try:
-                            if attempt < 3:
-                                data = await asyncio.wait_for(collect_one_fast(context, item), timeout=30)
-                            else:
-                                data = await asyncio.wait_for(collect_one(context, item), timeout=90)
-                            rec = {
-                                "HTFKApplyGUID": item.get("HTFKApplyGUID", ""),
-                                "台账": item,
-                                "审批单信息": data.get("审批单信息", {}),
-                                "审批流程": data.get("审批流程", ""),
-                                "审批记录": data.get("审批记录", []),
-                                "流程状态": data.get("流程状态", ""),
-                                "采集时间": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            }
-                            results.append(rec)
-                            log(f"[{idx}/{len(rows)}] 成功 {item.get('ApplyCode','')} | 收款: {rec['审批单信息'].get('收款单位','')}")
-                            return
-                        except Exception as e:
-                            if attempt == 3:
+                async def worker(idx: int, item: dict):
+                    async with semaphore:
+                        for attempt in range(1, 4):
+                            try:
+                                if attempt < 3:
+                                    data = await asyncio.wait_for(collect_one_fast(context, item), timeout=30)
+                                elif item.get("ContractGUID"):
+                                    data = await asyncio.wait_for(collect_one(context, item), timeout=90)
+                                else:
+                                    data = await asyncio.wait_for(collect_one_fast(context, item), timeout=60)
                                 rec = {
                                     "HTFKApplyGUID": item.get("HTFKApplyGUID", ""),
                                     "台账": item,
-                                    "审批单信息": {},
-                                    "审批流程": "",
-                                    "审批记录": [],
-                                    "流程状态": "",
+                                    "审批单信息": data.get("审批单信息", {}),
+                                    "审批流程": data.get("审批流程", ""),
+                                    "审批记录": data.get("审批记录", []),
+                                    "流程状态": data.get("流程状态", ""),
                                     "采集时间": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 }
                                 results.append(rec)
-                                log(f"[{idx}/{len(rows)}] 无审批过程，按台账写入 {item.get('ApplyCode','')}")
+                                log(f"[{label} {idx}/{len(rows)}] 成功 {item.get('ApplyCode','')} | 收款: {rec['审批单信息'].get('收款单位','')}")
                                 return
-                            else:
-                                await asyncio.sleep(2)
+                            except Exception:
+                                if attempt == 3:
+                                    rec = {
+                                        "HTFKApplyGUID": item.get("HTFKApplyGUID", ""),
+                                        "台账": item,
+                                        "审批单信息": {},
+                                        "审批流程": "",
+                                        "审批记录": [],
+                                        "流程状态": "",
+                                        "采集时间": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                    }
+                                    results.append(rec)
+                                    log(f"[{label} {idx}/{len(rows)}] 无审批过程，按台账写入 {item.get('ApplyCode','')}")
+                                    return
+                                else:
+                                    await asyncio.sleep(2)
 
-            await asyncio.gather(*(worker(i + 1, item) for i, item in enumerate(rows)))
-            export_excel(results, existing_main, existing_steps)
-            log(f"完成：本次采集 {len(results)} 条，累计 {len(existing_codes) + len(results)} 条，Excel: {EXCEL_PATH}")
+                await asyncio.gather(*(worker(i + 1, item) for i, item in enumerate(rows)))
+                all_results.extend(results)
+
+            export_excel(all_results, existing_main, existing_steps)
+            log(f"完成：本次采集 {len(all_results)} 条，累计 {len(existing_codes) + len(all_results)} 条，Excel: {EXCEL_PATH}")
         finally:
             await browser.close()
 

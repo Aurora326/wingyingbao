@@ -20,7 +20,11 @@ from app.models import AppUser, AuditLog, BankAccount, CollectionTask, PaymentCo
 from app.services import collectors, security
 from app.services import permissions
 from app.services.banks import list_banks
-from app.services.payment_collect import task_dict
+from app.services.payment_collect import (
+    get_source_credentials,
+    get_source_schedule,
+    task_dict,
+)
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
@@ -290,9 +294,10 @@ def _task_list_context(db, status: str, page: int = 1, size: int = TASK_PAGE_SIZ
     }
 
 
-def _payment_task_list_context(db, status: str, page: int = 1, size: int = 20) -> dict:
+def _payment_task_list_context(db, status: str, page: int = 1, size: int = 20, source: str = "payment") -> dict:
     page = max(page, 1)
-    query = select(PaymentCollectTask)
+    source_key = "oa" if source == "oa" else "mingyuan"
+    query = select(PaymentCollectTask).where(PaymentCollectTask.source == source_key)
     if status:
         query = query.where(PaymentCollectTask.status == status)
     total = db.execute(query.with_only_columns(func.count(PaymentCollectTask.id)).order_by(None)).scalar_one()
@@ -306,7 +311,9 @@ def _payment_task_list_context(db, status: str, page: int = 1, size: int = 20) -
     ).scalars().all()
     counts = dict(
         db.execute(
-            select(PaymentCollectTask.status, func.count(PaymentCollectTask.id)).group_by(PaymentCollectTask.status)
+            select(PaymentCollectTask.status, func.count(PaymentCollectTask.id))
+            .where(PaymentCollectTask.source == source_key)
+            .group_by(PaymentCollectTask.status)
         ).all()
     )
     stats = {
@@ -324,8 +331,22 @@ def _payment_task_list_context(db, status: str, page: int = 1, size: int = 20) -
         "pages": pages,
         "total": total,
         "size": size,
-        "task_source": "payment",
-        "source": "payment",
+        "task_source": "oa" if source == "oa" else "payment",
+        "source": "oa" if source == "oa" else "payment",
+    }
+
+
+def _payment_config_context(db, is_admin: bool = False) -> dict:
+    my_user, my_pwd = get_source_credentials(db)
+    oa_user, oa_pwd = get_source_credentials(db, "oa")
+    return {
+        "source_username": my_user,
+        "source_configured": bool(my_user and my_pwd),
+        "oa_username": oa_user,
+        "oa_configured": bool(oa_user and oa_pwd),
+        "schedule": get_source_schedule(db),
+        "oa_schedule": get_source_schedule(db, "oa"),
+        "is_admin": is_admin,
     }
 
 
@@ -335,14 +356,22 @@ def tasks_page(request: Request, status: str = "", page: int = 1, source: str = 
     if denied:
         return denied
     with SessionLocal() as db:
-        if source == "payment":
-            context = _payment_task_list_context(db, status, page)
+        if source in ("payment", "oa"):
+            context = _payment_task_list_context(db, status, page, source=source)
+            user = getattr(request.state, "user", None)
+            context.update(
+                _payment_config_context(
+                    db,
+                    bool(user and permissions.can_menu(user.role, "payment_settings")),
+                )
+            )
         else:
             context = _task_list_context(db, status, page)
             context["accounts"] = accounts_api.list_accounts(db)["items"]
             context["task_source"] = "bank"
             context["source"] = ""
     context.update(page="tasks")
+    context["msg"] = request.query_params.get("msg", "")
     return templates.TemplateResponse(request=request, name="tasks.html", context=context)
 
 
@@ -352,8 +381,8 @@ def tasks_partial(request: Request, status: str = "", page: int = 1, source: str
     if denied:
         return denied
     with SessionLocal() as db:
-        if source == "payment":
-            context = _payment_task_list_context(db, status, page)
+        if source in ("payment", "oa"):
+            context = _payment_task_list_context(db, status, page, source=source)
         else:
             context = _task_list_context(db, status, page)
             context["task_source"] = "bank"

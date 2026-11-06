@@ -208,6 +208,13 @@ class MainWindow(QMainWindow):
         collector_row = QHBoxLayout()
         collector_row.addWidget(self.my_collector_edit, 1)
         collector_row.addWidget(browse_btn)
+        self.oa_collector_edit = QLineEdit()
+        self.oa_collector_edit.setPlaceholderText("留空使用安装目录 oa\\采集OA付款数据.py")
+        oa_browse_btn = QPushButton("选择")
+        oa_browse_btn.clicked.connect(self._choose_oa_script)
+        oa_collector_row = QHBoxLayout()
+        oa_collector_row.addWidget(self.oa_collector_edit, 1)
+        oa_collector_row.addWidget(oa_browse_btn)
         self.payment_spin = QSpinBox()
         self.payment_spin.setRange(5, 3600)
         self.payment_spin.setSuffix(" 秒")
@@ -231,6 +238,7 @@ class MainWindow(QMainWindow):
         advanced_form.addRow("工作目录", self.work_edit)
         advanced_form.addRow("Python", self.python_edit)
         advanced_form.addRow("明源云采集脚本", collector_row)
+        advanced_form.addRow("OA采集脚本", oa_collector_row)
         advanced_form.addRow("付款轮询间隔", self.payment_spin)
         advanced_form.addRow("付款采集超时", self.payment_timeout_spin)
         advanced_form.addRow("设备上报间隔", self.report_spin)
@@ -320,6 +328,7 @@ class MainWindow(QMainWindow):
         self.task_spin.setValue(cfg.task_interval)
         self.timeout_spin.setValue(cfg.task_timeout)
         self.my_collector_edit.setText(cfg.mingyuan_collector)
+        self.oa_collector_edit.setText(cfg.oa_collector)
         self.payment_spin.setValue(cfg.payment_interval)
         self.payment_timeout_spin.setValue(cfg.payment_timeout)
         self.auto_payment.setChecked(cfg.auto_start_payment)
@@ -342,6 +351,7 @@ class MainWindow(QMainWindow):
         cfg.task_interval = self.task_spin.value()
         cfg.task_timeout = self.timeout_spin.value()
         cfg.mingyuan_collector = self.my_collector_edit.text().strip()
+        cfg.oa_collector = self.oa_collector_edit.text().strip()
         cfg.payment_interval = self.payment_spin.value()
         cfg.payment_timeout = self.payment_timeout_spin.value()
         cfg.auto_start_payment = self.auto_payment.isChecked()
@@ -392,6 +402,8 @@ class MainWindow(QMainWindow):
         checks.append(("付款采集脚本", payment.exists(), str(payment)))
         mingyuan = cfg.mingyuan_script()
         checks.append(("明源云采集脚本", mingyuan.exists(), str(mingyuan)))
+        oa = cfg.oa_script()
+        checks.append(("OA采集脚本", oa.exists(), str(oa)))
         collectors = cfg.collectors()
         checks.append(("采集器 bankcore", (collectors / "bankcore" / "run_task.py").exists(), str(collectors)))
         mb = Path(cfg.mb_exe) if cfg.mb_exe else None
@@ -408,6 +420,11 @@ class MainWindow(QMainWindow):
         path, _ = QFileDialog.getOpenFileName(self, "选择明源云采集脚本", str(app_root()), "Python 脚本 (*.py)")
         if path:
             self.my_collector_edit.setText(path)
+
+    def _choose_oa_script(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "选择 OA 采集脚本", str(app_root()), "Python 脚本 (*.py)")
+        if path:
+            self.oa_collector_edit.setText(path)
 
     def _process_env(self) -> QProcessEnvironment:
         env = QProcessEnvironment.systemEnvironment()
@@ -490,6 +507,7 @@ class MainWindow(QMainWindow):
                 "--url", cfg.platform_url,
                 "--agent-code", cfg.agent_code,
                 "--collector", str(cfg.mingyuan_script()),
+                "--oa-collector", str(cfg.oa_script()),
                 "--work-dir", str(cfg.work() / "payment"),
                 "--interval", str(cfg.payment_interval),
                 "--timeout", str(cfg.payment_timeout),

@@ -20,6 +20,20 @@ REPO_ROOT = BASE_DIR.parent
 DEFAULT_COLLECTOR = REPO_ROOT.parent / "地产项目资料" / "采集明源云审批过程.py"
 
 
+def _default_oa_collector() -> Path:
+    candidates = (
+        REPO_ROOT / "oa" / "采集OA付款数据.py",
+        REPO_ROOT.parent / "地产项目资料" / "采集OA付款数据.py",
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[-1]
+
+
+DEFAULT_OA_COLLECTOR = _default_oa_collector()
+
+
 def post_json(endpoint: str, token: str, payload: dict, timeout: int = 120) -> dict:
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     request = urllib.request.Request(
@@ -60,32 +74,70 @@ def execute(task: dict, args) -> dict:
     if output.exists():
         output.unlink()
 
-    command = [
-        sys.executable,
-        str(args.collector),
-        "--limit",
-        str(task.get("limit") or 0),
-        "--output",
-        str(output),
-        "--force",
-        "--concurrency",
-        "5",
-    ]
-    if task.get("since"):
-        command += ["--since", str(task["since"])]
+    source = task.get("source") or "mingyuan"
+    collector = args.oa_collector if source == "oa" else args.collector
+    if not collector.exists():
+        return {
+            "agent_code": args.agent_code,
+            "attempt": 1,
+            "exit_code": 1,
+            "duration_ms": 0,
+            "log_text": f"采集脚本不存在: {collector}",
+            "result": {},
+            "files": [],
+        }
+
+    if source == "oa":
+        command = [
+            sys.executable,
+            str(collector),
+            "--output",
+            str(output),
+            "--workers",
+            "4",
+        ]
+        if task.get("since"):
+            command += ["--since", str(task["since"])]
+        skip_codes = task.get("skip_codes") or []
+        if skip_codes:
+            skip_file = work_dir / "skip_codes.txt"
+            skip_file.write_text("\n".join(str(code) for code in skip_codes), encoding="utf-8")
+            command += ["--skip-codes-file", str(skip_file)]
+    else:
+        command = [
+            sys.executable,
+            str(collector),
+            "--limit",
+            str(task.get("limit") or 0),
+            "--output",
+            str(output),
+            "--force",
+            "--concurrency",
+            "5",
+        ]
+        if task.get("limit_nocontract") is not None and int(task["limit_nocontract"]) >= 0:
+            command += ["--limit-nocontract", str(task["limit_nocontract"])]
+        if task.get("since"):
+            command += ["--since", str(task["since"])]
 
     env = dict(os.environ, PYTHONIOENCODING="utf-8")
     # 账号由平台在领取任务时下发，执行器不保存
-    if task.get("username"):
-        env["MY_USERNAME"] = str(task["username"])
-    if task.get("password"):
-        env["MY_PASSWORD"] = str(task["password"])
-    if not env.get("MY_USERNAME") and env.get("MINGYUAN_USERNAME"):
-        env["MY_USERNAME"] = env["MINGYUAN_USERNAME"]
-    if not env.get("MY_PASSWORD") and env.get("MINGYUAN_PASSWORD"):
-        env["MY_PASSWORD"] = env["MINGYUAN_PASSWORD"]
+    if source == "oa":
+        if task.get("username"):
+            env["OA_USERNAME"] = str(task["username"])
+        if task.get("password"):
+            env["OA_PASSWORD"] = str(task["password"])
+    else:
+        if task.get("username"):
+            env["MY_USERNAME"] = str(task["username"])
+        if task.get("password"):
+            env["MY_PASSWORD"] = str(task["password"])
+        if not env.get("MY_USERNAME") and env.get("MINGYUAN_USERNAME"):
+            env["MY_USERNAME"] = env["MINGYUAN_USERNAME"]
+        if not env.get("MY_PASSWORD") and env.get("MINGYUAN_PASSWORD"):
+            env["MY_PASSWORD"] = env["MINGYUAN_PASSWORD"]
 
-    log(f"领取付款采集任务 {task_id}: limit={task.get('limit')} since={task.get('since') or '-'}")
+    log(f"领取付款采集任务 {task_id}: source={source} limit={task.get('limit')} since={task.get('since') or '-'}")
     lines: list[str] = []
     exit_code = 1
     timed_out = False
@@ -109,7 +161,7 @@ def execute(task: dict, args) -> dict:
     try:
         proc = subprocess.Popen(
             command,
-            cwd=str(args.collector.parent),
+            cwd=str(collector.parent),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -186,6 +238,10 @@ def main() -> int:
         default=os.getenv("PLATFORM_MINGYUAN_COLLECTOR", str(DEFAULT_COLLECTOR)),
     )
     parser.add_argument(
+        "--oa-collector",
+        default=os.getenv("PLATFORM_OA_COLLECTOR", str(DEFAULT_OA_COLLECTOR)),
+    )
+    parser.add_argument(
         "--work-dir",
         default=os.getenv("PLATFORM_PAYMENT_WORK_DIR", str(BASE_DIR / "work" / "payment")),
     )
@@ -196,12 +252,15 @@ def main() -> int:
     args.work_dir = Path(args.work_dir)
     args.work_dir.mkdir(parents=True, exist_ok=True)
     args.collector = Path(args.collector)
+    args.oa_collector = Path(args.oa_collector)
     if not args.url or not args.token:
         log("缺少 PLATFORM_URL 或 PLATFORM_AGENT_TOKEN")
         return 1
     if not args.collector.exists():
         log(f"采集脚本不存在: {args.collector}")
         return 1
+    if not args.oa_collector.exists():
+        log(f"OA 采集脚本不存在（OA 任务会失败）: {args.oa_collector}")
     log(f"付款采集 Agent 启动：{args.agent_code} → {args.url}")
     if args.once:
         return 0 if run_once(args) == 0 else 1

@@ -93,14 +93,22 @@ COLUMN_ADDITIONS = {
     },
     "payment_doc": {
         "payer_sub_account_id": "INTEGER",
+        "payment_status": "VARCHAR(16) NOT NULL DEFAULT ''",
+        "approval_node": "VARCHAR(128) NOT NULL DEFAULT ''",
+        "approval_handler": "VARCHAR(128) NOT NULL DEFAULT ''",
     },
     "payment_collect_task": {
         "agent_code": "VARCHAR(32) NOT NULL DEFAULT ''",
+        "limit_nocontract": "INTEGER NOT NULL DEFAULT -1",
+        "lookback_days": "INTEGER NOT NULL DEFAULT 0",
+        "source": "VARCHAR(16) NOT NULL DEFAULT 'mingyuan'",
     },
     "payment_source_account": {
         "collect_enabled": "BOOLEAN NOT NULL DEFAULT 0",
         "collect_cron": "VARCHAR(64) NOT NULL DEFAULT '0 8 * * *'",
-        "collect_limit": "INTEGER NOT NULL DEFAULT 5",
+        "collect_limit": "INTEGER NOT NULL DEFAULT 200",
+        "collect_nocontract": "INTEGER NOT NULL DEFAULT 100",
+        "collect_days": "INTEGER NOT NULL DEFAULT 30",
     },
     "collection_task": {
         "agent_code": "VARCHAR(32) NOT NULL DEFAULT 'local'",

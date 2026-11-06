@@ -410,6 +410,9 @@ class PaymentDoc(Base, TimestampMixin, TenantMixin):
     paid_amount: Mapped[Decimal | None] = mapped_column(Numeric(20, 2), nullable=True)
     currency: Mapped[str] = mapped_column(String(8), default="CNY")
     approval_status: Mapped[str] = mapped_column(String(32), default="")
+    payment_status: Mapped[str] = mapped_column(String(16), default="")
+    approval_node: Mapped[str] = mapped_column(String(128), default="")
+    approval_handler: Mapped[str] = mapped_column(String(128), default="")
     approval_steps: Mapped[list] = mapped_column(JSON, default=list)
     raw_json: Mapped[dict] = mapped_column(JSON, default=dict)
     status: Mapped[str] = mapped_column(String(24), default="pending_confirm")
@@ -478,7 +481,9 @@ class PaymentSourceAccount(Base, TimestampMixin, TenantMixin):
     password_enc: Mapped[str] = mapped_column(Text, default="")
     collect_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     collect_cron: Mapped[str] = mapped_column(String(64), default="0 8 * * *")
-    collect_limit: Mapped[int] = mapped_column(Integer, default=5)
+    collect_limit: Mapped[int] = mapped_column(Integer, default=200)
+    collect_nocontract: Mapped[int] = mapped_column(Integer, default=100)
+    collect_days: Mapped[int] = mapped_column(Integer, default=30)
     updated_at: Mapped[dt.datetime] = mapped_column(DateTime, default=utcnow)
 
 
@@ -489,8 +494,11 @@ class PaymentCollectTask(Base, TimestampMixin, TenantMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     status: Mapped[str] = mapped_column(String(16), default="queued")
+    source: Mapped[str] = mapped_column(String(16), default="mingyuan")
     agent_code: Mapped[str] = mapped_column(String(32), default="")
     limit_count: Mapped[int] = mapped_column(Integer, default=5)
+    limit_nocontract: Mapped[int] = mapped_column(Integer, default=-1)
+    lookback_days: Mapped[int] = mapped_column(Integer, default=0)
     since_date: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
     output_path: Mapped[str] = mapped_column(String(512), default="")
     log_text: Mapped[str] = mapped_column(Text, default="")

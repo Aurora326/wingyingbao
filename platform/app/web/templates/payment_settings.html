@@ -39,8 +39,25 @@
     {% if source_configured %}<span class="set-pill ok">已配置</span>{% else %}<span class="set-pill off">未配置</span>{% endif %}
   </div>
   <form method="post" action="/payment-settings/source-account?tab=source" class="set-form set-form-bar">
+    <input type="hidden" name="source" value="mingyuan">
     <label>账号<input type="text" name="username" value="{{ source_username }}" required placeholder="明源云登录账号"></label>
     <label>密码<input type="password" name="password" placeholder="{{ '已配置，留空不修改' if source_configured else '请输入密码' }}"></label>
+    <button class="primary small" type="submit">保存账号</button>
+  </form>
+</div>
+
+<div class="panel set-panel" style="margin-top:16px">
+  <div class="panel-head">
+    <div>
+      <h2>OA 采集账号</h2>
+      <div class="panel-sub">用于采集请款与财务报销单据；账号保存在平台侧，领取任务时下发，客户机不保存密码。</div>
+    </div>
+    {% if oa_configured %}<span class="set-pill ok">已配置</span>{% else %}<span class="set-pill off">未配置</span>{% endif %}
+  </div>
+  <form method="post" action="/payment-settings/source-account?tab=source" class="set-form set-form-bar">
+    <input type="hidden" name="source" value="oa">
+    <label>账号<input type="text" name="username" value="{{ oa_username }}" required placeholder="OA 登录账号"></label>
+    <label>密码<input type="password" name="password" placeholder="{{ '已配置，留空不修改' if oa_configured else '请输入密码' }}"></label>
     <button class="primary small" type="submit">保存账号</button>
   </form>
 </div>

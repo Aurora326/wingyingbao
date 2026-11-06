@@ -55,6 +55,21 @@ def _amount(row: dict[str, object]) -> Decimal | None:
     return None
 
 
+def _clean_project(value: str) -> str:
+    """明源云项目信息常拼成「项目-某项目」或「项目-费用—某项目」，去掉尾部重复。"""
+    parts = [_clean_project_part(part) for part in value.split(",")]
+    return ",".join(parts)
+
+
+def _clean_project_part(value: str) -> str:
+    for index, char in enumerate(value):
+        if char in "-—" and index > 0:
+            tail = value[index + 1 :]
+            if tail and value.startswith(tail):
+                return value[:index]
+    return value
+
+
 def _read_sheet(path: Path, sheet_name: str) -> list[dict[str, object]]:
     wb = load_workbook(path, data_only=True)
     ws = wb[sheet_name] if sheet_name in wb.sheetnames else wb.worksheets[0]
@@ -160,6 +175,10 @@ def import_payment_excel(db: Session, path: Path, force: bool = False) -> dict:
         if not apply_no:
             skipped += 1
             continue
+        if _cell(row, "审核状态") == "未审核":
+            skipped += 1
+            continue
+        flow_status = _cell(row, "流程状态")
         amount = _amount(row)
         if amount is None:
             errors.append(f"{apply_no}: 缺少金额")
@@ -175,11 +194,18 @@ def import_payment_excel(db: Session, path: Path, force: bool = False) -> dict:
 
         existing = db.execute(select(PaymentDoc).where(PaymentDoc.apply_no == apply_no)).scalars().first()
         steps = steps_by_code.get(apply_no, [])
+        doc_type_label = _cell(row, "单据类型")
+        if "无合同" in doc_type_label:
+            doc_type = "non_contract"
+        elif "报销" in doc_type_label or "划转" in doc_type_label:
+            doc_type = "expense"
+        else:
+            doc_type = "contract"
         values = dict(
             book_set_id=book_set.id,
             enterprise_id=enterprise.id,
-            source_system="明源云",
-            doc_type="contract",
+            source_system=_cell(row, "来源系统") or "明源云",
+            doc_type=doc_type,
             subject=_cell(row, "申请主题", "主题"),
             applicant=_cell(row, "申请人"),
             department=_cell(row, "申请部门"),
@@ -187,7 +213,7 @@ def import_payment_excel(db: Session, path: Path, force: bool = False) -> dict:
             approval_type=_cell(row, "付款审批类型"),
             contract_name=_cell(row, "合同名称"),
             contract_no=_cell(row, "合同编号"),
-            project_name=_cell(row, "项目信息"),
+            project_name=_clean_project(_cell(row, "项目信息")),
             payee_name=_cell(row, "收款单位") or (payee.payee_name if payee else ""),
             payee_account_no=_cell(row, "收款账号", "收款单位账户") or (payee.account_no if payee else ""),
             payee_bank=_cell(row, "收款开户行", "收款单位开户行") or (payee.bank_name if payee else ""),
@@ -199,7 +225,10 @@ def import_payment_excel(db: Session, path: Path, force: bool = False) -> dict:
             amount=amount,
             paid_amount=_to_decimal(row.get("实付金额")),
             currency=_cell(row, "币种") or "CNY",
-            approval_status=_cell(row, "流程状态"),
+            approval_status=flow_status,
+            payment_status=_cell(row, "支付状态"),
+            approval_node=_cell(row, "当前节点"),
+            approval_handler=_cell(row, "当前处理人"),
             approval_steps=steps,
             raw_json={"main": {k: (v.isoformat() if hasattr(v, "isoformat") else float(v) if isinstance(v, Decimal) else v) for k, v in row.items()}, "steps": steps},
         )
@@ -209,6 +238,8 @@ def import_payment_excel(db: Session, path: Path, force: bool = False) -> dict:
             inserted += 1
         elif force:
             for key, value in values.items():
+                if key == "approval_steps" and not value and existing.approval_steps:
+                    continue
                 setattr(existing, key, value)
             if existing.status not in (STATUS_READY, STATUS_DRAFTED):
                 existing.status = STATUS_PENDING_CONFIRM

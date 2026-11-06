@@ -11,7 +11,9 @@ DESKTOP_DIR = Path(__file__).resolve().parent
 PLATFORM_DIR = DESKTOP_DIR.parent
 WORKSPACE = PLATFORM_DIR.parent
 DEFAULT_COLLECTORS = WORKSPACE / "collectors"
+DEFAULT_COLLECTORS_FILE = PLATFORM_DIR / "collectors.yaml"
 DEFAULT_MINGYUAN = WORKSPACE / "地产项目资料" / "采集明源云审批过程.py"
+DEFAULT_OA = WORKSPACE / "地产项目资料" / "采集OA付款数据.py"
 DEFAULT_OUTPUT = PLATFORM_DIR / "dist" / "UKeyAgent"
 IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache", "work", "agent.env")
 
@@ -79,7 +81,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="组装 UKey 采集助手便携目录")
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     parser.add_argument("--collectors", default=str(DEFAULT_COLLECTORS))
+    parser.add_argument("--collectors-file", default=str(DEFAULT_COLLECTORS_FILE))
     parser.add_argument("--mingyuan-collector", default=str(DEFAULT_MINGYUAN))
+    parser.add_argument("--oa-collector", default=str(DEFAULT_OA))
     parser.add_argument("--force", action="store_true", help="覆盖已有输出目录")
     parser.add_argument("--skip-runtime", action="store_true", help="不创建 Python 运行时")
     parser.add_argument("--skip-browser", action="store_true", help="不安装 Playwright Chromium")
@@ -102,6 +106,12 @@ def main() -> int:
         copy_tree(collectors_source, app_dir / "collectors")
     else:
         print(f"警告：采集器目录不存在，跳过银行采集器: {collectors_source}")
+    collectors_file = Path(args.collectors_file)
+    if collectors_file.is_file():
+        shutil.copy2(collectors_file, app_dir / "collectors.yaml")
+        print(f"已复制采集器清单: {collectors_file}")
+    else:
+        print(f"警告：采集器清单不存在，客户机需自行配置: {collectors_file}")
     mingyuan_source = Path(args.mingyuan_collector)
     if mingyuan_source.exists():
         target_dir = app_dir / "mingyuan"
@@ -110,6 +120,14 @@ def main() -> int:
         print(f"已复制明源云采集脚本: {mingyuan_source}")
     else:
         print(f"警告：明源云采集脚本不存在，桌面端需要手动指定: {mingyuan_source}")
+    oa_source = Path(args.oa_collector)
+    if oa_source.exists():
+        target_dir = app_dir / "oa"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(oa_source, target_dir / "采集OA付款数据.py")
+        print(f"已复制 OA 采集脚本: {oa_source}")
+    else:
+        print(f"警告：OA 采集脚本不存在，桌面端需要手动指定: {oa_source}")
 
     if not args.skip_runtime:
         python = build_runtime(

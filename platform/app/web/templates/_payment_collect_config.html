@@ -1,0 +1,72 @@
+{% set is_oa = source == 'oa' %}
+{% set label = 'OA 请款' if is_oa else '明源云付款' %}
+{% set next_page = 'tasks:oa' if is_oa else 'tasks:payment' %}
+{% set cfg = oa_schedule if is_oa else schedule %}
+<div class="collect-sheet">
+  <div class="collect-sheet-head">
+    <div>
+      <h2>{{ label }}采集</h2>
+      <div class="collect-sheet-sub">
+        {% if is_oa %}采集请款与财务报销单据；按截止天数取最近数据。{% else %}采集合同付款与无合同付款单据；按条数取最新数据。{% endif %}
+      </div>
+    </div>
+    {% if (is_oa and oa_configured) or (not is_oa and source_configured) %}
+    <span class="set-pill ok">已配置</span>
+    {% else %}
+    <span class="set-pill off">未配置</span>
+    {% endif %}
+  </div>
+
+  <div class="collect-row">
+    <div class="collect-row-label">采集账号</div>
+    {% if is_admin %}
+    <form method="post" action="/payment-settings/source-account?tab=source" class="collect-form">
+      <input type="hidden" name="source" value="{{ 'oa' if is_oa else 'mingyuan' }}">
+      <input type="hidden" name="next" value="{{ next_page }}">
+      <label>账号<input type="text" name="username" value="{{ oa_username if is_oa else source_username }}" required placeholder="{{ 'OA 登录账号' if is_oa else '明源云登录账号' }}"></label>
+      <label>密码<input type="password" name="password" placeholder="{{ '已配置，留空不修改' if ((is_oa and oa_configured) or (not is_oa and source_configured)) else '请输入密码' }}"></label>
+      <button class="primary small" type="submit">保存账号</button>
+    </form>
+    {% else %}
+    <div class="collect-form"><span class="collect-hint">采集账号由管理员维护。</span></div>
+    {% endif %}
+  </div>
+
+  <div class="collect-row">
+    <div class="collect-row-label">定时采集</div>
+    {% if is_admin %}
+    <form method="post" action="/payment-settings/source-schedule?tab=source" class="collect-form">
+      <input type="hidden" name="source" value="{{ 'oa' if is_oa else 'mingyuan' }}">
+      <input type="hidden" name="next" value="{{ next_page }}">
+      <label class="collect-check"><input type="checkbox" name="enabled" value="1" {{ 'checked' if cfg.enabled }}> 启用</label>
+      <label>计划<input type="text" name="cron" value="{{ cfg.cron }}" placeholder="0 8 * * *"></label>
+      <button class="primary small" type="submit">保存计划</button>
+      <span class="collect-hint">
+        {% if is_oa %}按最近一次立即采集的截止天数（{{ cfg.days }} 天）执行
+        {% else %}按最近一次立即采集的条数（合同 {{ cfg.limit }} / 无合同 {{ cfg.nocontract }}）执行{% endif %}
+      </span>
+    </form>
+    {% else %}
+    <div class="collect-form"><span class="collect-hint">{% if cfg.enabled %}已启用：{{ cfg.cron }}{% else %}未启用，由管理员维护{% endif %}</span></div>
+    {% endif %}
+  </div>
+
+  <div class="collect-row">
+    <div class="collect-row-label">立即采集</div>
+    <form method="post" action="/payments/collect" class="collect-form">
+      <input type="hidden" name="source" value="{{ 'oa' if is_oa else 'mingyuan' }}">
+      <input type="hidden" name="next" value="{{ next_page }}">
+      {% if is_oa %}
+      <label>截止天数<input type="number" name="lookback_days" value="{{ cfg.days }}" min="1" max="365"></label>
+      <span class="collect-hint">申请日期在最近 N 天内，截止到当天</span>
+      {% else %}
+      <label>合同条数<input type="number" name="limit" value="{{ cfg.limit }}" min="0" max="1800"></label>
+      <label>无合同条数<input type="number" name="limit_nocontract" value="{{ cfg.nocontract }}" min="0" max="1800"></label>
+      {% endif %}
+      <button class="primary small" type="submit">立即采集{{ ' OA 请款' if is_oa else '明源云' }}</button>
+      {% if (is_oa and not oa_configured) or (not is_oa and not source_configured) %}
+      <span class="collect-hint">请先配置采集账号</span>
+      {% endif %}
+    </form>
+  </div>
+</div>

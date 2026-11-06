@@ -1,20 +1,20 @@
-<div class="stat-row">
-  <div class="stat">
+<div class="collect-stats">
+  <div>
     <span class="k">全部任务</span>
     <span class="v">{{ stats.total }}</span>
-    <span class="f">明源云付款采集记录</span>
+    <span class="f">{{ 'OA 请款采集记录' if task_source == 'oa' else '明源云付款采集记录' }}</span>
   </div>
-  <div class="stat">
+  <div>
     <span class="k">进行中</span>
     <span class="v {{ 'amber' if stats.running else '' }}">{{ stats.running }}</span>
     <span class="f">等待或正在执行</span>
   </div>
-  <div class="stat">
+  <div>
     <span class="k">已完成</span>
     <span class="v green">{{ stats.succeeded }}</span>
     <span class="f">付款单据已导入</span>
   </div>
-  <div class="stat">
+  <div>
     <span class="k">需处理</span>
     <span class="v {{ 'red' if stats.failed else '' }}">{{ stats.failed }}</span>
     <span class="f">{% if stats.failed %}建议查看日志后重试{% else %}没有失败任务{% endif %}</span>

@@ -10,11 +10,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# bank_code -> (项目目录, 驱动类名)
+# bank_code -> (驱动目录, 驱动类名)
 BANKS = {
-    "icbc": ("工商银行/icbc_automation", "IcbcDriver"),
-    "citic": ("中信网银/citic_automation", "CiticDriver"),
-    "cib": ("兴业网银/cib_automation", "CibDriver"),
+    "icbc": ("_archive/new_driver/icbc", "IcbcDriver"),
+    "citic": ("_archive/new_driver/citic", "CiticDriver"),
+    "cib": ("_archive/new_driver/cib", "CibDriver"),
     "mock": ("模拟银行", "MockDriver"),
 }
 

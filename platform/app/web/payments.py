@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.config import settings
 from app.db import SessionLocal
-from app.models import BankAccount, PayeeAccount, PaymentCollectTask, PaymentDoc
+from app.models import BankAccount, PayeeAccount, PaymentCollectTask, PaymentDoc, PaymentSourceAccount
 from app.services.payment import (
     PaymentError,
     confirm_accounts,
@@ -96,7 +96,11 @@ def payments_page(request: Request, status: str = "", q: str = "", page: int = 1
             select(PaymentCollectTask).order_by(PaymentCollectTask.id.desc()).limit(5)
         ).scalars().all()
         source_username, source_password = get_source_credentials(db)
+        oa_username, oa_password = get_source_credentials(db, "oa")
         schedule = get_source_schedule(db)
+        today = dt.date.today()
+        month_index = today.year * 12 + today.month - 3
+        oa_since = dt.date(month_index // 12, month_index % 12 + 1, 1)
 
     return templates.TemplateResponse(
         request=request,
@@ -108,6 +112,8 @@ def payments_page(request: Request, status: str = "", q: str = "", page: int = 1
             "payees": payees,
             "source_username": source_username,
             "source_configured": bool(source_username and source_password),
+            "oa_configured": bool(oa_username and oa_password),
+            "oa_since": oa_since.isoformat(),
             "schedule_enabled": schedule["enabled"],
             "schedule_cron": schedule["cron"],
             "schedule_limit": schedule["limit"],
@@ -122,6 +128,7 @@ def payments_page(request: Request, status: str = "", q: str = "", page: int = 1
             "status_order": STATUS_ORDER,
             "collect_tasks": [task_dict(t) for t in collect_tasks],
             "collector_available": settings.payment_collect_mode == "agent" or settings.mingyuan_collector.exists(),
+            "oa_collector_available": settings.payment_collect_mode == "agent" or settings.oa_collector.exists(),
             "msg": request.query_params.get("msg", ""),
         },
     )
@@ -131,18 +138,48 @@ def payments_page(request: Request, status: str = "", q: str = "", page: int = 1
 def payments_collect(
     request: Request,
     background_tasks: BackgroundTasks,
-    limit: int = Form(5),
+    limit: int = Form(200),
+    limit_nocontract: int = Form(100),
+    lookback_days: int = Form(30),
     since: str = Form(""),
+    source: str = Form("mingyuan"),
+    next: str = Form(""),
 ):
     try:
         with SessionLocal() as db:
-            task = enqueue_payment_collect(db, limit=limit, since=since, created_by=_operator(request))
+            task = enqueue_payment_collect(
+                db,
+                limit=limit,
+                limit_nocontract=limit_nocontract,
+                lookback_days=lookback_days,
+                since=since,
+                created_by=_operator(request),
+                source=source,
+            )
+            account = db.execute(
+                select(PaymentSourceAccount).where(PaymentSourceAccount.source == source)
+            ).scalars().first()
+            if account is not None:
+                if source == "oa":
+                    account.collect_days = max(1, min(int(lookback_days), 365))
+                else:
+                    account.collect_limit = max(0, int(limit))
+                    account.collect_nocontract = max(0, int(limit_nocontract))
+                db.commit()
     except PaymentCollectError as exc:
         return _redirect(f"提交采集失败：{exc}")
     if settings.payment_collect_mode == "local":
         background_tasks.add_task(run_payment_collect, task.id)
-        return _redirect(f"采集任务 #{task.id} 已提交，完成后自动导入")
-    return _redirect(f"采集任务 #{task.id} 已提交，等待客户机 Agent 领取")
+        message = f"采集任务 #{task.id} 已提交，完成后自动导入"
+    else:
+        label = "OA" if source == "oa" else "明源云"
+        message = f"{label}采集任务 #{task.id} 已提交，等待客户机 Agent 领取"
+    if next in ("tasks:payment", "tasks:oa"):
+        from urllib.parse import quote
+
+        source_param = "oa" if next == "tasks:oa" else "payment"
+        return RedirectResponse(f"/tasks?source={source_param}&msg={quote(message)}", status_code=303)
+    return _redirect(message)
 
 
 @router.post("/payments/import")
@@ -232,6 +269,9 @@ async def payments_edit(request: Request, doc_id: int):
         doc.contract_name = value("contract_name")
         doc.contract_no = value("contract_no")
         doc.approval_status = value("approval_status")
+        doc.payment_status = value("payment_status")
+        doc.approval_node = value("approval_node")
+        doc.approval_handler = value("approval_handler")
         doc.status = status
         doc.description = value("description")
         try:

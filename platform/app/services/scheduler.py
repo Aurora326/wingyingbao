@@ -135,12 +135,20 @@ class Scheduler(threading.Thread):
                     enqueue_task(db, account, task_type, start, end, trigger="schedule", created_by="scheduler")
 
             sources = [
-                (source.id, source.tenant_id, source.collect_cron, source.collect_limit or 5)
+                (
+                    source.id,
+                    source.tenant_id,
+                    source.source,
+                    source.collect_cron,
+                    source.collect_limit or 200,
+                    source.collect_nocontract if source.collect_nocontract is not None else 100,
+                    source.collect_days or 30,
+                )
                 for source in db.execute(
                     select(PaymentSourceAccount).where(PaymentSourceAccount.collect_enabled.is_(True))
                 ).scalars().all()
             ]
-            for source_id, tenant_id, collect_cron, collect_limit in sources:
+            for source_id, tenant_id, source_code, collect_cron, collect_limit, collect_nocontract, collect_days in sources:
                 if not cron_matches(collect_cron, now):
                     continue
                 if self._last_payment_slot.get(source_id) == slot:
@@ -151,6 +159,9 @@ class Scheduler(threading.Thread):
                         task = enqueue_payment_collect(
                             db,
                             limit=collect_limit,
+                            limit_nocontract=collect_nocontract if source_code != "oa" else -1,
+                            source=source_code,
+                            lookback_days=collect_days if source_code == "oa" else 0,
                             created_by="scheduler",
                         )
                         if settings.payment_collect_mode == "local":

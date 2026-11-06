@@ -87,9 +87,14 @@ def create_app() -> FastAPI:
                 request.state.tenant_id = tenant_id
                 token = set_current_tenant(tenant_id)
                 try:
-                    return await call_next(request)
+                    response = await call_next(request)
                 finally:
                     reset_current_tenant(token)
+                if not path.startswith("/api") and not path.startswith("/static"):
+                    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+                    response.headers["Pragma"] = "no-cache"
+                    response.headers["Expires"] = "0"
+                return response
         if path.startswith("/api"):
             from fastapi.responses import JSONResponse
 
