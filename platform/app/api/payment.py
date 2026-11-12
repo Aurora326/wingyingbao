@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
-from app.models import CashierScope, PayeeAccount, PaymentCollectTask, PaymentDoc, PaymentSourceAccount
+from app.models import CashierScope, PayeeAccount, PaymentCollectTask, PaymentDoc, PaymentSourceAccount, SubAccount
 from app.services.payment import (
     PaymentError,
     confirm_accounts,
@@ -155,13 +155,17 @@ def list_docs(
         query = query.where(PaymentDoc.book_set_id.in_(scope))
     if q:
         pattern = f"%{q}%"
-        query = query.where(
+        query = query.outerjoin(
+            SubAccount, PaymentDoc.payer_sub_account_id == SubAccount.id
+        ).where(
             or_(
                 PaymentDoc.apply_no.like(pattern),
                 PaymentDoc.subject.like(pattern),
                 PaymentDoc.payee_name.like(pattern),
                 PaymentDoc.payer_name.like(pattern),
                 PaymentDoc.project_name.like(pattern),
+                SubAccount.ledger_name.like(pattern),
+                SubAccount.sub_no.like(pattern),
             )
         )
     total = db.execute(query.with_only_columns(func.count(PaymentDoc.id)).order_by(None)).scalar_one()

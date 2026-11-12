@@ -78,13 +78,15 @@ def payments_page(request: Request, status: str = "", q: str = "", payer: str = 
         base = select(PaymentDoc)
         if q:
             pattern = f"%{q}%"
-            base = base.where(
+            base = base.outerjoin(SubAccount, PaymentDoc.payer_sub_account_id == SubAccount.id).where(
                 or_(
                     PaymentDoc.apply_no.like(pattern),
                     PaymentDoc.subject.like(pattern),
                     PaymentDoc.payee_name.like(pattern),
                     PaymentDoc.payer_name.like(pattern),
                     PaymentDoc.project_name.like(pattern),
+                    SubAccount.ledger_name.like(pattern),
+                    SubAccount.sub_no.like(pattern),
                 )
             )
         if payer:
