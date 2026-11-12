@@ -5,6 +5,15 @@ import datetime as dt
 from pydantic import BaseModel, Field
 
 
+class TaskRetry(BaseModel):
+    agent_code: str | None = None
+
+
+class AgentCreate(BaseModel):
+    code: str = Field(min_length=2, max_length=32, pattern=r"^[A-Za-z0-9._-]+$")
+    name: str = Field(min_length=1, max_length=64)
+
+
 class DeviceCreate(BaseModel):
     name: str
     bank_code: str
@@ -24,7 +33,7 @@ class AccountCreate(BaseModel):
     account_name: str = ""
     enterprise_id: int | None = None
     ukey_device_id: int | None = None
-    collect_enabled: bool = True
+    collect_enabled: bool = False
     collect_cron: str = "0 8,18 * * *"
     collect_mode: str = Field(default="both", pattern="^(statements|receipts|both)$")
     days_back: int = 30

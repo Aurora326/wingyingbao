@@ -10,6 +10,7 @@ from pathlib import Path
 from PySide6.QtCore import QProcess, QProcessEnvironment, Qt, QThread, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import (
+    QAbstractSpinBox,
     QApplication,
     QCheckBox,
     QFileDialog,
@@ -33,9 +34,9 @@ from PySide6.QtWidgets import (
 )
 
 try:
-    from .config import AgentConfig, APP_NAME, app_root, local_dir, log_dir
+    from .config import AgentConfig, APP_NAME, app_root, config_path, discover_ter_ids, local_dir, log_dir, resolve_mb_exe
 except ImportError:
-    from config import AgentConfig, APP_NAME, app_root, local_dir, log_dir
+    from config import AgentConfig, APP_NAME, app_root, config_path, discover_ter_ids, local_dir, log_dir, resolve_mb_exe
 
 APP_VERSION = "desktop/1.0"
 USER_AGENT = (
@@ -109,48 +110,107 @@ class MainWindow(QMainWindow):
         self._load_config_to_form()
         self._build_tray()
         self._update_buttons()
-        self.append_log(f"程序启动，配置目录 {app_root()}")
+        self.append_log(f"程序启动，配置文件 {config_path()}")
         if self.cfg.auto_start_workers and self.cfg.platform_url and self.cfg.agent_token:
             QTimer.singleShot(800, self.start_workers)
+
+    @staticmethod
+    def _section_title(text: str) -> QLabel:
+        label = QLabel(text)
+        label.setObjectName("sectionTitle")
+        return label
+
+    @staticmethod
+    def _divider() -> QFrame:
+        line = QFrame()
+        line.setObjectName("divider")
+        line.setFrameShape(QFrame.HLine)
+        line.setFixedHeight(1)
+        return line
 
     def _build_ui(self) -> None:
         central = QWidget()
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
-        root.setContentsMargins(18, 16, 18, 16)
-        root.setSpacing(12)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
 
-        header = QHBoxLayout()
+        # ── 顶部标题栏 ───────────────────────────────────────
+        header = QWidget()
+        header.setObjectName("header")
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(20, 14, 20, 14)
+        header_layout.setSpacing(12)
+
+        logo = QLabel()
+        logo.setPixmap(make_icon().pixmap(36, 36))
+        logo.setFixedSize(36, 36)
+        header_layout.addWidget(logo)
+
+        titles = QVBoxLayout()
+        titles.setSpacing(1)
         title = QLabel("UKey 采集助手")
-        title.setObjectName("title")
-        header.addWidget(title)
-        header.addStretch(1)
+        title.setObjectName("appTitle")
+        subtitle = QLabel(f"执行器 · {APP_VERSION}")
+        subtitle.setObjectName("appSub")
+        titles.addWidget(title)
+        titles.addWidget(subtitle)
+        header_layout.addLayout(titles)
+        header_layout.addStretch(1)
+
         self.status_label = QLabel("● 已停止")
         self.status_label.setObjectName("status")
-        header.addWidget(self.status_label)
-        root.addLayout(header)
+        self.status_label.setProperty("state", "stopped")
+        header_layout.addWidget(self.status_label)
+        root.addWidget(header)
 
+        # ── 主体 ────────────────────────────────────────────
+        body = QWidget()
+        body.setObjectName("body")
+        body_layout = QVBoxLayout(body)
+        body_layout.setContentsMargins(20, 16, 20, 18)
+        body_layout.setSpacing(14)
+
+        activity_bar = QFrame()
+        activity_bar.setObjectName("activityBar")
+        activity_row = QHBoxLayout(activity_bar)
+        activity_row.setContentsMargins(12, 9, 12, 9)
+        activity_row.setSpacing(9)
+        dot = QLabel()
+        dot.setObjectName("activityDot")
+        dot.setFixedSize(6, 6)
         self.activity_label = QLabel("等待启动")
         self.activity_label.setObjectName("activity")
-        root.addWidget(self.activity_label)
-
-        note = QLabel("执行器只领取平台下发的采集任务，不创建任务。发起采集请到平台「付款协同」页面操作。")
-        note.setObjectName("note")
-        note.setWordWrap(True)
-        root.addWidget(note)
+        activity_row.addWidget(dot)
+        activity_row.addWidget(self.activity_label, 1)
+        body_layout.addWidget(activity_bar)
 
         splitter = QSplitter(Qt.Horizontal)
-        root.addWidget(splitter, 1)
+        splitter.setChildrenCollapsible(False)
+        splitter.setHandleWidth(1)
+        body_layout.addWidget(splitter, 1)
 
+        # 左：配置（内容可滚动，操作按钮固定）
         left = QWidget()
         left_layout = QVBoxLayout(left)
-        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setContentsMargins(0, 0, 18, 0)
+        left_layout.setSpacing(10)
 
-        connection = QGroupBox("平台连接")
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(10)
+
+        content_layout.addWidget(self._section_title("平台连接"))
+        connection = QWidget()
         form = QFormLayout(connection)
-        form.setLabelAlignment(Qt.AlignRight)
+        form.setContentsMargins(0, 0, 0, 0)
+        form.setHorizontalSpacing(14)
+        form.setVerticalSpacing(10)
+        form.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         self.url_edit = QLineEdit()
-        self.url_edit.setPlaceholderText("平台地址")
+        self.url_edit.setPlaceholderText("https://平台地址")
         self.token_edit = QLineEdit()
         self.token_edit.setEchoMode(QLineEdit.Password)
         self.token_edit.setPlaceholderText("粘贴平台下发的 Agent 令牌")
@@ -159,39 +219,38 @@ class MainWindow(QMainWindow):
         form.addRow("平台地址", self.url_edit)
         form.addRow("Agent 令牌", self.token_edit)
         form.addRow("Agent 编号", self.code_edit)
-        left_layout.addWidget(connection)
+        content_layout.addWidget(connection)
 
-        mingyuan = QGroupBox("明源云付款采集")
-        mingyuan_form = QFormLayout(mingyuan)
-        mingyuan_form.setLabelAlignment(Qt.AlignRight)
+        content_layout.addWidget(self._divider())
+        content_layout.addWidget(self._section_title("明源云付款采集"))
+
+        mingyuan = QWidget()
+        mingyuan_layout = QVBoxLayout(mingyuan)
+        mingyuan_layout.setContentsMargins(0, 0, 0, 0)
+        mingyuan_layout.setSpacing(7)
         auto_note = QLabel("明源云账号由平台下发任务时带入，本机不保存。")
+        auto_note.setObjectName("hint")
         auto_note.setWordWrap(True)
-        self.auto_payment = QCheckBox("启动采集时同时运行付款采集")
-        mingyuan_form.addRow("", auto_note)
-        mingyuan_form.addRow("", self.auto_payment)
-        left_layout.addWidget(mingyuan)
+        mingyuan_layout.addWidget(auto_note)
+        content_layout.addWidget(mingyuan)
 
-        run_buttons = QHBoxLayout()
-        self.save_btn = QPushButton("保存配置")
-        self.test_btn = QPushButton("测试连接")
-        self.start_btn = QPushButton("启动采集")
-        self.start_btn.setObjectName("primary")
-        self.stop_btn = QPushButton("停止采集")
-        run_buttons.addWidget(self.save_btn)
-        run_buttons.addWidget(self.test_btn)
-        run_buttons.addWidget(self.start_btn)
-        run_buttons.addWidget(self.stop_btn)
-        left_layout.addLayout(run_buttons)
+        content_layout.addWidget(self._divider())
 
-        self.advanced_btn = QPushButton("高级设置")
+        self.advanced_btn = QPushButton("高级设置  ▾")
+        self.advanced_btn.setObjectName("link")
         self.advanced_btn.setCheckable(True)
         self.advanced_btn.toggled.connect(self._toggle_advanced)
-        left_layout.addWidget(self.advanced_btn)
+        content_layout.addWidget(self.advanced_btn)
 
-        advanced = QGroupBox("高级设置（一般不用改）")
+        advanced = QGroupBox()
+        advanced.setObjectName("advancedBox")
         advanced.setVisible(False)
         advanced_form = QFormLayout(advanced)
-        advanced_form.setLabelAlignment(Qt.AlignRight)
+        advanced_form.setContentsMargins(14, 14, 14, 14)
+        advanced_form.setHorizontalSpacing(14)
+        advanced_form.setVerticalSpacing(9)
+        advanced_form.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        advanced_form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         self.name_edit = QLineEdit()
         self.ter_edit = QLineEdit()
         self.ter_edit.setPlaceholderText("多个 ter_id 用逗号分隔")
@@ -230,6 +289,15 @@ class MainWindow(QMainWindow):
         self.timeout_spin = QSpinBox()
         self.timeout_spin.setRange(120, 7200)
         self.timeout_spin.setSuffix(" 秒")
+        # 秒数跨度大，点箭头不如直接输入，去掉上下按钮让输入框更干净。
+        for spin in (
+            self.payment_spin,
+            self.payment_timeout_spin,
+            self.report_spin,
+            self.task_spin,
+            self.timeout_spin,
+        ):
+            spin.setButtonSymbols(QAbstractSpinBox.NoButtons)
         advanced_form.addRow("显示名称", self.name_edit)
         advanced_form.addRow("机柜 ter_id", self.ter_edit)
         advanced_form.addRow("mb.exe", self.mb_edit)
@@ -253,26 +321,69 @@ class MainWindow(QMainWindow):
         self.log_btn = QPushButton("打开日志")
         advanced_buttons.addWidget(self.check_btn)
         advanced_buttons.addWidget(self.log_btn)
+        advanced_buttons.addStretch(1)
         advanced_form.addRow("", advanced_buttons)
         self.advanced_group = advanced
-        left_layout.addWidget(advanced)
-        left_layout.addStretch(1)
+        content_layout.addWidget(advanced)
+        content_layout.addStretch(1)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setWidget(left)
+        scroll.setWidget(content)
         scroll.setFrameShape(QFrame.NoFrame)
-        splitter.addWidget(scroll)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._left_scroll = scroll
+        left_layout.addWidget(scroll, 1)
 
-        right = QGroupBox("运行日志")
+        left_layout.addWidget(self._divider())
+
+        start_row = QHBoxLayout()
+        start_row.setSpacing(8)
+        self.start_btn = QPushButton("启动采集")
+        self.start_btn.setObjectName("primary")
+        self.start_btn.setMinimumHeight(40)
+        self.stop_btn = QPushButton("停止采集")
+        self.stop_btn.setObjectName("danger")
+        self.stop_btn.setMinimumHeight(40)
+        start_row.addWidget(self.start_btn, 2)
+        start_row.addWidget(self.stop_btn, 1)
+        left_layout.addLayout(start_row)
+
+        secondary_row = QHBoxLayout()
+        secondary_row.setSpacing(8)
+        self.save_btn = QPushButton("保存配置")
+        self.test_btn = QPushButton("测试连接")
+        secondary_row.addWidget(self.save_btn)
+        secondary_row.addWidget(self.test_btn)
+        left_layout.addLayout(secondary_row)
+
+        splitter.addWidget(left)
+
+        # 右：运行日志
+        right = QWidget()
         right_layout = QVBoxLayout(right)
+        right_layout.setContentsMargins(18, 0, 0, 0)
+        right_layout.setSpacing(8)
+
+        log_head = QHBoxLayout()
+        log_head.addWidget(self._section_title("运行日志"))
+        log_head.addStretch(1)
+        self.log_clear_btn = QPushButton("清空")
+        self.log_clear_btn.setObjectName("link")
+        log_head.addWidget(self.log_clear_btn)
+        right_layout.addLayout(log_head)
+
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
         self.log_view.setMaximumBlockCount(5000)
         self.log_view.setPlaceholderText("启动后这里会显示任务领取和执行日志")
-        right_layout.addWidget(self.log_view)
+        right_layout.addWidget(self.log_view, 1)
         splitter.addWidget(right)
-        splitter.setSizes([460, 620])
+        splitter.setSizes([420, 620])
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+
+        root.addWidget(body, 1)
 
         self.save_btn.clicked.connect(self.save_config)
         self.test_btn.clicked.connect(self.test_connection)
@@ -280,35 +391,81 @@ class MainWindow(QMainWindow):
         self.start_btn.clicked.connect(self.start_workers)
         self.stop_btn.clicked.connect(self.stop_workers)
         self.log_btn.clicked.connect(self.open_logs)
+        self.log_clear_btn.clicked.connect(self.log_view.clear)
 
     def _toggle_advanced(self, checked: bool) -> None:
         self.advanced_group.setVisible(checked)
-        self.advanced_btn.setText("收起高级设置" if checked else "高级设置")
+        self.advanced_btn.setText("高级设置  ▴" if checked else "高级设置  ▾")
+        if checked:
+            bar = self._left_scroll.verticalScrollBar()
+            QTimer.singleShot(0, lambda: bar.setValue(bar.maximum()))
+
+    def _set_status(self, state: str, text: str | None = None) -> None:
+        labels = {"running": "● 运行中", "stopped": "● 已停止", "starting": "● 启动中"}
+        self.status_label.setText(text or labels.get(state, state))
+        self.status_label.setProperty("state", state)
+        self.status_label.style().unpolish(self.status_label)
+        self.status_label.style().polish(self.status_label)
 
     def _apply_style(self) -> None:
         self.setStyleSheet(
             """
-            QWidget { font-family: "Microsoft YaHei UI", "Microsoft YaHei"; font-size: 13px; }
-            QMainWindow { background: #f4f1ea; }
-            QLabel#title { font-size: 22px; font-weight: 700; color: #16374e; }
-            QLabel#status { font-size: 13px; font-weight: 600; color: #8a5a1f; }
-            QLabel#activity { color: #5d6570; padding: 6px 10px; background: #fbf8f1;
-                border: 1px solid #e3dccb; border-radius: 6px; }
-            QGroupBox { background: #fffdf8; border: 1px solid #e3dccb; border-radius: 8px;
-                margin-top: 12px; padding: 12px 10px 10px 10px; font-weight: 600; color: #16374e; }
-            QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 4px; }
-            QLineEdit, QSpinBox { padding: 6px 8px; border: 1px solid #d8d2c4;
-                border-radius: 6px; background: #ffffff; color: #1f2933; }
-            QLineEdit:focus, QSpinBox:focus { border: 1px solid #275a80; }
-            QPushButton { padding: 7px 14px; border: 1px solid #d0c7b4;
-                border-radius: 6px; background: #fffdf8; color: #16374e; }
+            QWidget { font-family: "Microsoft YaHei UI", "Microsoft YaHei"; font-size: 13px; color: #1f2933; }
+            QMainWindow, QWidget#body { background: #f4f1ea; }
+
+            QWidget#header { background: #16374e; }
+            QLabel#appTitle { color: #ffffff; font-size: 17px; font-weight: 700; }
+            QLabel#appSub { color: #93a7b5; font-size: 11.5px; }
+
+            QLabel#status { padding: 5px 13px; border-radius: 11px; font-size: 12px; font-weight: 600; }
+            QLabel#status[state="stopped"] { background: rgba(185, 138, 68, 46); color: #e0bc7c; }
+            QLabel#status[state="running"] { background: rgba(64, 160, 110, 56); color: #8adcb0; }
+            QLabel#status[state="starting"] { background: rgba(120, 150, 190, 56); color: #aecae4; }
+
+            QFrame#activityBar { background: #fffdf8; border: 1px solid #e3dccb; border-radius: 8px; }
+            QLabel#activity { color: #5d6570; font-size: 12.5px; }
+            QLabel#activityDot { background: #b98a44; border-radius: 3px; }
+
+            QLabel#sectionTitle { color: #6b7280; font-size: 11.5px; font-weight: 700; }
+            QLabel#hint { color: #6b7280; font-size: 12px; }
+            QFrame#divider { background: #e6e0d2; border: none; }
+
+            QLineEdit, QSpinBox { padding: 7px 10px; border: 1px solid #d8d2c4; border-radius: 7px;
+                background: #ffffff; color: #1f2933; }
+            QLineEdit:focus, QSpinBox:focus { border: 1px solid #2b5f86; }
+
+            QPushButton { padding: 7px 14px; border: 1px solid #d0c7b4; border-radius: 7px;
+                background: #fffdf8; color: #16374e; }
             QPushButton:hover { background: #f1ece0; }
-            QPushButton:disabled { color: #a7a29a; background: #f2efe8; }
-            QPushButton#primary { background: #16374e; color: #ffffff; border-color: #16374e; }
+            QPushButton:pressed { background: #e8e2d3; }
+            QPushButton:disabled { color: #a7a29a; background: #f2efe8; border-color: #e6e0d2; }
+            QPushButton#primary { background: #16374e; color: #ffffff; border-color: #16374e; font-weight: 600; }
             QPushButton#primary:hover { background: #1c4767; }
-            QPlainTextEdit { background: #101820; color: #d7e1e8; border: 1px solid #2a3b4a;
-                border-radius: 6px; font-family: "Consolas", "Microsoft YaHei UI"; font-size: 12px; }
-            QScrollArea { background: transparent; }
+            QPushButton#primary:disabled { background: #c6ccd1; border-color: #c6ccd1; color: #ffffff; }
+            QPushButton#danger { background: #fffdf8; color: #a4483a; border-color: #e2d2cb; }
+            QPushButton#danger:hover { background: #f8eeea; }
+            QPushButton#danger:disabled { color: #bcaaa4; border-color: #e8e0da; background: #f5f1ee; }
+            QPushButton#link { border: none; background: transparent; color: #275a80;
+                text-align: left; padding: 6px 2px; }
+            QPushButton#link:hover { color: #16374e; }
+            QPushButton#link:checked { color: #16374e; }
+
+            QGroupBox#advancedBox { background: #fbf8f1; border: 1px solid #e3dccb;
+                border-radius: 8px; margin-top: 0; }
+
+            QPlainTextEdit { background: #101820; color: #d7e1e8; border: 1px solid #263646;
+                border-radius: 8px; font-family: "Consolas", "Microsoft YaHei UI"; font-size: 12px;
+                padding: 8px; selection-background-color: #2b4a63; }
+
+            QCheckBox { spacing: 8px; }
+            QCheckBox::indicator { width: 15px; height: 15px; }
+            QScrollArea { background: transparent; border: none; }
+            QSplitter::handle { background: #e6e0d2; }
+            QScrollBar:vertical { background: transparent; width: 10px; margin: 0; }
+            QScrollBar::handle:vertical { background: #cfc7b6; border-radius: 5px; min-height: 30px; }
+            QScrollBar::handle:vertical:hover { background: #b9b1a0; }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }
             """
         )
 
@@ -331,7 +488,6 @@ class MainWindow(QMainWindow):
         self.oa_collector_edit.setText(cfg.oa_collector)
         self.payment_spin.setValue(cfg.payment_interval)
         self.payment_timeout_spin.setValue(cfg.payment_timeout)
-        self.auto_payment.setChecked(cfg.auto_start_payment)
         self.auto_workers.setChecked(cfg.auto_start_workers)
         self.autostart_box.setChecked(cfg.autostart)
 
@@ -354,7 +510,6 @@ class MainWindow(QMainWindow):
         cfg.oa_collector = self.oa_collector_edit.text().strip()
         cfg.payment_interval = self.payment_spin.value()
         cfg.payment_timeout = self.payment_timeout_spin.value()
-        cfg.auto_start_payment = self.auto_payment.isChecked()
         cfg.auto_start_workers = self.auto_workers.isChecked()
         cfg.autostart = self.autostart_box.isChecked()
         return cfg
@@ -454,6 +609,20 @@ class MainWindow(QMainWindow):
             self.append_log(f"启动失败：{type(exc).__name__}: {exc}")
             QMessageBox.critical(self, "启动失败", f"{type(exc).__name__}: {exc}")
 
+    def _resolve_local_settings(self, cfg: AgentConfig) -> None:
+        """mb.exe 路径失效时自动查找，ter_id 未填时自动发现本局域网机柜。"""
+        resolved = resolve_mb_exe(cfg.mb_exe)
+        if resolved and resolved != cfg.mb_exe:
+            cfg.mb_exe = resolved
+            self.mb_edit.setText(resolved)
+            self.append_log(f"自动找到 mb.exe：{resolved}")
+        if not cfg.ter_ids and resolved:
+            found = discover_ter_ids(resolved)
+            if found:
+                cfg.ter_ids = found
+                self.ter_edit.setText(found)
+                self.append_log(f"自动发现机柜 ter_id：{found}")
+
     def _start_workers(self) -> None:
         if any(proc.state() != QProcess.NotRunning for proc in self.procs.values()):
             return
@@ -461,6 +630,7 @@ class MainWindow(QMainWindow):
         if not cfg.platform_url or not cfg.agent_token:
             QMessageBox.warning(self, "缺少配置", "请先填写平台地址和 Agent 令牌。")
             return
+        self._resolve_local_settings(cfg)
         cfg.save()
         try:
             self.stop_file.unlink(missing_ok=True)
@@ -501,21 +671,38 @@ class MainWindow(QMainWindow):
         self._start_proc("设备上报", python, device_args)
         self.append_log(f"启动任务执行：{worker}")
         self._start_proc("任务执行", python, task_args)
-        if cfg.auto_start_payment:
-            payment_args = [
-                str(payment),
+        payment_args = [
+            str(payment),
+            "--url", cfg.platform_url,
+            "--agent-code", cfg.agent_code,
+            "--collector", str(cfg.mingyuan_script()),
+            "--oa-collector", str(cfg.oa_script()),
+            "--work-dir", str(cfg.work() / "payment"),
+            "--interval", str(cfg.payment_interval),
+            "--timeout", str(cfg.payment_timeout),
+        ]
+        self.append_log(f"启动付款采集：{payment}")
+        self._start_proc("付款采集", python, payment_args)
+
+        draft = cfg.agent_script("draft_task_worker.py")
+        if draft.exists():
+            draft_args = [
+                str(draft),
                 "--url", cfg.platform_url,
                 "--agent-code", cfg.agent_code,
-                "--collector", str(cfg.mingyuan_script()),
-                "--oa-collector", str(cfg.oa_script()),
-                "--work-dir", str(cfg.work() / "payment"),
-                "--interval", str(cfg.payment_interval),
-                "--timeout", str(cfg.payment_timeout),
+                "--mb-exe", cfg.mb_exe,
+                "--gf3-exe", cfg.gf3_exe,
+                "--mb-user", cfg.mb_user,
+                "--work-dir", str(cfg.work() / "draft"),
+                "--interval", "30",
+                "--timeout", "1800",
             ]
-            self.append_log(f"启动付款采集：{payment}")
-            self._start_proc("付款采集", python, payment_args)
-        self.status_label.setText("● 运行中")
-        self.status_label.setStyleSheet("color: #2f7d4f; font-weight: 600;")
+            self.append_log(f"启动制单执行：{draft}")
+            self._start_proc("制单执行", python, draft_args)
+        else:
+            self.append_log("未找到 draft_task_worker.py，跳过制单执行")
+
+        self._set_status("running")
         self.activity_label.setText(f"Agent {cfg.agent_code} 已启动")
         self._update_buttons()
 
@@ -540,8 +727,7 @@ class MainWindow(QMainWindow):
         except OSError:
             pass
         self._stopping = False
-        self.status_label.setText("● 已停止")
-        self.status_label.setStyleSheet("color: #8a5a1f; font-weight: 600;")
+        self._set_status("stopped")
         self.activity_label.setText("采集已停止")
         self._update_buttons()
 
@@ -589,8 +775,7 @@ class MainWindow(QMainWindow):
             proc.state() != QProcess.NotRunning for proc in self.procs.values()
         )
         if not running:
-            self.status_label.setText("● 已停止")
-            self.status_label.setStyleSheet("color: #8a5a1f; font-weight: 600;")
+            self._set_status("stopped")
         self._update_buttons()
 
     def _update_buttons(self) -> None:
@@ -689,6 +874,8 @@ class MainWindow(QMainWindow):
 def main() -> int:
     autostart = "--autostart" in sys.argv
     app = QApplication(sys.argv)
+    # Fusion 让按钮、复选框等控件在各版本 Windows 上外观一致，样式表才可控。
+    app.setStyle("Fusion")
     app.setApplicationName(APP_NAME)
     app.setApplicationDisplayName("UKey 采集助手")
     app.setWindowIcon(make_icon())

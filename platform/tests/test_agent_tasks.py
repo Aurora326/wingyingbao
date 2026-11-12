@@ -5,11 +5,11 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.api import agent as agent_api
 from app.main import app
-from app.models import BankAccount, CollectionTask, Credential, Enterprise, TaskRun, UkeyDevice
+from app.models import Agent, BankAccount, CollectionTask, Credential, Enterprise, TaskRun, UkeyDevice
 from app.schemas import AgentTaskResult
 from app.services import security
 from app.services.agent_tasks import (
@@ -21,7 +21,19 @@ from app.services.agent_tasks import (
 from app.services.scheduler import enqueue_task
 
 
+@pytest.fixture(autouse=True)
+def _isolate_tasks(db):
+    # 本模块只校验领取语义，先清掉其它用例留下的排队任务，避免被当作孤儿任务领走
+    db.execute(delete(TaskRun))
+    db.execute(delete(CollectionTask))
+    db.commit()
+    yield
+
+
 def _seed(db, agent_code: str = "cust-1517", account_no: str = "6222000011112222") -> CollectionTask:
+    if db.execute(select(Agent).where(Agent.code == agent_code)).scalars().first() is None:
+        db.add(Agent(code=agent_code, name=agent_code))
+        db.flush()
     enterprise = Enterprise(name=f"测试企业-{account_no}")
     db.add(enterprise)
     db.flush()
@@ -186,3 +198,45 @@ def test_claim_api_scopes_token_to_agent(db, monkeypatch):
         )
         assert allowed.status_code == 200
         assert allowed.json()["task"]["task_id"] > 0
+
+
+def test_orphan_task_can_be_claimed_immediately(db):
+    task = _seed(db, agent_code="retired-agent", account_no="6222000011119999")
+    retired = db.execute(select(Agent).where(Agent.code == "retired-agent")).scalars().first()
+    db.delete(retired)
+    db.commit()
+
+    payload = claim_agent_task(db, "local")
+    assert payload is not None
+    assert payload["task_id"] == task.id
+    db.expire_all()
+    row = db.get(CollectionTask, task.id)
+    assert row.agent_code == "local"
+    assert row.status == "leased"
+
+
+def test_retry_can_assign_another_agent(db):
+    from fastapi import HTTPException
+
+    from app.api.tasks import retry_task
+    from app.schemas import TaskRetry
+
+    task = _seed(db, agent_code="cust-1517", account_no="6222000011118888")
+    db.add(Agent(code="other-agent", name="另一台执行机"))
+    task.status = "failed"
+    task.error_code = "COLLECT_FAILED"
+    task.attempts = 3
+    db.commit()
+
+    retry_task(task.id, TaskRetry(agent_code="other-agent"), db)
+    db.expire_all()
+    row = db.get(CollectionTask, task.id)
+    assert row.status == "queued"
+    assert row.agent_code == "other-agent"
+    assert row.attempts == 0
+    assert row.error_code == ""
+
+    row.status = "failed"
+    db.commit()
+    with pytest.raises(HTTPException):
+        retry_task(task.id, TaskRetry(agent_code="missing-agent"), db)

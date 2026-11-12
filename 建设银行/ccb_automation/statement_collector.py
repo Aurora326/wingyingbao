@@ -56,9 +56,10 @@ class StatementCollector:
         self.browser_download_path.mkdir(parents=True, exist_ok=True)
     
     def _find_frame_containing(self, selectors: list, timeout: int = 10, match_all: bool = False):
-        """在所有 frame（包括 iframe）中查找包含目标选择器的 frame。"""
+        """在所有 frame（包括 iframe）中查找包含目标选择器的 frame，优先返回元素可见的。"""
         start = time.time()
         while time.time() - start < timeout:
+            fallback = None
             for frame in self.page.frames:
                 try:
                     if match_all:
@@ -66,10 +67,20 @@ class StatementCollector:
                             return frame
                     else:
                         for selector in selectors:
-                            if frame.locator(selector).count() > 0:
-                                return frame
+                            loc = frame.locator(selector).first
+                            if loc.count() == 0:
+                                continue
+                            if fallback is None:
+                                fallback = frame
+                            try:
+                                if loc.is_visible(timeout=200):
+                                    return frame
+                            except Exception:
+                                pass
                 except Exception:
                     continue
+            if fallback is not None:
+                return fallback
             time.sleep(0.5)
         return None
     
@@ -243,7 +254,7 @@ class StatementCollector:
     def collect(self, accounts: Optional[List[str]] = None) -> List[str]:
         """采集银行流水 - CCB全选账户后一次性下载"""
         downloaded_files = []
-        
+
         if self.config.start_date and self.config.end_date:
             start_date_str = self.config.start_date
             end_date_str = self.config.end_date
@@ -252,32 +263,60 @@ class StatementCollector:
             start_date = end_date - timedelta(days=self.config.days_back)
             start_date_str = start_date.strftime("%Y-%m-%d")
             end_date_str = end_date.strftime("%Y-%m-%d")
-        
+
         logger.info(f"开始采集流水，日期范围: {start_date_str} 至 {end_date_str}")
-        
+
         try:
             self._navigate_to_statement_page()
+            logger.info(f"查询流水 {start_date_str} 至 {end_date_str}")
             file_path = self._download_statement("", start_date_str, end_date_str)
-            if file_path:
+            if file_path and Path(file_path).exists() and "无数据" not in Path(file_path).name:
                 downloaded_files.append(file_path)
+            else:
+                logger.info(f"{start_date_str} 至 {end_date_str} 无流水数据")
         except Exception as e:
             logger.error(f"采集流水失败: {e}")
             raise
-        
+
         logger.info(f"流水采集完成，共下载 {len(downloaded_files)} 个文件")
         return downloaded_files
     
+    def _close_ad_popup(self, timeout: float = 15.0) -> bool:
+        """关闭登录后弹出的首页广告弹窗（#befADV1），轮询等待它出现。"""
+        selector = "#befADV1 > img:nth-child(2)"
+        script = """s => {
+            const el = document.querySelector(s);
+            if (!el) return false;
+            el.click();
+            return true;
+        }"""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            for context in [self.page] + list(self.page.frames):
+                try:
+                    if context.evaluate(script, selector):
+                        logger.info("已关闭首页广告弹窗")
+                        time.sleep(1)
+                        return True
+                except Exception:
+                    continue
+            time.sleep(0.5)
+        return False
+
     def _navigate_to_statement_page(self):
         """导航到交易明细查询页面 - 按CCB实际页面结构"""
         logger.info("导航到交易明细查询页面...")
         time.sleep(2)
-        
+
         # 先关闭可能的弹窗
         try:
             self.page.keyboard.press("Escape")
             time.sleep(0.5)
         except Exception:
             pass
+
+        if not self._close_ad_popup():
+            logger.info("未发现首页广告弹窗")
         
         # Step 1: 在首页点击"账户查询"链接（在iframe中）
         frame = self._find_frame_containing(['#toAccQuery'], timeout=10)
@@ -285,7 +324,14 @@ class StatementCollector:
             raise Exception("未找到账户查询链接(#toAccQuery)")
         
         logger.info("点击账户查询...")
-        frame.locator('#toAccQuery').first.click()
+        link = frame.locator('#toAccQuery').first
+        try:
+            link.click(timeout=5000)
+        except Exception as e:
+            logger.warning(f"常规点击账户查询失败（{e}），改用 JS 点击")
+            frame.evaluate(
+                "() => { const el = document.querySelector('#toAccQuery'); if (el) el.click(); }"
+            )
         time.sleep(3)
         
         # Step 2: 等待账户列表页，勾选"全选"
@@ -299,8 +345,12 @@ class StatementCollector:
             try:
                 if not all_cb.is_checked():
                     all_cb.check()
-            except Exception:
-                all_cb.click()
+            except Exception as e:
+                logger.warning(f"常规勾选全选失败（{e}），改用 JS 点击")
+                frame.evaluate(
+                    "() => { const el = document.querySelector('#all_0');"
+                    " if (el && !el.checked) el.click(); }"
+                )
         time.sleep(1)
         
         # Step 3: 点击"交易明细"按钮
@@ -476,10 +526,22 @@ class StatementCollector:
     def _wait_and_find_new_file(self, before_files, timeout: int = 60):
         return wait_and_find_new_file(before_files, timeout)
 
+    @staticmethod
+    def _detect_ext(path: Path) -> str:
+        """按文件头判断真实格式：建行“Excel下载”实际给的是旧版 xls。"""
+        try:
+            magic = path.read_bytes()[:8]
+        except Exception:
+            return ".xlsx"
+        if magic.startswith(b"\xd0\xcf\x11\xe0"):
+            return ".xls"
+        if magic.startswith(b"PK"):
+            return ".xlsx"
+        return ".html"
+
     def _move_to_download_path(self, source_file: Path, account: str, end_date: str) -> str:
         """将文件移动到归档目录，按指定格式重命名"""
-        timestamp = datetime.now().strftime("%Y%m%d")
-        ext = source_file.suffix or ".xlsx"
+        ext = source_file.suffix or self._detect_ext(source_file)
         
         # 检查配置文件中的格式设置
         file_format = getattr(self.config, 'file_format', 'excel').lower()
@@ -492,8 +554,9 @@ class StatementCollector:
             ext = '.xls'
             logger.info(f"已将文件后缀修改为 .xls: {source_file}")
         
-        # 文件名格式: 网银名称_银行流水_yyyymmdd
-        file_name = f"建设银行_银行流水_{timestamp}{ext}"
+        # 文件名格式: 网银名称_银行流水_分段结束日期（分段下载时避免互相覆盖）
+        date_tag = (end_date or datetime.now().strftime("%Y-%m-%d")).replace("-", "")
+        file_name = f"建设银行_银行流水_{date_tag}{ext}"
         # 使用归档路径（按年月分类）
         file_path = self.archive_path / file_name
         
@@ -617,7 +680,18 @@ class StatementCollector:
             raise Exception("未找到下载全部按钮")
         
         before_files = self._get_downloaded_files_before()
-        
+
+        dialog_messages = []
+
+        def _on_dialog(dialog):
+            dialog_messages.append(dialog.message)
+            logger.warning(f"页面弹窗: {dialog.message}")
+            try:
+                dialog.accept()
+            except Exception:
+                pass
+
+        self.page.on("dialog", _on_dialog)
         try:
             with self.page.expect_download(timeout=60000) as download_info:
                 # 先 hover 下载全部按钮，显示下拉菜单
@@ -673,13 +747,28 @@ class StatementCollector:
                     raise Exception("未找到 Excel下载 选项")
                 
                 time.sleep(2)
+                if dialog_messages:
+                    logger.warning(f"下载点击后页面提示: {' | '.join(dialog_messages)}")
+                try:
+                    shot = self.browser_download_path / "after_download_click.png"
+                    self.page.screenshot(path=str(shot))
+                    logger.info(f"下载点击后截图: {shot}")
+                except Exception:
+                    pass
             download = download_info.value
             temp_path = self.browser_download_path / download.suggested_filename
             download.save_as(str(temp_path))
             return self._move_to_download_path(temp_path, account, end_date)
         except Exception as e:
             logger.warning(f"Playwright download监听失败，使用文件轮询: {e}")
-            new_file = self._wait_and_find_new_file(before_files, timeout=60)
+            new_file = self._wait_and_find_new_file(before_files, timeout=120)
             if new_file:
                 return self._move_to_download_path(new_file, account, end_date)
+            if dialog_messages:
+                raise Exception(f"下载失败：{dialog_messages[0]}")
             raise Exception("下载失败：未找到文件")
+        finally:
+            try:
+                self.page.remove_listener("dialog", _on_dialog)
+            except Exception:
+                pass

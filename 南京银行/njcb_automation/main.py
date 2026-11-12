@@ -301,7 +301,7 @@ class NJCBAutomation:
                 # 先关闭浏览器（即使出错也不能影响拔U盾）
                 if self.browser:
                     try:
-                        self.browser.close(kill_all_chrome=True)
+                        self.browser.close()
                         logger.info("浏览器已关闭")
                     except Exception as e:
                         logger.warning(f"关闭浏览器时出错: {e}")

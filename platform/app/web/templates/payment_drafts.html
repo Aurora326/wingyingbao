@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}制单任务 · 银行财务平台{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">收付款</div>
+    <h1>制单任务</h1>
+    <div class="sub">一次发起按付款账户拆成多个任务。下载批量文件到对应银行网银导入后，回来标记为已制单。</div>
+  </div>
+</div>
+
+{% if msg %}<div class="callout">{{ msg }}</div>{% endif %}
+
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>任务列表</h2>
+      <div class="panel-sub">同一批次内每个付款账户一个任务，一个账户失败不影响其它账户</div>
+    </div>
+    <span class="filter-count">待处理 <b>{{ pending }}</b> 个</span>
+  </div>
+
+  <div class="device-bar">
+    <a class="btn small {{ 'primary' if not status }}" href="/payment-drafts">全部</a>
+    {% for key, label in status_labels.items() %}
+    <a class="btn small {{ 'primary' if status == key }}" href="/payment-drafts?status={{ key }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  {% if tasks %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:150px">批次</th>
+          <th style="width:260px">付款账户</th>
+          <th class="num" style="width:90px">笔数</th>
+          <th class="num" style="width:150px">金额</th>
+          <th style="width:130px">执行机</th>
+          <th style="width:110px">状态</th>
+          <th style="width:220px">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tasks %}
+        <tr>
+          <td class="mono nowrap">{{ t.batch_no }}</td>
+          <td>
+            <b>{{ t.payer_name or '—' }}</b>
+            <div class="cell-sub mono">{{ t.payer_account_no or '—' }}</div>
+            <div class="cell-sub">{{ bank_names.get(t.bank_code, t.bank_code) }}</div>
+          </td>
+          <td class="num">{{ t.doc_count }} 笔</td>
+          <td class="num">{{ t.amount | money }}</td>
+          <td class="muted">{{ t.agent_code or '未绑定设备' }}</td>
+          <td>
+            {% if t.status == 'succeeded' %}<span class="tag green">{{ t.status_label }}</span>
+            {% elif t.status == 'failed' %}<span class="tag red">{{ t.status_label }}</span>
+            {% elif t.status == 'review' %}<span class="tag amber">{{ t.status_label }}</span>
+            {% else %}<span class="tag blue">{{ t.status_label }}</span>{% endif %}
+            {% if t.error_msg %}<div class="cell-sub danger">{{ t.error_code or '' }} {{ t.error_msg }}</div>{% endif %}
+            {% if t.bank_batch_no %}<div class="cell-sub mono">批次 {{ t.bank_batch_no }}</div>{% endif %}
+          </td>
+          <td>
+            <div class="cell-actions">
+              {% if t.has_file %}
+              <a class="btn small" href="/payment-drafts/{{ t.id }}/file">下载文件</a>
+              {% endif %}
+              {% if t.has_log %}
+              <button class="small" type="button" onclick="showDraftLog({{ t.id }})">查看日志</button>
+              {% endif %}
+              {% if can_draft and t.status in ('queued', 'running', 'review') %}
+              <form method="post" action="/payment-drafts/{{ t.id }}/done">
+                <button class="small primary" type="submit">标记已制单</button>
+              </form>
+              <form method="post" action="/payment-drafts/{{ t.id }}/cancel">
+                <button class="small" type="submit">撤回</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    还没有制单任务
+    <div class="empty-actions">
+      <a class="btn small" href="/payments?status=ready">去付款协同挑选可制单单据</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

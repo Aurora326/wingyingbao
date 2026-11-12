@@ -53,6 +53,32 @@
   {% if task_source == 'payment' or task_source == 'oa' %}{% include "_payment_tasks_table.html" %}{% else %}{% include "_tasks_table.html" %}{% endif %}
 </div>
 
+<div class="modal" id="retry-task-modal" role="dialog" aria-modal="true" aria-labelledby="retry-task-title">
+  <div class="box form-box">
+    <div class="head">
+      <div>
+        <strong id="retry-task-title">重新采集</strong>
+        <div class="modal-sub">选择由哪台执行机重新执行这次采集</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('retry-task-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <form onsubmit="submitRetryTask(event)">
+      <input type="hidden" id="retry-task-id">
+      <div class="field">
+        <label for="retry-agent">执行机</label>
+        <select id="retry-agent"></select>
+      </div>
+      <div class="form-note">不选择则沿用原执行机；选择离线的执行机时，任务会等它上线后再执行。</div>
+      <div class="modal-foot">
+        <button type="button" onclick="closeModal('retry-task-modal')">取消</button>
+        <button class="primary" type="submit">重新入队</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
   <div class="box form-box confirm-box">
     <div class="head">

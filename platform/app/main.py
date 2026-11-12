@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 
@@ -25,9 +25,18 @@ from app.services import permissions
 from app.tenancy import reset_current_tenant, set_current_tenant
 from app.web.routes import router as web_router
 from app.web.payments import router as payments_router
+from app.web.payment_drafts import router as payment_drafts_router
 from app.web.payment_settings import router as payment_settings_router
+from app.web.master_data import router as master_data_router
 
-PUBLIC_PREFIXES = ("/static", "/login", "/health", "/docs", "/openapi.json", "/api/agent")
+PUBLIC_PREFIXES = ("/static", "/login", "/health", "/docs", "/openapi.json", "/api/agent/")
+
+
+def _hx_redirect(url: str) -> Response:
+    """htmx 局部请求不能走普通重定向，否则会把目标页整段塞进片段里。"""
+    response = Response(status_code=204)
+    response.headers["HX-Redirect"] = url
+    return response
 
 
 @asynccontextmanager
@@ -77,6 +86,8 @@ def create_app() -> FastAPI:
                         from fastapi.responses import JSONResponse
 
                         return JSONResponse({"detail": "没有访问权限"}, status_code=403)
+                    if request.headers.get("HX-Request"):
+                        return _hx_redirect("/")
                     return RedirectResponse("/", status_code=303)
                 tenant_id = user.tenant_id
                 if tenant_id is None:
@@ -99,11 +110,15 @@ def create_app() -> FastAPI:
             from fastapi.responses import JSONResponse
 
             return JSONResponse({"detail": "未登录"}, status_code=401)
+        if request.headers.get("HX-Request"):
+            return _hx_redirect("/login")
         return RedirectResponse("/login", status_code=302)
 
     app.include_router(web_router)
     app.include_router(payments_router)
+    app.include_router(payment_drafts_router)
     app.include_router(payment_settings_router)
+    app.include_router(master_data_router)
     app.include_router(accounts_api.router)
     app.include_router(tasks_api.router)
     app.include_router(data_api.router)

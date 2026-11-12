@@ -157,8 +157,17 @@ def ensure_schema(target_engine=None) -> None:
 
 
 def init_db() -> None:
-    Base.metadata.create_all(engine)
-    ensure_schema()
+    from alembic import command
+    from alembic.config import Config
+
+    alembic_config = Config(str(settings.base_dir / "alembic.ini"))
+    tables = set(inspect(engine).get_table_names())
+    if tables and "alembic_version" not in tables:
+        # 历史库没有版本表：先把旧补列对齐到当前模型，再标记为基线
+        ensure_schema()
+        command.stamp(alembic_config, "head")
+    else:
+        command.upgrade(alembic_config, "head")
 
 
 def get_db() -> Iterator[Session]:

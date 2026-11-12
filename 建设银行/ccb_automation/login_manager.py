@@ -85,6 +85,25 @@ class LoginManagerMixin:
                 );
             });
 
+            if (fuzzy) {
+                let selector = '';
+                if (fuzzy.id) selector = 'input[id="' + fuzzy.id + '"]';
+                else if (fuzzy.name) selector = 'input[name="' + fuzzy.name + '"]';
+                else if (fuzzy.type === 'password') selector = 'input[type="password"]';
+                if (selector) {
+                    return {
+                        found: true,
+                        selector,
+                        id: fuzzy.id,
+                        name: fuzzy.name,
+                        type: fuzzy.type,
+                        placeholder: fuzzy.placeholder,
+                        className: fuzzy.className,
+                        totalPwdInputs: document.querySelectorAll('input[type="password"]').length
+                    };
+                }
+            }
+
             return {
                 found: false,
                 totalPwdInputs: document.querySelectorAll('input[type="password"]').length,
@@ -242,7 +261,20 @@ class LoginManagerMixin:
             # 等待页面加载
             logger.info("等待页面加载...")
             time.sleep(5)
-            
+
+            # 新版证书登录页直接展示密码表单，没有“立即登录”按钮
+            page, context, meta = self._find_password_input_context()
+            if page is not None:
+                logger.info("检测到证书登录表单，直接填写登录密码...")
+                if self._submit_login_password_form():
+                    self._handle_auth_popups(timeout=60)
+                    self._adopt_portal_page(timeout=20)
+                    try:
+                        page.wait_for_load_state("domcontentloaded", timeout=30000)
+                    except Exception:
+                        pass
+                    return self._check_login_success()
+
             # 检查当前是否是证书登录模式
             self._ensure_certificate_login_tab()
             
@@ -264,6 +296,10 @@ class LoginManagerMixin:
             
             # 使用 Playwright mouse.click() 精确点击
             logger.info(f"Playwright 点击立即登录按钮: ({btn_pos['x']}, {btn_pos['y']})")
+            try:
+                self.page.bring_to_front()
+            except Exception:
+                pass
             self.page.mouse.click(btn_pos['x'], btn_pos['y'])
             
             # ===== 点击后不再使用 Playwright API！只用 pyautogui =====
@@ -389,6 +425,100 @@ class LoginManagerMixin:
         except Exception as e:
             logger.debug(f"关闭弹窗页时出错: {e}")
     
+    def _iter_contexts(self, page):
+        """页面自身和它的 iframe：新版建行把登录表单和门户都放在 iframe 里。"""
+        yield page
+        try:
+            frames = list(page.frames)
+        except Exception:
+            return
+        for frame in frames:
+            try:
+                if frame == page.main_frame:
+                    continue
+                yield frame
+            except Exception:
+                continue
+
+    def _page_has_portal(self, page) -> bool:
+        """判断页面是否已经进入网银门户（含 iframe，兼容新版首页）。"""
+        script = """() => {
+            const t = document.body ? document.body.innerText : '';
+            const hasNode = !!document.querySelector('#toAccQuery, .menu-nav, .main-nav, .headBtn_a.workEplatform');
+            const hasNavText = t.includes('账户查询') && (t.includes('退出') || t.includes('您好'));
+            return hasNode || hasNavText;
+        }"""
+        for ctx in self._iter_contexts(page):
+            try:
+                if ctx.evaluate(script):
+                    return True
+            except Exception:
+                continue
+        return False
+
+    def _adopt_portal_page(self, timeout: float = 20.0) -> bool:
+        """登录结果可能开在新窗口里，找到带门户元素的页面并切换过去。"""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                pages = list(self.page.context.pages)
+            except Exception:
+                return False
+            for candidate in pages:
+                try:
+                    if self._page_has_portal(candidate):
+                        self.page = candidate
+                        try:
+                            candidate.bring_to_front()
+                        except Exception:
+                            pass
+                        logger.info(f"切换到登录后的门户页面: {candidate.url}")
+                        return True
+                except Exception:
+                    continue
+            time.sleep(1)
+        return False
+
+    def _submit_login_password_form(self) -> bool:
+        """填写证书登录表单的登录密码并提交。
+
+        建行证书登录页需要的顺序是：证书 + U盾 PIN + 登录密码。
+        提交按钮会再次触发 U盾 PIN，所以这里用 JS 点击，不等页面跳转。
+        """
+        page, context, meta = self._find_password_input_context()
+        if page is None or context is None or not meta:
+            return False
+
+        password = self.credentials.password if self.credentials else None
+        if not password:
+            logger.warning("未配置登录密码，等待手动输入...")
+            time.sleep(20)
+            return False
+
+        self.page = page
+        pwd_selector = meta.get("selector") or '#LOG_PWD, input[type="password"]'
+        logger.info(f"填写登录密码，selector={pwd_selector}")
+        if not self._fill_password_input(context, pwd_selector, password):
+            logger.warning("未能填写登录密码")
+            return False
+
+        login_btn, selector = self._find_login_button_in_context(context)
+        if not selector:
+            logger.warning("未找到登录按钮")
+            return False
+
+        try:
+            self.page.set_default_timeout(3000)
+            context.evaluate(
+                "(selector) => { const el = document.querySelector(selector); if (el) { el.focus(); el.click(); } }",
+                selector,
+            )
+            logger.info(f"已点击登录按钮: {selector}")
+        except Exception as e:
+            # 点击后 U盾 PIN 弹窗会阻塞页面，evaluate 超时属于正常情况
+            logger.info(f"登录按钮已点击（页面进入等待: {type(e).__name__}）")
+        return True
+
     def _handle_intermediate_login_page(self) -> bool:
         """
         处理证书登录后的中间登录页
@@ -463,39 +593,72 @@ class LoginManagerMixin:
             logger.debug(f"检查证书登录标签时出错: {e}")
     
     def _handle_certificate_dialog(self):
-        """
-        处理浏览器证书选择对话框（Chromium 原生模态对话框）
-        
-        注意：对话框弹出后 Playwright 会被阻塞，本方法只使用 pyautogui。
-        
-        ⚠️ 严禁使用 pyautogui.click(x, y) 点击屏幕坐标！
-        证书对话框消失后，任何屏幕坐标点击都会落到网页上，极易误点左侧广告链接。
-        只使用 pyautogui.press() / pyautogui.keyDown() 等按键操作，按键对普通网页无副作用。
-        """
+        """处理证书选择对话框（Windows 原生窗口，全程走 Win32，避免 pywinauto 卡住）。"""
         logger.info("处理证书选择对话框...")
-        
+        titles = ("选择证书", "证书")
+
         try:
-            import pyautogui
-            pyautogui.FAILSAFE = False
-            
-            # 等待对话框完全显示
-            time.sleep(2)
-            
-            # 按回车键确认证书选择（证书默认已选中第一个）
-            logger.info("按回车键确认证书选择...")
-            pyautogui.press('return')
-            time.sleep(3)
-            
-            logger.info("证书选择对话框处理完成")
-            
+            from common.windows_ui import double_click_in_dialog, fast_click_button, find_hwnd
         except ImportError:
-            logger.warning("未安装 pyautogui，无法自动处理证书选择对话框")
-            logger.info("请手动点击'确定'按钮选择证书...")
-            time.sleep(10)
-        except Exception as e:
-            logger.warning(f"自动处理证书选择对话框失败: {e}")
-            logger.info("请手动点击'确定'按钮选择证书...")
-            time.sleep(10)
+            logger.warning("无法导入窗口工具，跳过证书弹窗处理")
+            return
+
+        if not find_hwnd(titles):
+            logger.info("未检测到证书弹窗，跳过")
+            return
+
+        # 全程纯 Win32：模态证书弹窗下 UIA/pywinauto 会阻塞
+        if double_click_in_dialog(titles, 0.57, 0.36, timeout=2):
+            logger.info("已双击证书行")
+        if fast_click_button(titles, ("确定", "确认", "OK"), timeout=2):
+            logger.info("已点击证书弹窗的「确定」")
+        elif not self._force_cert_dialog_ok(titles):
+            logger.warning("未点击到证书弹窗的「确定」")
+
+        time.sleep(1)
+        logger.info("证书选择对话框处理完成")
+
+    def _force_cert_dialog_ok(self, titles) -> bool:
+        """兜底确认证书弹窗：按文字点按钮 / 回车 / IDOK。"""
+        import ctypes
+        import re as _re
+
+        from common.windows_ui import _child_class, _enum_children, _window_text, find_hwnd
+
+        hwnd = find_hwnd(titles)
+        if not hwnd:
+            logger.info("证书弹窗已关闭，无需确认")
+            return True
+        user32 = ctypes.windll.user32
+        children = list(_enum_children(hwnd))
+        # 1) 枚举按钮，兼容“确 定”“&确定”等文字
+        for child in children:
+            text = _re.sub(r"[\s&]", "", _window_text(child) or "")
+            if _child_class(child).lower() != "button":
+                continue
+            if text in ("确定", "确认", "OK", "是", "继续") or "确" in text:
+                user32.SendMessageW(child, 0x00F5, 0, 0)  # BM_CLICK
+                logger.info(f"已点击证书弹窗按钮：{_window_text(child)}")
+                return True
+        # 2) 回车触发默认按钮
+        try:
+            user32.SetForegroundWindow(hwnd)
+            user32.PostMessageW(hwnd, 0x0100, 0x0D, 0)  # WM_KEYDOWN VK_RETURN
+            user32.PostMessageW(hwnd, 0x0101, 0x0D, 0)  # WM_KEYUP
+            logger.info("已向证书弹窗发送回车")
+            return True
+        except Exception:
+            pass
+        # 3) WM_COMMAND IDOK
+        try:
+            user32.SendMessageW(hwnd, 0x0111, 1, 0)
+            logger.info("已向证书弹窗发送 IDOK")
+            return True
+        except Exception:
+            pass
+        detail = [(_child_class(c), (_window_text(c) or "").strip()) for c in children]
+        logger.warning(f"证书弹窗子控件: {detail[:20]}")
+        return False
     
     def _check_login_success(self) -> bool:
         """检查登录是否成功 - 建设银行适配"""
@@ -579,23 +742,27 @@ class LoginManagerMixin:
                         is_login_page = True
 
                     # ===== 登录成功判断 =====
-                    # 检查密码框（有说明还在登录页）
+                    # 检查密码框（有说明还在登录页），登录表单在 iframe 里也要算
                     pwd_count = 0
-                    try:
-                        pwd_loc = page.locator('#LOG_PWD, input[type="password"]').first
-                        pwd_count = pwd_loc.count()
-                        logger.info(f"页面 {i} 密码框 count={pwd_count}")
-                        if pwd_count > 0:
-                            try:
-                                pwd_visible = pwd_loc.is_visible(timeout=500)
-                                logger.info(f"页面 {i} 密码框 visible={pwd_visible}")
-                                if pwd_visible:
-                                    logger.info(f"页面 {i} 仍有密码框，判定为登录页")
-                                    continue
-                            except Exception as e:
-                                logger.info(f"页面 {i} 密码框 is_visible 异常: {e}")
-                    except Exception as e:
-                        logger.info(f"页面 {i} 密码框检查异常: {e}")
+                    pwd_visible = False
+                    for ctx in self._iter_contexts(page):
+                        try:
+                            pwd_loc = ctx.locator('#LOG_PWD, input[type="password"]').first
+                            cnt = pwd_loc.count()
+                        except Exception:
+                            continue
+                        if not cnt:
+                            continue
+                        pwd_count += cnt
+                        try:
+                            if pwd_loc.is_visible(timeout=500):
+                                pwd_visible = True
+                        except Exception:
+                            pass
+                    logger.info(f"页面 {i} 密码框 count={pwd_count}, visible={pwd_visible}")
+                    if pwd_visible:
+                        logger.info(f"页面 {i} 仍有可见密码框，判定为登录页")
+                        continue
                     
                     # 检查登录成功标志（退出按钮、工作台、菜单栏）
                     success_checks = [
@@ -625,23 +792,26 @@ class LoginManagerMixin:
                         except Exception as e:
                             logger.info(f"页面 {i} 检查 {desc} 异常: {e}")
                     
-                    # 备用：JS 查询确认
-                    try:
-                        js_has_nav = page.evaluate("""() => {
-                            return document.querySelector('.nav, .menu-nav, .main-nav, .headBtn_a.workEplatform') !== null;
-                        }""")
-                        logger.info(f"页面 {i} JS 导航栏检查: {js_has_nav}")
-                        if js_has_nav:
-                            logger.info(f"检测到登录成功（JS 发现导航栏），页面 {i}, url={current_url}")
-                            self.page = page
-                            return True
-                    except Exception as e:
-                        logger.info(f"页面 {i} JS 导航栏检查异常: {e}")
-                    
-                    # 最终判定：b2bindex.jsp 页面没有密码框 = 已登录
-                    #（中间登录页一定有密码框，登录成功后主页一定没有）
+                    # 备用：按页面可见的导航文字判断（兼容新版首页）
+                    if self._page_has_portal(page):
+                        logger.info(f"检测到登录成功（门户导航已出现），页面 {i}, url={current_url}")
+                        self.page = page
+                        return True
+
+                    # 最终判定：b2bindex.jsp 没有密码框还不够，必须确认已进入门户
                     if 'b2bindex.jsp' in current_url.lower() and pwd_count == 0:
-                        logger.info(f"检测到登录成功（b2bindex.jsp 无密码框），页面 {i}, url={current_url}")
+                        try:
+                            page_title = page.title() or ""
+                        except Exception:
+                            page_title = ""
+                        if "No required SSL certificate" in page_title or "400 Bad Request" in page_title:
+                            logger.error("页面提示未发送客户端证书：U盾未被浏览器识别")
+                            continue
+                        has_portal = self._page_has_portal(page)
+                        if not has_portal:
+                            logger.info(f"b2bindex.jsp 未发现门户元素，判定未登录，页面 {i}, url={current_url}")
+                            continue
+                        logger.info(f"检测到登录成功（b2bindex.jsp 门户元素已出现），页面 {i}, url={current_url}")
                         self.page = page
                         return True
                     

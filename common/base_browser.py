@@ -26,6 +26,7 @@ class BaseBrowser:
         self.context = None
         self.page: Optional[Page] = None
         self.cabinet_controller = None
+        self.user_data_dir: Optional[Path] = None
 
         cabinet_cfg = cabinet_config or mb
         if cabinet_cfg:
@@ -70,6 +71,25 @@ class BaseBrowser:
             logger.info("所有 Chrome/Edge 进程已关闭")
         except Exception as e:
             logger.warning(f"关闭浏览器进程失败: {e}")
+
+    def _kill_our_browser_processes(self):
+        """只关闭使用本程序 user-data-dir 的浏览器进程，不影响用户自己打开的浏览器。"""
+        if not self.user_data_dir:
+            return
+        marker = str(self.user_data_dir).lower().replace("'", "''")
+        script = (
+            "Get-CimInstance Win32_Process -Filter \"Name='chrome.exe' or Name='msedge.exe'\" | "
+            f"Where-Object {{ $_.CommandLine -and $_.CommandLine.ToLower().Contains('{marker}') }} | "
+            "ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
+        )
+        try:
+            subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                capture_output=True,
+                timeout=15,
+            )
+        except Exception as e:
+            logger.warning(f"清理采集浏览器进程失败: {e}")
 
     def _get_base_dir(self) -> Path:
         if getattr(sys, 'frozen', False):
@@ -228,14 +248,19 @@ class BaseBrowser:
         return self.page
 
     def close(self, kill_all_chrome: bool = False):
-        """关闭浏览器"""
+        """关闭浏览器。默认只关闭本程序启动的实例，不影响用户自己的浏览器。"""
         logger.info("正在关闭浏览器...")
-        if self.context:
-            self.context.close()
-        if self.browser:
-            self.browser.close()
-        if self.playwright:
-            self.playwright.stop()
-        self._kill_all_browser_processes()
+        try:
+            if self.context:
+                self.context.close()
+            if self.browser:
+                self.browser.close()
+            if self.playwright:
+                self.playwright.stop()
+        finally:
+            if kill_all_chrome:
+                self._kill_all_browser_processes()
+            else:
+                self._kill_our_browser_processes()
         logger.info("浏览器已关闭")
         _loguru_logger.complete()

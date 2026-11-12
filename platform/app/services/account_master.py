@@ -158,7 +158,9 @@ def import_account_master(db: Session, path: Path) -> dict:
         if parent is not None:
             account.parent_account_id = parent.id
 
-    sub_created = sub_updated = 0
+    sub_created = sub_updated = sub_disabled = 0
+    seen_subs: set[tuple[int, str]] = set()
+    touched_parents: set[int] = set()
     sub_sheet = next((ws for ws in wb.worksheets if "账簿" in ws.title or "子账户" in ws.title), None)
     if sub_sheet is not None:
         sub_rows = _read_sheet(list(sub_sheet.iter_rows(values_only=True)), "账簿名")
@@ -184,6 +186,7 @@ def import_account_master(db: Session, path: Path) -> dict:
                 ).scalars().first()
             if parent is None:
                 continue
+            touched_parents.add(parent.id)
             project_name = ledger_name[len(company):].strip() if company and ledger_name.startswith(company) else ledger_name
             sub = db.execute(
                 select(SubAccount).where(
@@ -201,13 +204,23 @@ def import_account_master(db: Session, path: Path) -> dict:
             sub.project_name = project_name
             sub.currency = _text(row.get("币种")) or "人民币"
             sub.status = "正常"
+            seen_subs.add((parent.id, sub_no))
 
+    for sub in db.execute(select(SubAccount)).scalars().all():
+        if (
+            sub.parent_account_id in touched_parents
+            and sub.status == "正常"
+            and (sub.parent_account_id, sub.sub_no) not in seen_subs
+        ):
+            sub.status = "停用"
+            sub_disabled += 1
     db.commit()
     return {
         "accounts_created": created,
         "accounts_updated": updated,
         "sub_accounts_created": sub_created,
         "sub_accounts_updated": sub_updated,
+        "sub_accounts_disabled": sub_disabled,
         "enterprises_created": enterprises_created,
     }
 

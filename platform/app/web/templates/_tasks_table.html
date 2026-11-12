@@ -11,7 +11,7 @@
       <tr>
         <td class="nowrap">
           <b>{% if t.created_at %}{{ t.created_at.strftime('%m-%d %H:%M') }}{% else %}—{% endif %}</b>
-          <div class="cell-sub">{{ trigger_text(t.trigger) }} · 任务 #{{ t.id }} · {{ '本机' if t.agent_code in ('', 'local') else t.agent_code }}</div>
+          <div class="cell-sub">{{ trigger_text(t.trigger) }}{% if t.daily_seq %} · 当日第 {{ t.daily_seq }} 次{% endif %} · {{ '本机' if t.agent_code in ('', 'local') else t.agent_code }}</div>
         </td>
         <td>
           <div class="acct-cell">
@@ -39,7 +39,7 @@
           <button class="small" onclick="stopTask({{ t.id }})">停止</button>
           {% endif %}
           {% elif t.status in ('failed', 'succeeded') %}
-          <button class="small" onclick="retryTask({{ t.id }})">重新采集</button>
+          <button class="small" onclick="openRetryTask({{ t.id }}, '{{ t.agent_code|e }}')">重新采集</button>
           {% endif %}
         </td>
       </tr>

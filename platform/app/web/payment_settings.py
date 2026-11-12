@@ -20,7 +20,6 @@ from app.services.payee_admin import (
     PayeeError,
     approve_change,
     create_payee,
-    list_payees,
     reject_change,
     request_change,
 )
@@ -29,7 +28,7 @@ from app.web.routes import templates
 
 router = APIRouter()
 
-PAYMENT_TABS = {"accounts", "source", "cashiers", "payees"}
+PAYMENT_TABS = {"accounts", "source", "cashiers"}
 
 
 def _operator(request: Request) -> str:
@@ -86,7 +85,6 @@ def payment_settings_page(request: Request, tab: str = "accounts"):
         scopes = db.execute(select(CashierScope).order_by(CashierScope.id.desc())).scalars().all()
         users = db.execute(select(AppUser).order_by(AppUser.id)).scalars().all()
         book_sets = db.execute(select(BookSet).order_by(BookSet.id)).scalars().all()
-        payees = list_payees(db)
         sub_count: dict[int, int] = {}
         for sub in subs:
             sub_count[sub.parent_account_id] = sub_count.get(sub.parent_account_id, 0) + 1
@@ -121,7 +119,6 @@ def payment_settings_page(request: Request, tab: str = "accounts"):
             "book_sets": book_sets,
             "user_map": user_map,
             "book_map": book_map,
-            "payees": payees,
             "msg": request.query_params.get("msg", ""),
         },
     )
@@ -193,7 +190,8 @@ async def import_accounts(request: Request, file: UploadFile = File(...)):
         return _redirect(request, f"导入失败：{exc}")
     return _redirect(request,
         f"账户导入完成：新增 {result['accounts_created']}，更新 {result['accounts_updated']}，"
-        f"子账簿新增 {result['sub_accounts_created']}，更新 {result['sub_accounts_updated']}"
+        f"子账簿新增 {result['sub_accounts_created']}，更新 {result['sub_accounts_updated']}，"
+        f"停用 {result.get('sub_accounts_disabled', 0)}"
     )
 
 

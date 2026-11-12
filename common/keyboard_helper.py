@@ -12,6 +12,9 @@ from typing import Iterable
 from loguru import logger
 
 
+_CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0) if sys.platform == "win32" else 0
+
+
 def get_aikeyboard_path() -> Path:
     """获取 AiKeyboard.exe 的路径（兼容打包和开发环境）"""
     if getattr(sys, 'frozen', False):
@@ -99,20 +102,10 @@ def switch_to_english_layout() -> bool:
     except Exception as e:
         logger.debug(f"LoadKeyboardLayout 切换失败: {e}")
 
-    # 方法2：Win+Space 循环切换输入法（最多 3 次）
-    try:
-        import pyautogui
-        for i in range(3):
-            pyautogui.hotkey('win', 'space')
-            time.sleep(0.4)
-            lang_id = _get_active_language_id()
-            if lang_id in _ENGLISH_LANGUAGE_IDS:
-                logger.info(f"Win+Space 第 {i + 1} 次后切到英文输入法 (0x{lang_id:04X})")
-                return True
-    except Exception as e:
-        logger.debug(f"Win+Space 切换输入法失败: {e}")
+    # 不再使用 Win+Space：它会弹出语言切换浮层并抢走前台焦点，
+    # 导致密码被打到别的窗口。
 
-    # 方法3：兜底按一次 Shift（中文输入法的中/英内部模式切换，尽力而为）
+    # 方法2：兜底按一次 Shift（中文输入法的中/英内部模式切换，尽力而为）
     try:
         import pyautogui
         logger.info("兜底按 Shift 切换输入法...")
@@ -149,6 +142,7 @@ def input_with_aikeyboard(text: str) -> bool:
         text=True,
         timeout=10,
         cwd=str(aikeyboard_path.parent),
+        creationflags=_CREATE_NO_WINDOW,
     )
     if result.returncode == 0:
         logger.info("AiKeyboard 输入完成")
@@ -190,6 +184,7 @@ def type_text_raw(text: str, interval_ms: int = None) -> bool:
             text=True,
             timeout=timeout,
             cwd=str(aikeyboard_path.parent),
+            creationflags=_CREATE_NO_WINDOW,
         )
     except subprocess.TimeoutExpired:
         logger.error(f"AiKeyboard 超时（{timeout}s）")
@@ -247,6 +242,7 @@ def send_with_aikeyboard(key: str) -> bool:
         text=True,
         timeout=5,
         cwd=str(aikeyboard_path.parent),
+        creationflags=_CREATE_NO_WINDOW,
     )
     if result.returncode != 0:
         logger.warning(f"AiKeyboard send '{key}' (normalized='{normalized_key}') 失败: rc={result.returncode}, stderr={result.stderr.strip()}")

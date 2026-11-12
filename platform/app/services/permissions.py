@@ -12,7 +12,7 @@ ROLE_LABELS = {
 _ROLE_ALIASES = {"user": "manager"}
 
 MENU_ACCESS = {
-    "admin": {"dashboard", "accounts", "statements", "receipts", "payments", "recon", "devices", "payment_settings", "tasks", "settings"},
+    "admin": {"dashboard", "accounts", "statements", "receipts", "payments", "recon", "devices", "payment_settings", "tasks", "settings", "master_data"},
     "manager": {"dashboard", "accounts", "statements", "receipts", "payments", "recon"},
     "cashier": {"dashboard", "accounts", "statements", "receipts", "payments"},
     "accountant": {"dashboard", "accounts", "statements", "receipts", "recon"},
@@ -22,7 +22,7 @@ _EDIT_ACCOUNT_ROLES = {"admin", "manager"}
 _COLLECT_ACCOUNT_ROLES = {"admin", "manager", "cashier"}
 _PAYMENT_ROLES = {"manager", "cashier"}
 _RECON_ROLES = {"manager", "accountant"}
-_ADMIN_PREFIXES = ("/settings", "/payment-settings", "/devices", "/tasks", "/tenant/switch", "/api/settings", "/api/payment-settings", "/api/devices", "/api/tasks")
+_ADMIN_PREFIXES = ("/settings", "/payment-settings", "/master-data", "/devices", "/tasks", "/tenant/switch", "/api/settings", "/api/payment-settings", "/api/devices", "/api/tasks")
 
 _PAGE_MENUS = {
     "/": "dashboard",
@@ -30,9 +30,11 @@ _PAGE_MENUS = {
     "/statements": "statements",
     "/receipts": "receipts",
     "/payments": "payments",
+    "/payment-drafts": "payments",
     "/recon": "recon",
     "/devices": "devices",
     "/payment-settings": "payment_settings",
+    "/master-data": "master_data",
     "/tasks": "tasks",
     "/settings": "settings",
 }

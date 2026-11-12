@@ -205,7 +205,7 @@
     <div class="head">
       <div>
         <strong id="account-modal-title">添加银行账户</strong>
-        <div class="modal-sub">添加后系统会按采集内容和计划自动登录银行取数</div>
+        <div class="modal-sub">添加后可手动采集；勾选下方选项才会按计划自动取数</div>
       </div>
       <button class="icon-btn" onclick="closeModal('account-modal')" aria-label="关闭">
         <svg class="ico"><use href="#i-close"/></svg>
@@ -243,6 +243,10 @@
 
       <fieldset class="form-section">
         <legend><span class="step-no">3</span>自动采集设置</legend>
+        <label class="auto-toggle" id="account-enabled-field">
+          <input type="checkbox" name="collect_enabled" id="account-collect-enabled">
+          <span>创建后启用自动采集</span>
+        </label>
         <div class="form-grid">
           <div class="field">
             <label>采集内容</label>

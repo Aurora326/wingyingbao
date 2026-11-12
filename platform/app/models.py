@@ -15,6 +15,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -44,6 +45,17 @@ class TenantMixin:
     tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
 
+class AppSetting(Base, TimestampMixin, TenantMixin):
+    """平台级开关，前台可维护。"""
+
+    __tablename__ = "app_setting"
+    __table_args__ = (UniqueConstraint("tenant_id", "key", name="uq_app_setting_tenant_key"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    key: Mapped[str] = mapped_column(String(64), nullable=False)
+    value: Mapped[str] = mapped_column(String(256), default="")
+
+
 class Enterprise(Base, TimestampMixin):
     __tablename__ = "enterprise"
 
@@ -65,6 +77,8 @@ class Agent(Base, TimestampMixin, TenantMixin):
     status: Mapped[str] = mapped_column(String(16), default="offline")
     last_heartbeat: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
     capabilities: Mapped[dict] = mapped_column(JSON, default=dict)
+    token_hash: Mapped[str] = mapped_column(String(64), default="")
+    token_enc: Mapped[str] = mapped_column(String(256), default="")
 
 
 class UkeyDevice(Base, TimestampMixin, TenantMixin):
@@ -358,7 +372,17 @@ class PayeeAccount(Base, TimestampMixin, TenantMixin):
     """收款账户库，由明源云单据沉淀，也支持手工维护。"""
 
     __tablename__ = "payee_account"
-    __table_args__ = (Index("ix_payee_account_name", "payee_name"),)
+    __table_args__ = (
+        Index("ix_payee_account_name", "payee_name"),
+        Index(
+            "uq_payee_account_tenant_account",
+            "tenant_id",
+            "account_no",
+            unique=True,
+            postgresql_where=text("account_no <> ''"),
+            sqlite_where=text("account_no <> ''"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     payee_name: Mapped[str] = mapped_column(String(256), nullable=False)
@@ -424,6 +448,12 @@ class PaymentDoc(Base, TimestampMixin, TenantMixin):
     drafted_by: Mapped[str] = mapped_column(String(64), default="")
     drafted_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
     draft_ref: Mapped[str] = mapped_column(String(256), default="")
+    draft_batch_id: Mapped[int | None] = mapped_column(
+        ForeignKey("payment_draft_batch.id"), nullable=True
+    )
+    draft_task_id: Mapped[int | None] = mapped_column(
+        ForeignKey("payment_draft_task.id"), nullable=True
+    )
 
 
 class PaymentDocChange(Base, TimestampMixin, TenantMixin):
@@ -506,3 +536,49 @@ class PaymentCollectTask(Base, TimestampMixin, TenantMixin):
     created_by: Mapped[str] = mapped_column(String(64), default="")
     started_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class PaymentDraftBatch(Base, TimestampMixin, TenantMixin):
+    """一次「发起制单」的批次，记录谁在什么时候发了多少笔。"""
+
+    __tablename__ = "payment_draft_batch"
+    __table_args__ = (UniqueConstraint("tenant_id", "batch_no", name="uq_draft_batch_no"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    batch_no: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="running")
+    doc_count: Mapped[int] = mapped_column(Integer, default=0)
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(20, 2), default=0)
+    created_by: Mapped[str] = mapped_column(String(64), default="")
+    finished_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class PaymentDraftTask(Base, TimestampMixin, TenantMixin):
+    """批次内按付款账户拆出的制单任务，一个账户一份批量文件。"""
+
+    __tablename__ = "payment_draft_task"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    batch_id: Mapped[int] = mapped_column(ForeignKey("payment_draft_batch.id"), nullable=False)
+    bank_code: Mapped[str] = mapped_column(String(32), default="")
+    payer_account_id: Mapped[int | None] = mapped_column(
+        ForeignKey("bank_account.id"), nullable=True
+    )
+    payer_account_no: Mapped[str] = mapped_column(String(64), default="")
+    payer_name: Mapped[str] = mapped_column(String(128), default="")
+    ukey_device_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    agent_code: Mapped[str] = mapped_column(String(32), default="")
+    status: Mapped[str] = mapped_column(String(16), default="queued")
+    doc_count: Mapped[int] = mapped_column(Integer, default=0)
+    amount: Mapped[Decimal] = mapped_column(Numeric(20, 2), default=0)
+    file_path: Mapped[str] = mapped_column(String(512), default="")
+    error_msg: Mapped[str] = mapped_column(String(512), default="")
+    done_by: Mapped[str] = mapped_column(String(64), default="")
+    done_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    started_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    finished_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    lease_until: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    error_code: Mapped[str] = mapped_column(String(32), default="")
+    bank_batch_no: Mapped[str] = mapped_column(String(64), default="")
+    log_text: Mapped[str] = mapped_column(Text, default="")

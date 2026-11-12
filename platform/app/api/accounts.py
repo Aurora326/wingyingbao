@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
+import secrets
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import Agent, AuditLog, BankAccount, BalanceSnapshot, CollectionTask, Credential, Enterprise, UkeyDevice
-from app.schemas import AccountCreate, AccountDeviceUpdate, AccountUpdate, CredentialUpdate, DeviceCreate
-from app.services import account_admin, device_sync, security
+from app.schemas import AccountCreate, AccountDeviceUpdate, AccountUpdate, AgentCreate, CredentialUpdate, DeviceCreate
+from app.services import account_admin, device_sync, permissions, security
 from app.services.agents import resolve_agent_code
 from app.services.scheduler import enqueue_task, task_range, task_types_for
 from app.services.usb_robot import UsbRobotError
@@ -324,6 +326,30 @@ def list_devices(db: Session = Depends(get_db)):
     }
 
 
+@router.post("/agents")
+def create_agent(payload: AgentCreate, request: Request, db: Session = Depends(get_db)):
+    """管理员新增执行机：生成独立令牌，采集机首次心跳后自动上线。"""
+    user = getattr(request.state, "user", None)
+    if user is None or permissions.effective_role(user.role) != "admin":
+        raise HTTPException(status_code=403, detail="只有管理员可以新增执行机")
+    code = payload.code.strip()
+    name = payload.name.strip()
+    if db.execute(select(Agent).where(Agent.code == code)).scalars().first():
+        raise HTTPException(status_code=409, detail="Agent 编号已存在")
+    token = secrets.token_urlsafe(32)
+    agent = Agent(
+        code=code,
+        name=name,
+        status="offline",
+        token_hash=hashlib.sha256(token.encode("utf-8")).hexdigest(),
+        token_enc=security.encrypt(token),
+    )
+    db.add(agent)
+    db.commit()
+    db.refresh(agent)
+    return {"id": agent.id, "code": agent.code, "name": agent.name, "token": token}
+
+
 @router.get("/agents")
 def list_agents(db: Session = Depends(get_db)):
     agents = db.execute(select(Agent).order_by(Agent.code)).scalars().all()
@@ -335,7 +361,13 @@ def list_agents(db: Session = Depends(get_db)):
                 "name": agent.name,
                 "hostname": agent.hostname,
                 "ip": agent.ip,
-                "status": agent.status,
+                # 心跳超过窗口就按离线展示，避免进程退出后记录一直显示在线
+                "status": (
+                    "offline"
+                    if agent.last_heartbeat
+                    and dt.datetime.now() - agent.last_heartbeat > dt.timedelta(minutes=10)
+                    else (agent.status or "offline")
+                ),
                 "last_heartbeat": agent.last_heartbeat,
                 "capabilities": agent.capabilities,
             }

@@ -363,7 +363,12 @@ def apply_payment_task_result(
             f"跳过 {result['skipped']}，新收款账户 {result['payees_created']}"
         )
     except Exception as exc:
+        # 导入失败时先回滚，避免会话处于 PendingRollback 导致状态无法落库
+        db.rollback()
+        task = db.get(PaymentCollectTask, task_id)
+        if task is None:
+            raise
         task.status = "failed"
-        task.error_msg = f"导入失败：{exc}"
+        task.error_msg = f"导入失败：{exc}"[:500]
     db.commit()
     return task_dict(task)

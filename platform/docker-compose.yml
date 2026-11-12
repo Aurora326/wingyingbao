@@ -2,11 +2,35 @@
 # 采集执行留在 Windows 客户机：那边的 Agent 通过 /api/agent 领取任务，
 # 容器内既没有 mb.exe 也接触不到 U盾，所以本地执行器必须关掉。
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bank-platform-db
+    restart: unless-stopped
+    environment:
+      # 改密码时也要同步改下面 platform 的 PLATFORM_DB_URL
+      POSTGRES_DB: ${POSTGRES_DB:-platform}
+      POSTGRES_USER: ${POSTGRES_USER:-platform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-platform}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      # 仅本机可连，便于从宿主机跑迁移和 psql；不需要时删掉这段
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-platform} -d ${POSTGRES_DB:-platform}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   platform:
     build: .
     image: bank-platform:latest
     container_name: bank-platform
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "${PLATFORM_BIND_IP:-127.0.0.1}:${PLATFORM_PORT:-8800}:8800"
     environment:
@@ -15,6 +39,8 @@ services:
       PLATFORM_ADMIN_USER: ${PLATFORM_ADMIN_USER:-admin}
       PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-admin123}
       PLATFORM_TIMEZONE: ${PLATFORM_TIMEZONE:-Asia/Shanghai}
+      # 留空则回退到 SQLite（data/app.db），本地无 PG 时可用
+      PLATFORM_DB_URL: ${PLATFORM_DB_URL:-postgresql+psycopg://platform:platform@postgres:5432/platform}
       PLATFORM_ENABLE_WORKER: "0"
       PLATFORM_ENABLE_SCHEDULER: ${PLATFORM_ENABLE_SCHEDULER:-1}
       PLATFORM_ENABLE_MOCK_BANK: ${PLATFORM_ENABLE_MOCK_BANK:-0}
@@ -37,3 +63,4 @@ services:
 
 volumes:
   platform-data:
+  postgres-data:

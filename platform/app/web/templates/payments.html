@@ -9,56 +9,68 @@
     <h1>付款协同</h1>
     <div class="sub">明源云与 OA 付款单据入库后，可直接修改单据信息；银行侧复核与授权不在平台内完成。</div>
   </div>
-  <div class="pay-head-actions">
-    <span class="chip"><span class="dot"></span>{{ total }} 张单据</span>
-    <a class="btn small" href="/tasks?source=payment">
-      <svg class="ico" style="width:14px;height:14px"><use href="#i-sliders"/></svg>采集任务
-    </a>
-    <a class="btn small" href="/payments">刷新</a>
-  </div>
 </div>
 
-{% if msg %}<div class="callout">{{ msg }}</div>{% endif %}
-
 <div class="panel pay-panel">
+  {% if msg %}<div class="callout">{{ msg }}</div>{% endif %}
   <form method="get" action="/payments" class="pay-filters">
     <div class="search-box">
       <svg class="ico"><use href="#i-search"/></svg>
       <input type="search" name="q" value="{{ q }}" placeholder="申请编号 / 主题 / 收款单位 / 项目">
     </div>
+    <select name="payer" class="pay-payer-select" aria-label="按付款单位筛选" onchange="this.form.submit()">
+      <option value="">全部付款单位</option>
+      {% for name in payer_options %}
+      <option value="{{ name }}" {{ 'selected' if payer == name }}>{{ name }}</option>
+      {% endfor %}
+    </select>
     <input type="hidden" name="status" value="{{ status }}">
     <button class="small" type="submit">搜索</button>
-    {% if q %}
+    {% if q or payer %}
     <a class="btn small" href="/payments?status={{ status }}&size={{ size }}">清除</a>
     {% endif %}
     <nav class="pay-tabs pay-tabs-inline" aria-label="按状态筛选">
-      <a class="pay-tab {{ 'active' if not status }}" href="/payments">全部 <span>{{ total }}</span></a>
+      <a class="pay-tab {{ 'active' if not status }}" href="/payments?q={{ q|urlencode }}&payer={{ payer|urlencode }}">全部 <span>{{ total_all }}</span></a>
       {% for key in status_order %}
-      <a class="pay-tab {{ 'active' if status == key }}" href="/payments?status={{ key }}">
+      <a class="pay-tab {{ 'active' if status == key }}" href="/payments?status={{ key }}&q={{ q|urlencode }}&payer={{ payer|urlencode }}">
         {{ status_labels.get(key, key) }} <span>{{ counts.get(key, 0) }}</span>
       </a>
       {% endfor %}
     </nav>
   </form>
 
+  {% if can_draft %}
+  <div class="pay-bulk">
+    <span class="muted" id="pay-picked-count">未选择单据</span>
+    <button class="small primary" type="button" id="pay-draft-btn" onclick="openDraftPreview()" disabled>发起制单</button>
+  </div>
+  {% endif %}
+
   <div class="table-wrap">
     <table class="pay-table">
       <thead>
         <tr>
-          <th class="center" style="width:96px">数据来源</th>
+          <th class="pick"><input type="checkbox" id="pay-pick-all" aria-label="全选可制单单据" onchange="toggleAllDocs(this)"></th>
+          <th class="center" style="width:78px">数据来源</th>
           <th style="width:250px">单据</th>
-          <th style="width:190px">收款方</th>
-          <th style="width:190px">付款方</th>
+          <th style="width:175px">收款方</th>
+          <th style="width:175px">付款方</th>
           <th class="num" style="width:117px">金额</th>
-          <th style="width:210px">项目 / 合同</th>
+          <th style="width:190px">项目 / 合同</th>
           <th style="width:130px">审批</th>
           <th style="width:100px">状态</th>
-          <th style="width:170px">操作</th>
+          <th style="width:110px">创建时间</th>
+          <th style="width:140px">操作</th>
         </tr>
       </thead>
       <tbody>
         {% for doc in docs %}
         <tr>
+          <td class="pick">
+            {% if doc.status == 'ready' and doc.payer_account_id %}
+            <input type="checkbox" class="pay-pick" value="{{ doc.id }}" aria-label="选择 {{ doc.apply_no }}" onchange="updatePickCount()">
+            {% endif %}
+          </td>
           <td class="center pay-source" style="text-align:center">{{ doc.source_system or '明源云' }}</td>
           <td class="pay-main">
             <b>{{ doc.apply_no }}</b>
@@ -75,6 +87,7 @@
           <td>
             <div class="pay-party" title="{{ doc.payer_name }}">{{ doc.payer_name }}</div>
             <div class="cell-sub mono" title="{{ doc.payer_account_no }}">{{ doc.payer_account_no or '—' }}</div>
+            {% if doc.payer_sub_account_id %}<div class="cell-sub">{{ sub_names.get(doc.payer_sub_account_id, '') }}</div>{% endif %}
             <div class="cell-sub" title="{{ doc.payer_bank }}">{{ doc.payer_bank or '—' }}</div>
           </td>
           <td class="num pay-amount">{{ doc.amount | money }}<div class="cell-sub">{{ doc.currency }}</div></td>
@@ -111,6 +124,7 @@
             <span class="pay-status status-{{ doc.status }}">{{ status_labels.get(doc.status, doc.status) }}</span>
             {% if doc.reject_reason %}<div class="cell-sub danger">{{ doc.reject_reason }}</div>{% endif %}
           </td>
+          <td class="muted nowrap">{{ doc.created_at.strftime('%Y-%m-%d') if doc.created_at else '—' }}</td>
           <td>
             <div class="pay-row-actions">
             <button class="small" type="button" onclick="openPayEdit(this)" data-doc="{{ doc.id }}">编辑</button>
@@ -119,8 +133,8 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="9" class="pay-empty">
-            暂无付款单据。{% if collector_available %}可以点上方「立即采集明源云」，或导入 Excel。{% else %}请先导入明源云 Excel。{% endif %}
+          <td colspan="11" class="pay-empty">
+            暂无付款单据。
           </td>
         </tr>
         {% endfor %}
@@ -133,6 +147,7 @@
     <form class="pay-size-form" method="get" action="/payments">
       <input type="hidden" name="status" value="{{ status }}">
       <input type="hidden" name="q" value="{{ q }}">
+      <input type="hidden" name="payer" value="{{ payer }}">
       <label class="pay-size">每页
         <select name="size" onchange="this.form.submit()">
           {% for n in (10, 20, 50, 100) %}
@@ -142,166 +157,22 @@
       </label>
     </form>
     {% if page_no > 1 %}
-    <a class="btn small" href="/payments?status={{ status }}&q={{ q }}&size={{ size }}&page={{ page_no - 1 }}">上一页</a>
+    <a class="btn small" href="/payments?status={{ status }}&q={{ q }}&payer={{ payer|urlencode }}&size={{ size }}&page={{ page_no - 1 }}">上一页</a>
     {% endif %}
     <span class="muted">第 {{ page_no }} / {{ pages }} 页 · 共 {{ total }} 条</span>
     {% if page_no < pages %}
-    <a class="btn small" href="/payments?status={{ status }}&q={{ q }}&size={{ size }}&page={{ page_no + 1 }}">下一页</a>
+    <a class="btn small" href="/payments?status={{ status }}&q={{ q }}&payer={{ payer|urlencode }}&size={{ size }}&page={{ page_no + 1 }}">下一页</a>
     {% endif %}
     <form class="page-jump" method="get" action="/payments">
       <input type="hidden" name="status" value="{{ status }}">
       <input type="hidden" name="q" value="{{ q }}">
+      <input type="hidden" name="payer" value="{{ payer }}">
       <input type="hidden" name="size" value="{{ size }}">
       <label>跳至 <input type="number" name="page" min="1" max="{{ pages }}" value="{{ page_no }}"> 页</label>
       <button class="small" type="submit">跳转</button>
     </form>
   </div>
   {% endif %}
-</div>
-
-<div class="modal" id="pay-config-modal" role="dialog" aria-modal="true" aria-labelledby="pay-config-title">
-  <div class="box pay-config-box">
-    <div class="head">
-      <div>
-        <strong id="pay-config-title">采集配置</strong>
-        <div class="modal-sub">明源云采集账号、采集范围、Excel 导入和最近任务</div>
-      </div>
-      <button class="icon-btn" type="button" onclick="closeModal('pay-config-modal')" aria-label="关闭">
-        <svg class="ico"><use href="#i-close"/></svg>
-      </button>
-    </div>
-
-    <div class="pay-config-body">
-      {% if is_admin %}
-      <form method="post" action="/payment-settings/source-account?tab=source" class="pay-config-section">
-        <div class="pay-config-head">
-          <b>明源云采集账号</b>
-          <span class="tag {{ 'green' if source_configured else 'red' }}">{{ '已配置' if source_configured else '未配置' }}</span>
-        </div>
-        <div class="pay-config-row">
-          <label>账号<input type="text" name="username" value="{{ source_username }}" required placeholder="明源云登录账号"></label>
-          <label>密码<input type="password" name="password" placeholder="{{ '已配置，留空不修改' if source_configured else '请输入密码' }}"></label>
-          <button class="primary small" type="submit">保存账号</button>
-        </div>
-        <input type="hidden" name="next" value="payments">
-      </form>
-      {% else %}
-      <div class="pay-config-section">
-        <div class="pay-config-head">
-          <b>明源云采集账号</b>
-          <span class="tag {{ 'green' if source_configured else 'red' }}">{{ '已配置' if source_configured else '未配置' }}</span>
-        </div>
-        <div class="form-note">采集账号由管理员维护，当前{{ '已配置' if source_configured else '未配置' }}。</div>
-      </div>
-      {% endif %}
-
-      <div class="pay-config-section">
-        <div class="pay-config-head">
-          <b>定时采集</b>
-          <span class="tag {{ 'green' if schedule_enabled else '' }}">{{ '已启用' if schedule_enabled else '未启用' }}</span>
-        </div>
-        {% if is_admin %}
-        <form method="post" action="/payment-settings/source-schedule?tab=source" class="pay-config-row">
-          <label class="check"><input type="checkbox" name="enabled" value="1" {{ 'checked' if schedule_enabled }}> 启用定时采集</label>
-          <label>计划<input type="text" name="cron" value="{{ schedule_cron }}" placeholder="0 8,18 * * *"></label>
-          <label>每类条数<input type="number" name="limit" value="{{ schedule_limit }}" min="0" max="1800"></label>
-          <button class="primary small" type="submit">保存计划</button>
-          <input type="hidden" name="next" value="payments">
-        </form>
-        <div class="form-note">5 段 cron：分 时 日 月 周；例如每天 8:00 和 18:00 写 0 8,18 * * *。</div>
-        {% else %}
-        <div class="form-note">
-          {% if schedule_enabled %}已启用：{{ schedule_cron }}，每次 {{ schedule_limit }} 条{% else %}未启用，由管理员维护{% endif %}
-        </div>
-        {% endif %}
-      </div>
-
-      <div class="pay-config-section">
-        <div class="pay-config-head"><b>立即采集</b><span class="muted">从明源云或 OA 拉取付款单据</span></div>
-        {% if collector_available %}
-        <form method="post" action="/payments/collect" class="pay-config-row">
-          <input type="hidden" name="source" value="mingyuan">
-          <label>合同条数<input type="number" name="limit" value="200" min="0" max="1800"></label>
-          <label>无合同条数<input type="number" name="limit_nocontract" value="100" min="0" max="1800"></label>
-          <label>起始日期<input type="date" name="since"></label>
-          <button class="primary small" type="submit">立即采集明源云</button>
-        </form>
-        {% else %}
-        <div class="form-note">当前部署未配置明源云采集器，请在客户机采集后导入 Excel。</div>
-        {% endif %}
-        {% if oa_collector_available %}
-        <form method="post" action="/payments/collect" class="pay-config-row">
-          <input type="hidden" name="source" value="oa">
-          <label>起始日期<input type="date" name="since" value="{{ oa_since }}"></label>
-          <button class="primary small" type="submit">立即采集 OA 请款</button>
-          {% if not oa_configured %}<span class="muted">请先在付款设置里配置 OA 采集账号</span>{% endif %}
-        </form>
-        {% endif %}
-      </div>
-
-      <div class="pay-config-section">
-        <div class="pay-config-head"><b>导入 Excel</b><span class="muted">客户机导出的付款单据</span></div>
-        <form method="post" action="/payments/import" enctype="multipart/form-data" class="pay-config-row">
-          <input type="file" id="pay-file" name="file" accept=".xlsx,.xlsm" required hidden>
-          <label class="btn small" for="pay-file">选择 Excel</label>
-          <span id="pay-file-name" class="pay-file-name">未选择文件</span>
-          <label class="check"><input type="checkbox" name="force" value="true"> 覆盖已存在</label>
-          <button class="small" type="submit">导入</button>
-        </form>
-      </div>
-
-      <div class="pay-config-section">
-        <div class="pay-config-head">
-          <b>最近采集任务</b>
-          <span class="muted">
-            {{ collect_tasks | length }} 条
-            {% if is_admin %}<a class="more" href="/tasks?source=payment" style="margin-left:8px">查看全部</a>{% endif %}
-          </span>
-        </div>
-        {% if collect_tasks %}
-        {% set task_labels = {'queued':'排队中','running':'采集中','succeeded':'已完成','failed':'失败'} %}
-        <table class="pay-task-table">
-          <thead><tr><th>任务</th><th>状态</th><th>范围</th><th>时间</th><th>结果 / 日志</th></tr></thead>
-          <tbody>
-            {% for t in collect_tasks %}
-            <tr>
-              <td><b>#{{ t.id }}</b><div class="cell-sub">{{ 'OA' if t.source == 'oa' else '明源云' }} · {{ t.created_by }}</div></td>
-              <td><span class="pay-status task-status-{{ t.status }}">{{ task_labels.get(t.status, t.status) }}</span></td>
-              <td class="muted">
-                {% if t.source == 'oa' %}
-                OA 请款
-                {% if t.since_date %}<div class="cell-sub">自 {{ t.since_date }}</div>{% endif %}
-                {% else %}
-                合同 {{ t.limit_count }} 条
-                {% if t.limit_nocontract is not none and t.limit_nocontract >= 0 %}<div class="cell-sub">无合同 {{ t.limit_nocontract }} 条</div>{% endif %}
-                {% if t.since_date %}<div class="cell-sub">自 {{ t.since_date }}</div>{% endif %}
-                {% endif %}
-              </td>
-              <td class="muted nowrap">{{ t.started_at[:16] | replace('T', ' ') if t.started_at else '—' }}<div class="cell-sub">{{ t.finished_at[:16] | replace('T', ' ') if t.finished_at else '' }}</div></td>
-              <td>
-                <span class="muted">{{ t.error_msg or '—' }}</span>
-                {% if t.log_text %}
-                <details class="approval-detail">
-                  <summary>查看日志</summary>
-                  <pre class="task-log">{{ t.log_text }}</pre>
-                </details>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <div class="form-note">还没有采集任务。</div>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="modal-foot">
-      {% if is_admin %}<a class="btn small" href="/payment-settings">账户主数据 / 出纳分配 / 收款账户库</a>{% endif %}
-      <button type="button" onclick="closeModal('pay-config-modal')">关闭</button>
-    </div>
-  </div>
 </div>
 
 <div class="modal" id="pay-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="pay-confirm-title">
@@ -318,22 +189,22 @@
     <form method="post" id="pay-confirm-form">
       <div class="form-grid">
         <div class="field full">
-          <label for="pay-confirm-payer">付款账户</label>
-          <select id="pay-confirm-payer" name="payer_account_id" required>
-            <option value="">选择付款账户</option>
-            {% for a in accounts %}
-            <option value="{{ a.id }}" data-account-no="{{ a.account_no }}">{{ a.bank_code }} · {{ a.account_no }} · {{ a.account_name }}</option>
-            {% endfor %}
-          </select>
+          <label for="pay-confirm-payer-search">付款账户</label>
+          <div class="combo">
+            <input type="text" id="pay-confirm-payer-search" placeholder="搜索账户名、账号或银行" autocomplete="off"
+                   onfocus="openCombo('confirm_payer')" oninput="filterCombo('confirm_payer')" onkeydown="comboKey(event, 'confirm_payer')">
+            <input type="hidden" name="payer_account_id" id="pay-confirm-payer">
+            <div class="combo-list" id="pay-confirm-payer-list" hidden></div>
+          </div>
         </div>
         <div class="field full">
-          <label for="pay-confirm-payee">收款账户</label>
-          <select id="pay-confirm-payee" name="payee_account_id" required>
-            <option value="">选择收款账户</option>
-            {% for p in payees %}
-            <option value="{{ p.id }}" data-account-no="{{ p.account_no }}">{{ p.payee_name }} · {{ p.account_no }} · {{ p.bank_name }}</option>
-            {% endfor %}
-          </select>
+          <label for="pay-confirm-payee-search">收款账户</label>
+          <div class="combo">
+            <input type="text" id="pay-confirm-payee-search" placeholder="搜索收款单位、账号或开户行" autocomplete="off"
+                   onfocus="openCombo('confirm_payee')" oninput="filterCombo('confirm_payee')" onkeydown="comboKey(event, 'confirm_payee')">
+            <input type="hidden" name="payee_account_id" id="pay-confirm-payee">
+            <div class="combo-list" id="pay-confirm-payee-list" hidden></div>
+          </div>
         </div>
         <div class="field full">
           <label for="pay-confirm-reason">调整原因</label>
@@ -395,6 +266,33 @@
         <div class="field"><label for="pay-edit-department">申请部门</label><input id="pay-edit-department" name="department"></div>
         <div class="field"><label for="pay-edit-approval-type">付款审批类型</label><input id="pay-edit-approval-type" name="approval_type"></div>
         <div class="field"><label for="pay-edit-currency">币种</label><input id="pay-edit-currency" name="currency"></div>
+        <div class="field full">
+          <label for="pay-edit-payee-search">收款方（基础资料）</label>
+          <div class="combo">
+            <input type="text" id="pay-edit-payee-search" placeholder="搜索收款单位、账号或开户行" autocomplete="off"
+                   onfocus="openCombo('payee')" oninput="filterCombo('payee')" onkeydown="comboKey(event, 'payee')">
+            <input type="hidden" name="payee_account_id" id="pay-edit-payee-id">
+            <div class="combo-list" id="pay-edit-payee-list" hidden></div>
+          </div>
+        </div>
+        <div class="field full">
+          <label for="pay-edit-payer-search">付款方（基础资料）</label>
+          <div class="combo">
+            <input type="text" id="pay-edit-payer-search" placeholder="搜索账户名、账号或银行" autocomplete="off"
+                   onfocus="openCombo('payer')" oninput="filterCombo('payer')" onkeydown="comboKey(event, 'payer')">
+            <input type="hidden" name="payer_account_id" id="pay-edit-payer-id">
+            <div class="combo-list" id="pay-edit-payer-list" hidden></div>
+          </div>
+        </div>
+        <div class="field full" id="pay-edit-sub-field" hidden>
+          <label for="pay-edit-sub-search">付款子账簿（农行多级账簿）</label>
+          <div class="combo">
+            <input type="text" id="pay-edit-sub-search" placeholder="按项目名称或账簿号搜索" autocomplete="off"
+                   onfocus="openSubCombo()" oninput="filterSubCombo()">
+            <input type="hidden" name="payer_sub_account_id" id="pay-edit-sub-id">
+            <div class="combo-list" id="pay-edit-sub-list" hidden></div>
+          </div>
+        </div>
         <div class="field"><label for="pay-edit-payee-name">收款单位</label><input id="pay-edit-payee-name" name="payee_name"></div>
         <div class="field"><label for="pay-edit-payee-account">收款账号</label><input id="pay-edit-payee-account" name="payee_account_no"></div>
         <div class="field"><label for="pay-edit-payee-bank">收款开户行</label><input id="pay-edit-payee-bank" name="payee_bank"></div>
@@ -425,18 +323,266 @@
   </div>
 </div>
 
+<div class="modal" id="pay-draft-modal" role="dialog" aria-modal="true" aria-labelledby="pay-draft-title">
+  <div class="box form-box pay-action-box">
+    <div class="head">
+      <div>
+        <strong id="pay-draft-title">发起制单</strong>
+        <div class="modal-sub">按付款账户拆分，每个账户生成一份批量文件</div>
+      </div>
+      <button class="icon-btn" type="button" onclick="closeModal('pay-draft-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <div id="pay-draft-body" class="draft-body"></div>
+    <div class="modal-foot">
+      <button type="button" onclick="closeModal('pay-draft-modal')">取消</button>
+      <button class="primary" type="button" id="pay-draft-confirm" onclick="confirmDraft()" disabled>确认制单</button>
+    </div>
+  </div>
+</div>
+
 <script>
-  function setPayAccount(select, accountNo) {
-    if (!select) return;
-    select.value = "";
-    if (!accountNo) return;
-    for (const option of select.options) {
-      if (option.dataset.accountNo === accountNo) {
-        select.value = option.value;
-        return;
+  window.__PAYEE_DATA = {{ payee_data | tojson }};
+  window.__PAYER_DATA = {{ payer_data | tojson }};
+  window.__BANK_OPTIONS = {{ bank_options | tojson }};
+  window.__SUB_DATA = {{ sub_data | tojson }};
+
+  const COMBO_CFG = {
+    payee: {data: window.__PAYEE_DATA, input: 'pay-edit-payee-search', list: 'pay-edit-payee-list', hidden: 'pay-edit-payee-id',
+            fields: {name: 'pay-edit-payee-name', account: 'pay-edit-payee-account', bank: 'pay-edit-payee-bank', branch: 'pay-edit-payee-branch'}},
+    payer: {data: window.__PAYER_DATA, input: 'pay-edit-payer-search', list: 'pay-edit-payer-list', hidden: 'pay-edit-payer-id',
+            fields: {name: 'pay-edit-payer-name', account: 'pay-edit-payer-account', bank: 'pay-edit-payer-bank'}},
+    confirm_payer: {data: window.__PAYER_DATA, input: 'pay-confirm-payer-search', list: 'pay-confirm-payer-list', hidden: 'pay-confirm-payer'},
+    confirm_payee: {data: window.__PAYEE_DATA, input: 'pay-confirm-payee-search', list: 'pay-confirm-payee-list', hidden: 'pay-confirm-payee'},
+  };
+
+  function escapeCombo(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[ch]));
+  }
+
+  function comboLabel(item) {
+    const prefix = item.status && item.status !== 'active' ? '（停用）' : '';
+    return `${prefix}${item.name || '未命名'} · ${item.account || '无账号'} · ${item.bank || '—'}`;
+  }
+
+  function renderCombo(kind, keyword) {
+    const cfg = COMBO_CFG[kind];
+    const list = document.getElementById(cfg.list);
+    if (!cfg || !list) return;
+    const kw = String(keyword || '').trim().toLowerCase();
+    const items = cfg.data.filter((item) => {
+      if (!kw) return true;
+      return `${item.name} ${item.account} ${item.bank}`.toLowerCase().includes(kw);
+    }).slice(0, 50);
+    list.innerHTML = items.length
+      ? items.map((item) => `<button type="button" class="combo-item" data-id="${item.id}" onmousedown="pickCombo('${kind}', ${item.id})">${escapeCombo(comboLabel(item))}</button>`).join('')
+      : `<div class="combo-empty">没有匹配的账户</div>
+         <button type="button" class="combo-add" onmousedown="openComboAdd('${kind}')">+ 新增${kind.includes('payee') ? '收款' : '付款'}账户</button>`;
+    list.hidden = false;
+  }
+
+  function openCombo(kind) { renderCombo(kind, ''); }
+
+  function filterCombo(kind) {
+    const cfg = COMBO_CFG[kind];
+    const input = document.getElementById(cfg.input);
+    const hidden = document.getElementById(cfg.hidden);
+    if (hidden && hidden.value) {
+      const current = cfg.data.find((entry) => String(entry.id) === String(hidden.value));
+      const label = current ? `${current.name} · ${current.account}` : '';
+      if (!label || input.value !== label) {
+        hidden.value = '';
+        if (kind === 'payer') syncSubField(null);
+        if (cfg.fields) {
+          Object.values(cfg.fields).forEach((fieldId) => {
+            const field = document.getElementById(fieldId);
+            if (field) field.readOnly = false;
+          });
+        }
       }
     }
+    renderCombo(kind, input.value);
   }
+
+  function pickCombo(kind, id) {
+    const cfg = COMBO_CFG[kind];
+    const item = cfg.data.find((entry) => String(entry.id) === String(id));
+    if (!item) return;
+    const hidden = document.getElementById(cfg.hidden);
+    if (hidden) hidden.value = item.id;
+    const input = document.getElementById(cfg.input);
+    if (input) input.value = `${item.name} · ${item.account}`;
+    if (cfg.fields) {
+      const values = {name: item.name, account: item.account, bank: item.bank, branch: item.branch};
+      Object.entries(cfg.fields).forEach(([key, fieldId]) => {
+        const field = document.getElementById(fieldId);
+        if (field) { field.value = values[key] || ''; field.readOnly = true; }
+      });
+    }
+    const list = document.getElementById(cfg.list);
+    if (list) list.hidden = true;
+    if (kind === 'payer') syncSubField(item.id);
+  }
+
+  function payerItem(id) {
+    return (window.__PAYER_DATA || []).find((entry) => String(entry.id) === String(id));
+  }
+
+  function payerSubs(id) {
+    return (window.__SUB_DATA || []).filter((entry) => String(entry.parent_id) === String(id));
+  }
+
+  function syncSubField(payerId) {
+    const field = document.getElementById('pay-edit-sub-field');
+    const input = document.getElementById('pay-edit-sub-search');
+    const hidden = document.getElementById('pay-edit-sub-id');
+    if (!field || !input || !hidden) return;
+    const subs = payerId ? payerSubs(payerId) : [];
+    if (!subs.length) {
+      field.hidden = true;
+      input.value = '';
+      hidden.value = '';
+      return;
+    }
+    field.hidden = false;
+    if (hidden.value && !subs.some((sub) => String(sub.id) === String(hidden.value))) {
+      hidden.value = '';
+      input.value = '';
+    }
+  }
+
+  function renderSubCombo(keyword) {
+    const list = document.getElementById('pay-edit-sub-list');
+    if (!list) return;
+    const payerId = document.getElementById('pay-edit-payer-id').value;
+    const kw = String(keyword || '').trim().toLowerCase();
+    const subs = payerSubs(payerId)
+      .filter((sub) => !kw || `${sub.name} ${sub.sub_no}`.toLowerCase().includes(kw))
+      .slice(0, 50);
+    list.innerHTML = subs.length
+      ? subs.map((sub) => `<button type="button" class="combo-item" onmousedown="pickSub(${sub.id})">${escapeCombo(sub.name)} · ${escapeCombo(sub.sub_no)}</button>`).join('')
+      : '<div class="combo-empty">没有匹配的子账簿</div>';
+    list.hidden = false;
+  }
+
+  function openSubCombo() { renderSubCombo(''); }
+  function filterSubCombo() { renderSubCombo(document.getElementById('pay-edit-sub-search').value); }
+
+  function pickSub(id) {
+    const sub = (window.__SUB_DATA || []).find((entry) => String(entry.id) === String(id));
+    if (!sub) return;
+    const payer = payerItem(sub.parent_id);
+    if (!payer) return;
+    document.getElementById('pay-edit-sub-id').value = sub.id;
+    document.getElementById('pay-edit-sub-search').value = `${sub.name} · ${sub.sub_no}`;
+    document.getElementById('pay-edit-payer-account').value = `${payer.account}-${sub.sub_no}`;
+    document.getElementById('pay-edit-sub-list').hidden = true;
+  }
+
+  function clearCombo(kind) {
+    const cfg = COMBO_CFG[kind];
+    const hidden = document.getElementById(cfg.hidden);
+    if (hidden) hidden.value = '';
+    const input = document.getElementById(cfg.input);
+    if (input) input.value = '';
+    if (cfg.fields) {
+      Object.values(cfg.fields).forEach((fieldId) => {
+        const field = document.getElementById(fieldId);
+        if (field) field.readOnly = false;
+      });
+    }
+    if (kind === 'payer') syncSubField(null);
+  }
+
+  function openComboAdd(kind) {
+    const cfg = COMBO_CFG[kind];
+    const list = document.getElementById(cfg.list);
+    const isPayee = kind.includes('payee');
+    const bankField = isPayee
+      ? `<input id="combo-add-${kind}-bank" placeholder="开户行">`
+      : `<select id="combo-add-${kind}-bank-code">${window.__BANK_OPTIONS.map((bank) => `<option value="${bank.code}">${escapeCombo(bank.name)}</option>`).join('')}</select>`;
+    const branchField = isPayee ? `<input id="combo-add-${kind}-branch" placeholder="开户支行（可选）">` : '';
+    list.innerHTML = `
+      <div class="combo-form">
+        <div class="combo-form-title">新增${isPayee ? '收款' : '付款'}账户</div>
+        <input id="combo-add-${kind}-name" placeholder="名称">
+        <input id="combo-add-${kind}-account" placeholder="账号">
+        ${bankField}
+        ${branchField}
+        <div class="combo-form-actions">
+          <button type="button" class="small primary" onmousedown="submitComboAdd('${kind}')">保存并选中</button>
+          <button type="button" class="small" onmousedown="openCombo('${kind}')">取消</button>
+        </div>
+        <div class="combo-form-error" id="combo-add-${kind}-error"></div>
+      </div>`;
+    list.hidden = false;
+    const nameInput = document.getElementById(`combo-add-${kind}-name`);
+    if (nameInput) nameInput.focus();
+  }
+
+  async function submitComboAdd(kind) {
+    const cfg = COMBO_CFG[kind];
+    const isPayee = kind.includes('payee');
+    const name = document.getElementById(`combo-add-${kind}-name`).value.trim();
+    const accountNo = document.getElementById(`combo-add-${kind}-account`).value.trim();
+    const errorBox = document.getElementById(`combo-add-${kind}-error`);
+    const params = new URLSearchParams({name, account_no: accountNo});
+    if (isPayee) {
+      params.set('bank', document.getElementById(`combo-add-${kind}-bank`).value.trim());
+      params.set('branch', document.getElementById(`combo-add-${kind}-branch`).value.trim());
+    } else {
+      params.set('bank_code', document.getElementById(`combo-add-${kind}-bank-code`).value);
+    }
+    try {
+      const resp = await fetch(isPayee ? '/payments/accounts/quick-payee' : '/payments/accounts/quick-payer', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: params,
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.detail || `HTTP ${resp.status}`);
+      const item = data.item;
+      if (!cfg.data.some((entry) => String(entry.id) === String(item.id))) cfg.data.push(item);
+      pickCombo(kind, item.id);
+      if (data.existing) {
+        // 已存在时直接选中，不重复创建
+      }
+    } catch (err) {
+      if (errorBox) errorBox.textContent = err.message;
+    }
+  }
+
+  function setComboValue(kind, id, accountNo, fallbackName) {    const cfg = COMBO_CFG[kind];
+    let item = id ? cfg.data.find((entry) => String(entry.id) === String(id)) : null;
+    if (!item && accountNo) item = cfg.data.find((entry) => entry.account === accountNo);
+    if (item) { pickCombo(kind, item.id); return; }
+    clearCombo(kind);
+    if (fallbackName) document.getElementById(cfg.input).value = fallbackName;
+  }
+
+  function comboKey(event, kind) {
+    const cfg = COMBO_CFG[kind];
+    const list = document.getElementById(cfg.list);
+    if (!list || list.hidden) { if (event.key === 'ArrowDown') renderCombo(kind, ''); return; }
+    const items = Array.from(list.querySelectorAll('.combo-item'));
+    if (!items.length) return;
+    let index = items.findIndex((item) => item.classList.contains('active'));
+    if (event.key === 'ArrowDown') { event.preventDefault(); index = Math.min(items.length - 1, index + 1); }
+    else if (event.key === 'ArrowUp') { event.preventDefault(); index = Math.max(0, index - 1); }
+    else if (event.key === 'Enter') { event.preventDefault(); (items[index] || items[0]).dispatchEvent(new MouseEvent('mousedown')); return; }
+    else if (event.key === 'Escape') { list.hidden = true; return; }
+    else return;
+    items.forEach((item) => item.classList.remove('active'));
+    items[index].classList.add('active');
+    items[index].scrollIntoView({block: 'nearest'});
+  }
+
+  document.addEventListener('click', (event) => {
+    document.querySelectorAll('.combo-list').forEach((list) => {
+      if (!list.parentElement.contains(event.target)) list.hidden = true;
+    });
+  });
 
   function openPayConfirm(button) {
     const form = document.getElementById('pay-confirm-form');
@@ -445,9 +591,9 @@
     form.action = `/payments/${button.dataset.doc}/confirm`;
     document.getElementById('pay-confirm-subtitle').textContent =
       button.dataset.apply ? `单据 ${button.dataset.apply}` : '';
-    setPayAccount(document.getElementById('pay-confirm-payer'), button.dataset.payer);
-    setPayAccount(document.getElementById('pay-confirm-payee'), button.dataset.payee);
-    openModal('pay-confirm-modal', '#pay-confirm-payer');
+    setComboValue('confirm_payer', null, button.dataset.payer, '');
+    setComboValue('confirm_payee', null, button.dataset.payee, '');
+    openModal('pay-confirm-modal', '#pay-confirm-payer-search');
   }
 
   function openPayReview(button) {
@@ -474,56 +620,167 @@
         const field = form.elements.namedItem(name);
         if (field && 'value' in field) field.value = val == null ? '' : val;
       }
+      setComboValue('payee', doc.payee_account_id, doc.payee_account_no, doc.payee_name);
+      setComboValue('payer', doc.payer_account_id, doc.payer_account_no, doc.payer_name);
+      if (doc.payer_sub_account_id) {
+        pickSub(doc.payer_sub_account_id);
+      }
       openModal('pay-edit-modal', '#pay-edit-apply-no');
     } catch (err) {
       alert(`加载单据失败：${err.message}`);
     }
   }
 
-  function openPayConfig() {
-    openModal('pay-config-modal');
+  (function () {
+    const form = document.getElementById('pay-edit-form');
+    if (!form) return;
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const data = new FormData(form);
+      data.set('next', location.pathname + location.search);
+      if (submitBtn) submitBtn.disabled = true;
+      try {
+        const resp = await fetch(form.action, {method: 'POST', body: data});
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const html = await resp.text();
+        const parsed = new DOMParser().parseFromString(html, 'text/html');
+        const nextPanel = parsed.querySelector('.pay-panel');
+        const currentPanel = document.querySelector('.pay-panel');
+        if (nextPanel && currentPanel) currentPanel.replaceWith(nextPanel);
+        closeModal('pay-edit-modal');
+      } catch (err) {
+        alert(`保存失败：${err.message}`);
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  })();
+  function pickedDocs() {
+    return Array.from(document.querySelectorAll('.pay-pick:checked')).map((el) => el.value);
   }
 
-  (function () {
-    const input = document.getElementById('pay-file');
-    const name = document.getElementById('pay-file-name');
-    if (input && name) {
-      input.addEventListener('change', function () {
-        name.textContent = input.files && input.files[0] ? input.files[0].name : '未选择文件';
-      });
+  function updatePickCount() {
+    const count = pickedDocs().length;
+    const label = document.getElementById('pay-picked-count');
+    const btn = document.getElementById('pay-draft-btn');
+    if (label) label.textContent = count ? `已选 ${count} 笔` : '未选择单据';
+    if (btn) btn.disabled = count === 0;
+    const all = document.getElementById('pay-pick-all');
+    if (all) {
+      const boxes = Array.from(document.querySelectorAll('.pay-pick'));
+      all.checked = boxes.length > 0 && boxes.every((box) => box.checked);
     }
-  })();
+  }
+
+  function toggleAllDocs(box) {
+    document.querySelectorAll('.pay-pick').forEach((el) => { el.checked = box.checked; });
+    updatePickCount();
+  }
+
+  function draftMoney(value) {
+    return '¥' + Number(value || 0).toLocaleString('zh-CN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  function draftEscape(text) {
+    return String(text == null ? '' : text).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+  }
+
+  async function openDraftPreview() {
+    const ids = pickedDocs();
+    if (!ids.length) return;
+    const body = document.getElementById('pay-draft-body');
+    const confirm = document.getElementById('pay-draft-confirm');
+    body.innerHTML = '<p class="muted">正在整理…</p>';
+    confirm.disabled = true;
+    openModal('pay-draft-modal');
+    const data = new FormData();
+    ids.forEach((id) => data.append('doc_ids', id));
+    try {
+      const resp = await fetch('/payments/drafts/preview', {method: 'POST', body: data});
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.detail || '预览失败');
+      window.__DRAFT_PICK = result.doc_ids || [];
+      let html = `<div class="draft-sum">本次制单 <b>${result.count}</b> 笔，合计 <b>${draftMoney(result.amount)}</b></div>`;
+      html += '<div class="draft-groups">';
+      result.groups.forEach((g) => {
+        html += `<div class="draft-group">
+          <span class="draft-account">${draftEscape(g.account_name || g.account_no)}</span>
+          <span class="mono muted">${draftEscape(g.account_no)}</span>
+          <span class="muted">${g.count} 笔</span>
+          <b>${draftMoney(g.amount)}</b>
+        </div>`;
+      });
+      html += '</div>';
+      if (result.problems && result.problems.length) {
+        html += `<div class="draft-problems"><b>${result.problems.length} 条不能制单，将被跳过：</b>`;
+        result.problems.slice(0, 10).forEach((p) => {
+          html += `<div class="cell-sub danger">${draftEscape(p.apply_no || '#' + p.id)}：${draftEscape(p.reason)}</div>`;
+        });
+        html += '</div>';
+      }
+      body.innerHTML = html;
+      confirm.disabled = !result.count;
+      confirm.textContent = result.count ? `确认制单 ${result.count} 笔` : '确认制单';
+    } catch (err) {
+      body.innerHTML = `<p class="danger">${draftEscape(err.message)}</p>`;
+    }
+  }
+
+  async function confirmDraft() {
+    const ids = window.__DRAFT_PICK || [];
+    if (!ids.length) return;
+    const btn = document.getElementById('pay-draft-confirm');
+    btn.disabled = true;
+    const data = new FormData();
+    ids.forEach((id) => data.append('doc_ids', id));
+    try {
+      const resp = await fetch('/payments/drafts', {method: 'POST', body: data});
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.detail || '制单失败');
+      window.location.href = result.redirect;
+    } catch (err) {
+      alert(err.message);
+      btn.disabled = false;
+    }
+  }
 </script>
 
 <style>
-  .pay-head-actions { display:flex; align-items:center; gap:10px; }
-  .pay-head-actions .chip { gap:7px; }
-  .pay-file-name { max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11.5px; color:var(--faint); }
   .callout { margin:0 0 16px; padding:10px 12px; border-left:3px solid var(--brass); border-radius:0 8px 8px 0; background:var(--surface-2); font-size:12.5px; }
-  .pay-config-box {
-    display:flex; flex-direction:column; width:min(900px,100%); max-height:88vh;
-    padding:20px 22px; overflow:hidden;
-  }
   .pay-edit-box { width:min(900px,100%); max-height:88vh; overflow-y:auto; }
   .pay-edit-box textarea { width:100%; resize:vertical; }
+  .pay-edit-box .field input[readonly] { background: var(--surface-2); color: var(--text-2); }
+  .combo { position: relative; }
+  .combo input[type=text] { width: 100%; }
+  .combo-list {
+    position: absolute; z-index: 60; left: 0; right: 0; top: calc(100% + 4px);
+    max-height: 280px; overflow-y: auto; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 28px rgba(0, 0, 0, .12);
+  }
+  .combo-item {
+    display: block; width: 100%; text-align: left; padding: 8px 10px;
+    border: 0; background: none; cursor: pointer; font-size: 12.5px; color: var(--text);
+  }
+  .combo-item:hover, .combo-item.active { background: var(--surface-2); }
+  .combo-empty { padding: 12px; font-size: 12px; color: var(--faint); }
+  .combo-add {
+    display: block; width: 100%; text-align: left; padding: 9px 10px;
+    border: 0; border-top: 1px dashed var(--line); background: none;
+    color: var(--primary); font-size: 12.5px; cursor: pointer;
+  }
+  .combo-add:hover { background: var(--surface-2); }
+  .combo-form { display: grid; gap: 6px; padding: 10px; }
+  .combo-form-title { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .combo-form input, .combo-form select { height: 30px; }
+  .combo-form-actions { display: flex; gap: 6px; }
+  .combo-form-error { min-height: 14px; font-size: 11.5px; color: var(--red); }
   .pay-row-actions { display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
-  .pay-config-box .head { flex:none; }
-  .pay-config-body { flex:1; min-height:0; overflow-y:auto; }
-  .pay-config-section { padding:14px 0; border-bottom:1px solid var(--line); }
-  .pay-config-section:last-child { border-bottom:0; padding-bottom:4px; }
-  .pay-config-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; font-size:12.5px; }
-  .pay-config-head b { font-size:12.5px; }
-  .pay-config-row { display:flex; align-items:flex-end; flex-wrap:wrap; gap:8px; }
-  .pay-config-row label { display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--muted); }
-  .pay-config-row input[type=text], .pay-config-row input[type=password] { width:210px; height:32px; }
-  .pay-config-row input[type=number] { width:80px; height:32px; }
-  .pay-config-row input[type=date] { width:150px; height:32px; }
-  .pay-config-row .check { display:flex; flex-direction:row; align-items:center; gap:5px; height:32px; font-size:11.5px; color:var(--muted); white-space:nowrap; }
-  .pay-config-row input[type=checkbox] { width:14px; height:14px; min-width:0; padding:0; margin:0; accent-color:var(--primary); }
-  .pay-config-box .modal-foot { flex:none; margin:0; padding-top:14px; }
-  .pay-config-box .pay-task-table { min-width:0; margin:0; }
-  .pay-config-box .pay-task-table th, .pay-config-box .pay-task-table td { padding:8px 10px; vertical-align:top; }
-  .pay-config-box .task-log { max-height:160px; }
 
   .pay-panel { padding:0; overflow:hidden; }
   .pay-tabs { display:flex; flex-wrap:wrap; gap:4px; }
@@ -537,13 +794,17 @@
   .pay-tab span { color:var(--faint); font-weight:400; font-variant-numeric:tabular-nums; }
   .pay-filters { display:flex; align-items:center; gap:8px; padding:10px 18px; border-bottom:1px solid var(--line); background:var(--surface-2); }
   .pay-filters .search-box { max-width:360px; }
+  .pay-filters .pay-payer-select {
+    height:34px; max-width:220px; padding:0 8px; border:1px solid var(--line); border-radius:8px;
+    background:var(--surface); font-size:12.5px; color:var(--text);
+  }
   .pay-size { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--muted); white-space:nowrap; }
   .pay-size select { height:30px; padding:0 6px; }
   .pay-size-form { margin-right:auto; display:flex; }
   .pay-panel .table-wrap { margin:0; padding:0; }
   .pay-table { min-width:1280px; table-layout:fixed; }
   .pay-table th, .pay-table td { padding:12px 14px; vertical-align:top; }
-  .pay-table td { height:104px; border-bottom:1px solid var(--line); }
+  .pay-table td { height:108px; border-bottom:1px solid var(--line); }
   .pay-table tbody tr:last-child td { border-bottom:0; }
   .pay-table tbody tr:hover td { background:#FCFBF8; }
   .pay-party, .pay-project {
@@ -552,7 +813,7 @@
   }
   .pay-table .cell-sub { display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
   .pay-table th.center, .pay-table td.center { text-align:center; }
-  .pay-source { color:var(--text-2); font-size:12.5px; }
+  .pay-table td.pay-source { color:var(--text-2); font-size:12.5px; vertical-align:middle; }
   .pay-main b { font-size:12.5px; letter-spacing:-.005em; }
   .pay-party { font-size:12.5px; font-weight:500; }
   .pay-amount { font-size:13px; font-weight:600; white-space:nowrap; }
@@ -566,6 +827,7 @@
   .status-pending_confirm { background:#F6EDDD; color:var(--amber); }
   .status-pending_review { background:#EDF0F8; color:#3d5b93; }
   .status-ready { background:#E4F1EA; color:var(--green); }
+  .status-drafting { background:#EDF0F8; color:#3d5b93; }
   .status-drafted { background:#EDE9E1; color:#5b5245; }
   .status-rejected { background:#F8E7E4; color:var(--red); }
   .task-status-queued { background:#EDE9E1; color:#5b5245; }
@@ -581,8 +843,6 @@
   .pay-empty { padding:42px 16px !important; text-align:center; color:var(--muted); }
   .pay-pager { display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:10px 18px; border-top:1px solid var(--line); }
 
-  .pay-task-table { min-width:0; }
-  .pay-task-table th, .pay-task-table td { padding:10px 14px; }
   .task-log {
     max-height:240px; overflow:auto; margin:6px 0 0; padding:10px;
     white-space:pre-wrap; font-size:11px; line-height:1.55;
@@ -592,12 +852,20 @@
     .pay-tabs { width:100%; }
     .pay-tabs-inline { margin-left:0; justify-content:flex-start; }
     .pay-filters { flex-wrap:wrap; }
-    .pay-config-box { padding:16px; }
-    .pay-config-row label { flex:1 1 100%; }
-    .pay-config-row input[type=text],
-    .pay-config-row input[type=password],
-    .pay-config-row input[type=date],
-    .pay-config-row input[type=number] { width:100%; }
   }
+  .pay-table th.pick, .pay-table td.pick { width:40px; text-align:center; padding-left:12px; padding-right:0; vertical-align:middle; }
+  .pay-table input[type="checkbox"] { width:15px; height:15px; min-width:15px; padding:0;
+    accent-color:#275a80; cursor:pointer; vertical-align:middle; }
+  .pay-bulk { display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:10px 18px 0; }
+  .draft-body { max-height:52vh; overflow:auto; }
+  .draft-sum { font-size:13px; margin-bottom:10px; }
+  .draft-groups { border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .draft-group { display:grid; grid-template-columns:1fr auto auto auto; align-items:center;
+    gap:14px; padding:9px 12px; font-size:12px; border-bottom:1px solid var(--line); }
+  .draft-group:last-child { border-bottom:0; }
+  .draft-account { font-weight:600; }
+  .draft-problems { margin-top:12px; padding:10px 12px; border-radius:10px;
+    background:#fdf3f1; border:1px solid #f0d9d4; }
+  .draft-problems .cell-sub { margin-top:4px; }
 </style>
 {% endblock %}

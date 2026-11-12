@@ -240,7 +240,7 @@ class CGBAutomation:
                             logger.info("✓ U 盾已拔出")
                         except Exception as e:
                             logger.warning(f"拔出 U 盾时出错: {e}")
-                    self.browser.close(kill_all_chrome=True)
+                    self.browser.close()
                     self.browser = None
         
         # 如果成功，记录结果

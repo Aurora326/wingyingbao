@@ -3,6 +3,7 @@
 建设银行企业网银自动采集主程序
 """
 import sys
+import os
 from pathlib import Path
 # 将项目根目录加入 sys.path，确保能引用 common 模块
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
@@ -130,7 +131,18 @@ class CCBAutomation:
                 
                 # 导航到登录页
                 self.browser.navigate_to_login()
-                
+
+                # 建行要求客户端证书，U盾没被识别时页面会返回 400，不应继续当作正常页面
+                try:
+                    page_title = self.browser.page.title() or ""
+                except Exception:
+                    page_title = ""
+                if "No required SSL certificate" in page_title or "400 Bad Request" in page_title:
+                    raise Exception(
+                        "U盾证书未被浏览器识别：建行页面返回“400 No required SSL certificate”。"
+                        "请检查U盾是否插好、驱动是否正常后重试。"
+                    )
+
                 # ========== 步骤1: 检查当前登录方式 ==========
                 logger.info("=" * 50)
                 logger.info("步骤1: 检查登录方式...")
@@ -161,7 +173,17 @@ class CCBAutomation:
                     raise Exception("自动登录失败")
                 
                 logger.info("登录成功！")
-                
+
+                # 调试用：CCB_PAUSE_AFTER_LOGIN=30 时暂停，便于用 F12 查看页面元素
+                pause = os.getenv("CCB_PAUSE_AFTER_LOGIN", "").strip()
+                if pause:
+                    try:
+                        seconds = int(pause)
+                    except ValueError:
+                        seconds = 30
+                    logger.info(f"按 CCB_PAUSE_AFTER_LOGIN 暂停 {seconds} 秒，便于检查弹窗...")
+                    time.sleep(seconds)
+
                 # 登录成功后，处理弹窗
                 logger.info("检查并关闭弹窗...")
                 self.browser._handle_reconciliation_popup()
@@ -220,8 +242,11 @@ class CCBAutomation:
             except Exception as e:
                 logger.error(f"采集任务出错: {e}")
                 results["error"] = str(e)
-                
-                if attempt < max_retries - 1:
+                pin_error = "U盾PIN码错误" in str(e)
+                if pin_error:
+                    logger.error("PIN 码错误，停止重试，避免把 U 盾锁住")
+
+                if attempt < max_retries - 1 and not pin_error:
                     logger.info(f"{retry_delay}秒后重试...")
                     time.sleep(retry_delay)
                 else:
@@ -240,7 +265,7 @@ class CCBAutomation:
                             logger.info("✓ U 盾已拔出")
                         except Exception as e:
                             logger.warning(f"拔出 U 盾时出错: {e}")
-                    self.browser.close(kill_all_chrome=True)
+                    self.browser.close()
                     self.browser = None
         
         # 如果成功，记录结果

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}基础资料 · 银行财务平台{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">收付款</div>
+    <h1>基础资料</h1>
+    <div class="sub">收付款账户统一维护。付款账户是内部扣款账户，收款账户是付款对象；都可由付款单据沉淀生成。</div>
+  </div>
+  <div class="head-meta">
+    <button class="small" type="button" onclick="openPayeeCreate()">新增收款账户</button>
+    <form method="post" action="/master-data/sync"
+          hx-post="/master-data/sync?q={{ q|urlencode }}&type={{ type }}&page={{ page_no }}"
+          hx-target="#master-region" hx-swap="outerHTML">
+      <button class="small primary" type="submit">从付款单据同步</button>
+    </form>
+  </div>
+</div>
+
+{% include "_master_data_region.html" %}
+
+<div class="modal" id="master-account-modal" role="dialog" aria-modal="true" aria-labelledby="master-account-title">
+  <div class="box form-box">
+    <div class="head">
+      <div>
+        <strong id="master-account-title">编辑账户</strong>
+        <div class="modal-sub" id="master-account-sub">维护收付款账户基础信息</div>
+      </div>
+      <button class="icon-btn" onclick="closeModal('master-account-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <form id="master-account-form" method="post" action="/master-data/update"
+          hx-post="/master-data/update?q={{ q|urlencode }}&type={{ type }}&page={{ page_no }}"
+          hx-target="#master-region" hx-swap="outerHTML">
+      <input type="hidden" name="type" id="ma-type">
+      <input type="hidden" name="id" id="ma-id">
+      <div class="form-grid">
+        <div class="field"><label>名称</label><input name="name" id="ma-name" required maxlength="256"></div>
+        <div class="field"><label>账号</label><input name="account_no" id="ma-account" maxlength="64"></div>
+        <div class="field"><label>银行</label><input name="bank" id="ma-bank" maxlength="128"></div>
+        <div class="field"><label>开户支行</label><input name="branch" id="ma-branch" maxlength="128"></div>
+        <div class="field" id="ma-status-field">
+          <label>状态</label>
+          <select name="status" id="ma-status">
+            <option value="active">启用</option>
+            <option value="disabled">停用</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" onclick="closeModal('master-account-modal')">取消</button>
+        <button class="primary" type="submit">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="master-delete-modal" role="dialog" aria-modal="true" aria-labelledby="master-delete-title">
+  <div class="box form-box">
+    <div class="head">
+      <div>
+        <strong id="master-delete-title">删除账户</strong>
+        <div class="modal-sub">删除后无法恢复；已关联单据或采集数据的账户不会被删除。</div>
+      </div>
+      <button class="icon-btn" type="button" onclick="closeModal('master-delete-modal')" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <p id="master-delete-text" class="muted" style="margin:0 0 6px"></p>
+    <form method="post" action="/master-data/delete"
+          hx-post="/master-data/delete?q={{ q|urlencode }}&type={{ type }}&page={{ page_no }}"
+          hx-target="#master-region" hx-swap="outerHTML">
+      <input type="hidden" name="type" id="md-type">
+      <input type="hidden" name="id" id="md-id">
+      <div class="modal-foot">
+        <button type="button" onclick="closeModal('master-delete-modal')">取消</button>
+        <button class="danger" type="submit" id="master-delete-submit">删除</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

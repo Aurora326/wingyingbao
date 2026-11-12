@@ -90,6 +90,7 @@ def _doc_dict(doc: PaymentDoc) -> dict:
         "payer_account_no": doc.payer_account_no,
         "payer_bank": doc.payer_bank,
         "payer_account_id": doc.payer_account_id,
+        "payer_sub_account_id": doc.payer_sub_account_id,
         "payee_account_id": doc.payee_account_id,
         "amount": str(doc.amount),
         "paid_amount": str(doc.paid_amount) if doc.paid_amount is not None else "",

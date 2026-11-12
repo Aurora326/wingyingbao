@@ -7,6 +7,13 @@
   <meta name="color-scheme" content="light">
   <title>{% block title %}银行财务平台{% endblock %}</title>
   <link rel="stylesheet" href="/static/app.css?v={{ asset_v }}">
+  <script>
+    try {
+      if (localStorage.getItem("sidebar-collapsed") === "1") {
+        document.documentElement.classList.add("sidebar-collapsed");
+      }
+    } catch (e) {}
+  </script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
 <a class="skip-link" href="#main-content">跳到主要内容</a>
@@ -46,7 +53,7 @@
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
 </svg>
 
-<aside class="sidebar">
+<aside class="sidebar" id="app-sidebar">
   <a class="brand" href="/" aria-label="回到首页">
     <span class="mark">
       <svg viewBox="0 0 32 32" aria-hidden="true">
@@ -94,6 +101,9 @@
     <a href="/payments" class="{{ 'active' if page == 'payments' }}" {% if page == 'payments' %}aria-current="page"{% endif %}>
       <svg class="ico"><use href="#i-out"/></svg><span>付款协同</span>
     </a>
+    <a href="/payment-drafts" class="{{ 'active' if page == 'payment_drafts' }}" {% if page == 'payment_drafts' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-upload"/></svg><span>制单任务</span>
+    </a>
     {% endif %}
     {% endif %}
 
@@ -104,8 +114,13 @@
     </a>
     {% endif %}
 
-    {% if can_menu(nav_role, 'devices') or can_menu(nav_role, 'payment_settings') or can_menu(nav_role, 'tasks') or can_menu(nav_role, 'settings') %}
+    {% if can_menu(nav_role, 'devices') or can_menu(nav_role, 'payment_settings') or can_menu(nav_role, 'tasks') or can_menu(nav_role, 'settings') or can_menu(nav_role, 'master_data') %}
     <div class="group">设置</div>
+    {% if can_menu(nav_role, 'master_data') %}
+    <a href="/master-data" class="{{ 'active' if page == 'master_data' }}" {% if page == 'master_data' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-wallet"/></svg><span>基础资料</span>
+    </a>
+    {% endif %}
     {% if can_menu(nav_role, 'devices') %}
     <a href="/devices" class="{{ 'active' if page == 'devices' }}" {% if page == 'devices' %}aria-current="page"{% endif %}>
       <svg class="ico"><use href="#i-device"/></svg><span>UKey 设备</span>
@@ -128,6 +143,10 @@
     <a class="side-help" href="#" onclick="openModal('help-modal'); return false;">
       <svg class="ico"><use href="#i-help"/></svg><span>使用指南</span>
     </a>
+    <button class="side-toggle" type="button" onclick="toggleSidebar()"
+            aria-controls="app-sidebar" aria-expanded="true" title="收起侧栏">
+      <svg class="ico"><use href="#i-chevron"/></svg><span>收起侧栏</span>
+    </button>
     <div class="user">
       <span class="avatar">财</span>
       <span class="meta"><b>{{ role_label(nav_role) }}</b><span>已安全登录</span></span>
@@ -230,6 +249,7 @@
   </div>
 </div>
 
+<script src="/static/htmx.min.js?v={{ asset_v }}"></script>
 <script src="/static/app.js?v={{ asset_v }}"></script>
 <script src="/static/ui.js?v={{ asset_v }}"></script>
 {% block scripts %}{% endblock %}

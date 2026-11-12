@@ -8,7 +8,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import Artifact, AuditLog, BankAccount, CollectionTask, TaskRun, utcnow
+from app.models import Agent, Artifact, AuditLog, BankAccount, CollectionTask, TaskRun, utcnow
+from app.schemas import TaskRetry
 from app.services import storage
 from app.services.scheduler import enqueue_task, task_range, task_types_for
 
@@ -112,13 +113,19 @@ def stop_task(task_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/tasks/{task_id}/retry")
-def retry_task(task_id: int, db: Session = Depends(get_db)):
+def retry_task(task_id: int, payload: TaskRetry | None = None, db: Session = Depends(get_db)):
     task = db.get(CollectionTask, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="任务不存在")
     if task.status in ("queued", "leased", "running"):
         return {"ok": False, "detail": "任务仍在执行中"}
+    if payload and payload.agent_code:
+        code = payload.agent_code.strip()
+        if db.execute(select(Agent).where(Agent.code == code)).scalars().first() is None:
+            raise HTTPException(status_code=400, detail="执行机不存在")
+        task.agent_code = code
     task.status = "queued"
+    task.attempts = 0
     task.error_code = ""
     task.error_msg = ""
     task.lease_until = None

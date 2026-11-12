@@ -16,7 +16,7 @@ from app.api import recon as recon_api
 from app.api import tasks as tasks_api
 from app.config import settings
 from app.db import SessionLocal
-from app.models import AppUser, AuditLog, BankAccount, CollectionTask, PaymentCollectTask, Tenant
+from app.models import Agent, AppUser, AuditLog, BankAccount, CollectionTask, PaymentCollectTask, Tenant
 from app.services import collectors, security
 from app.services import permissions
 from app.services.banks import list_banks
@@ -32,7 +32,7 @@ _STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
 def _asset_version() -> str:
-    files = [_STATIC_DIR / name for name in ("app.css", "app.js", "ui.js")]
+    files = [_STATIC_DIR / name for name in ("app.css", "app.js", "ui.js", "htmx.min.js")]
     try:
         return str(int(max(path.stat().st_mtime for path in files)))
     except OSError:
@@ -283,6 +283,25 @@ def _task_list_context(db, status: str, page: int = 1, size: int = TASK_PAGE_SIZ
         "cancelled": status_counts.get("cancelled", 0),
         "last": last_task,
     }
+
+    # 展示用“当日第 N 次”，不动数据库主键
+    items = result["items"]
+    days = {t["created_at"].date() for t in items if t.get("created_at")}
+    if days:
+        rows = db.execute(
+            select(CollectionTask.id, CollectionTask.created_at)
+            .where(func.date(CollectionTask.created_at).in_(list(days)))
+            .order_by(CollectionTask.created_at.asc(), CollectionTask.id.asc())
+        ).all()
+        counters: dict = {}
+        daily_seq: dict = {}
+        for task_id, created_at in rows:
+            day = created_at.date()
+            counters[day] = counters.get(day, 0) + 1
+            daily_seq[task_id] = counters[day]
+        for task in items:
+            task["daily_seq"] = daily_seq.get(task["id"])
+
     return {
         "tasks": result["items"],
         "status": status,
@@ -504,8 +523,25 @@ def devices_page(request: Request):
         devices = accounts_api.list_devices(db)["items"]
         agents = accounts_api.list_agents(db)["items"]
         accounts = accounts_api.list_accounts(db)["items"]
+        db_agents = db.execute(select(Agent)).scalars().all()
     for agent in agents:
         agent["device_count"] = sum(1 for device in devices if device["agent_code"] == agent["code"])
+    user = getattr(request.state, "user", None)
+    role = permissions.effective_role(user.role) if user else ""
+    agent_tokens: dict[str, str] = {}
+    if role == "admin":
+        for token, codes in settings.agent_token_scopes.items():
+            for code in codes:
+                agent_tokens[code] = token
+        known = sorted(settings.agent_tokens)
+        if len(known) == 1:
+            for agent in agents:
+                agent_tokens.setdefault(agent["code"], known[0])
+        for row in db_agents:
+            if row.token_enc:
+                token = security.decrypt(row.token_enc)
+                if token:
+                    agent_tokens.setdefault(row.code, token)
     today = dt.date.today()
     stats = {
         "agents": len(agents),
@@ -522,7 +558,15 @@ def devices_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="devices.html",
-        context={"page": "devices", "devices": devices, "agents": agents, "stats": stats},
+        context={
+            "page": "devices",
+            "devices": devices,
+            "agents": agents,
+            "stats": stats,
+            "agent_tokens": agent_tokens,
+            "agent_base_url": str(request.base_url).rstrip("/"),
+            "is_admin": role == "admin",
+        },
     )
 
 

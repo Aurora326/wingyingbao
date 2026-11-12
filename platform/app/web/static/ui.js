@@ -33,6 +33,10 @@ function openAccountModal() {
   if (accountNo) accountNo.readOnly = false;
   const note = document.getElementById("credential-edit-note");
   if (note) note.hidden = true;
+  const enabledField = document.getElementById("account-enabled-field");
+  if (enabledField) enabledField.style.display = "";
+  const enabledBox = document.getElementById("account-collect-enabled");
+  if (enabledBox) enabledBox.checked = false;
   if (form) {
     form.username.placeholder = "登录企业网银的账号";
     form.password.placeholder = "";

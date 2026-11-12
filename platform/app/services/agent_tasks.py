@@ -5,11 +5,11 @@ import datetime as dt
 import shutil
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import BankAccount, CollectionTask, Credential, UkeyDevice, utcnow
+from app.models import Agent, BankAccount, CollectionTask, Credential, UkeyDevice, utcnow
 from app.schemas import AgentTaskResult
 from app.services.executor import RETRY_LIMIT, _finalize
 from app.services import security
@@ -86,7 +86,11 @@ def claim_agent_task(db: Session, agent_code: str) -> dict | None:
         select(CollectionTask)
         .where(
             CollectionTask.status == "queued",
-            CollectionTask.agent_code == agent_code,
+            # 原绑定执行机已删除时，任务立即允许其他执行机接管
+            or_(
+                CollectionTask.agent_code == agent_code,
+                ~CollectionTask.agent_code.in_(select(Agent.code)),
+            ),
             CollectionTask.cancel_requested.is_(False),
         )
         .order_by(CollectionTask.priority, CollectionTask.created_at)
@@ -96,6 +100,8 @@ def claim_agent_task(db: Session, agent_code: str) -> dict | None:
         db.commit()
         return None
     task.status = "leased"
+    # 接管无主任务时同步改归属，否则后续状态/凭据接口会拒绝该 Agent
+    task.agent_code = agent_code
     task.attempts += 1
     task.lease_until = now + dt.timedelta(minutes=LEASE_MINUTES)
     task.started_at = now

@@ -4,6 +4,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -18,6 +19,54 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 UKeyAgent/1.0"
 )
 BASE_DIR = Path(__file__).resolve().parent
+
+MB_CANDIDATES = (
+    r"C:\wangyingbao\m2\mb.exe",
+    r"C:\wangyingbao\tools\mb.exe",
+)
+
+
+def resolve_mb_exe(explicit: str) -> str:
+    """配置的 mb.exe 不存在时，在安装目录和常见位置自动查找。"""
+    candidates: list[str] = []
+    if explicit:
+        candidates.append(explicit)
+    root = BASE_DIR.parent
+    candidates.extend((str(root / "mb.exe"), str(root / "runtime" / "mb.exe")))
+    candidates.extend(MB_CANDIDATES)
+    for candidate in candidates:
+        try:
+            if candidate and Path(candidate).exists():
+                return candidate
+        except OSError:
+            continue
+    return shutil.which("mb.exe") or explicit
+
+
+def discover_ter_ids(mb_exe: str, timeout: int = 10) -> str:
+    """调用 mb.exe find_ter 自动发现局域网机柜编号，多个用逗号拼接。"""
+    if not mb_exe or not Path(mb_exe).exists():
+        return ""
+    try:
+        proc = subprocess.run(
+            [mb_exe, "find_ter"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+            cwd=str(Path(mb_exe).parent),
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    try:
+        payload = json.loads((proc.stdout or "").strip() or "{}")
+    except json.JSONDecodeError:
+        return ""
+    data = payload.get("data")
+    if not payload.get("result") or not isinstance(data, dict):
+        return ""
+    return ",".join(str(key).strip() for key in data if str(key).strip())
 
 
 def load_env() -> None:
@@ -234,6 +283,11 @@ def main() -> int:
     parser.add_argument("--timeout", type=int, default=30)
     parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
+    args.mb_exe = resolve_mb_exe(args.mb_exe)
+    if not args.ter_id:
+        args.ter_id = discover_ter_ids(args.mb_exe)
+        if args.ter_id:
+            log(f"自动发现机柜 ter_id：{args.ter_id}")
     if not args.url or not args.token:
         log("缺少 PLATFORM_URL 或 PLATFORM_AGENT_TOKEN")
         return 1

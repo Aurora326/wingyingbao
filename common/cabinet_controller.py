@@ -208,9 +208,10 @@ class MBCabinetController(CabinetController):
         for attempt in range(1, 3):
             result = self._execute_subcommand("load_port")
             if not result.get("success", False):
-                logger.error(f"[MB] 第 {attempt} 次插入失败")
-                self._connected = False
-                return False
+                logger.error(f"[MB] 第 {attempt} 次插入失败：{result.get('error') or '机柜无响应'}")
+                if attempt < 2:
+                    time.sleep(3)
+                continue
             attached = self._wait_port_attached()
             if attached is not False:
                 self._connected = True

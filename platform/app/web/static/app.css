@@ -13,8 +13,8 @@
 
   --text: #191c19;
   --text-2: #414742;
-  --muted: #6c726d;
-  --faint: #8f958e;
+  --muted: #5c635d;
+  --faint: #6f766f;
 
   --ink: #1B2028;
   --ink-2: #252B35;
@@ -245,6 +245,52 @@ a:hover { color: var(--primary-600); }
 /* ── Layout ──────────────────────────────────────────────── */
 .main { margin-left: var(--sidebar-w); padding: 30px 38px 64px; }
 .content { max-width: none; margin: 0 auto; }
+
+/* ── Sidebar collapsed ───────────────────────────────────── */
+.sidebar { transition: width .18s ease; }
+.main { transition: margin-left .18s ease; }
+
+.side-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 34px;
+  margin-bottom: 6px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: #949BA6;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.side-toggle:hover { background: rgba(244, 241, 234, .06); color: #F4F1EA; }
+.side-toggle .ico { width: 15px; height: 15px; transform: rotate(180deg); }
+
+@media (min-width: 901px) {
+  html.sidebar-collapsed { --sidebar-w: 64px; }
+  html.sidebar-collapsed .brand { justify-content: center; padding-left: 0; padding-right: 0; }
+  html.sidebar-collapsed .brand .wordmark { display: none; }
+  html.sidebar-collapsed .nav { padding-left: 8px; padding-right: 8px; }
+  html.sidebar-collapsed .nav .group { gap: 0; padding: 14px 8px 6px; font-size: 0; }
+  html.sidebar-collapsed .nav .group::before { width: 100%; opacity: .32; }
+  html.sidebar-collapsed .nav .group::after { display: none; }
+  html.sidebar-collapsed .nav a { justify-content: center; padding: 0; }
+  html.sidebar-collapsed .nav a span { display: none; }
+  html.sidebar-collapsed .nav a.active::before { left: -8px; }
+  html.sidebar-collapsed .side-foot { padding: 10px 8px; }
+  html.sidebar-collapsed .side-help,
+  html.sidebar-collapsed .side-toggle { justify-content: center; padding: 0; }
+  html.sidebar-collapsed .side-help span,
+  html.sidebar-collapsed .side-toggle span { display: none; }
+  html.sidebar-collapsed .side-toggle .ico { transform: none; }
+  html.sidebar-collapsed .user { flex-direction: column; gap: 6px; padding: 6px 0; border: 0; background: none; }
+  html.sidebar-collapsed .user .meta { display: none; }
+}
 .content > * { animation: rise .32s cubic-bezier(.22, .8, .3, 1) both; }
 .content > *:nth-child(2) { animation-delay: .03s; }
 .content > *:nth-child(3) { animation-delay: .06s; }
@@ -554,7 +600,7 @@ textarea { width: 100%; height: auto; min-height: 84px; padding: 9px 11px; resiz
 .text-danger { color: var(--red); }
 .hidden { display: none !important; }
 .page-hidden { display: none !important; }
-.cell-sub { margin-top: 2px; font-size: 11px; line-height: 1.5; color: var(--faint); }
+.cell-sub { margin-top: 2px; font-size: 12px; line-height: 1.5; color: var(--muted); }
 
 /* ── Metric strip ────────────────────────────────────────── */
 .stat-row {
@@ -948,6 +994,7 @@ textarea { width: 100%; height: auto; min-height: 84px; padding: 9px 11px; resiz
 .account-table td { padding-top: 11px; padding-bottom: 11px; }
 .account-table .acct-cell b { font-weight: 600; color: var(--text); }
 .account-table .row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.cell-actions { display: flex; align-items: center; gap: 6px; }
 .acct-amount { font-size: 13px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
 .acct-amount.pending { font-weight: 500; color: var(--faint); }
 
@@ -1479,6 +1526,8 @@ body.modal-open { overflow: hidden; }
   font-weight: 600;
 }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+.auto-toggle { display: flex; align-items: center; gap: 8px; min-height: 36px; margin-bottom: 12px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); font-size: 12.5px; color: var(--text-2); cursor: pointer; }
+.auto-toggle input[type=checkbox] { width: 15px; height: 15px; min-width: 15px; margin: 0; }
 .form-grid .field.full, .field.full { grid-column: 1 / -1; }
 .form-note {
   display: flex;
@@ -1698,6 +1747,15 @@ table.compact .cell-sub { white-space: nowrap; }
 
 /* ── Device toolbar ──────────────────────────────────────── */
 .device-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.device-bar .filter-select {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 13px;
+  color: var(--text);
+}
 .search-box { position: relative; display: flex; align-items: center; flex: 1; max-width: 380px; }
 .search-box .ico { position: absolute; left: 11px; width: 15px; height: 15px; color: var(--faint); pointer-events: none; }
 .search-box input { width: 100%; height: 34px; padding-left: 33px; border-color: var(--line); background: var(--surface-2); }
@@ -1862,6 +1920,7 @@ body.login-page { background: var(--ink); }
   .side-foot { border: 0; padding: 0 4px; flex: none; }
   .side-foot .meta { display: none; }
   .side-help { display: none; }
+  .side-toggle { display: none; }
   .user { border: 0; background: transparent; padding: 4px; }
   .main { margin-left: 0; padding: 20px 14px 44px; }
   .page-head { flex-direction: column; align-items: flex-start; gap: 12px; }
@@ -1926,6 +1985,16 @@ body.login-page { background: var(--ink); }
 .collect-form .collect-check { gap: 7px; color: var(--text); }
 .collect-form .collect-check input[type=checkbox] { width: 14px; height: 14px; min-width: 14px; margin: 0; }
 .collect-hint { font-size: 11.5px; color: var(--faint); }
+.sub-parent-name { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.copy-row { display: flex; gap: 8px; align-items: center; }
+.copy-row input { flex: 1; }
+.script-box {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+}
 .collect-stats { display: flex; margin: 0 0 18px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .collect-stats > div { flex: 1; padding: 14px 18px; border-left: 1px solid var(--line); }
 .collect-stats > div:first-child { padding-left: 0; border-left: 0; }

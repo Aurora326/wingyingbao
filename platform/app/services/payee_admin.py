@@ -65,13 +65,10 @@ def create_payee(db: Session, values: dict, operator: str = "") -> PayeeAccount:
     if not name or not account_no:
         raise PayeeError("收款单位和收款账号不能为空")
     exists = db.execute(
-        select(PayeeAccount).where(
-            PayeeAccount.payee_name == name,
-            PayeeAccount.account_no == account_no,
-        )
+        select(PayeeAccount).where(PayeeAccount.account_no == account_no)
     ).scalars().first()
     if exists is not None:
-        raise PayeeError("该收款账户已存在")
+        raise PayeeError("该收款账号已存在")
     payee = PayeeAccount(
         payee_name=name,
         account_no=account_no,

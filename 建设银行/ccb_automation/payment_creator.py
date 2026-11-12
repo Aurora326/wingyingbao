@@ -21,6 +21,8 @@ from typing import Any, Dict, List, Optional
 from playwright.sync_api import Page
 from loguru import logger
 
+from popup_handler import PopupHandlerMixin
+
 # 用于在模态弹窗阻塞 Playwright 时发送系统级键盘事件
 try:
     import pyautogui
@@ -43,7 +45,7 @@ except Exception:
     logger.warning("xlrd/xlwt/xlutils 未安装，.xls 模板处理可能不可用")
 
 
-class PaymentCreator:
+class PaymentCreator(PopupHandlerMixin):
     """建设银行批量模板导入制单"""
 
     DEFAULT_TEMPLATE_MAPPING = {
@@ -1062,6 +1064,9 @@ class PaymentCreator:
     def _finish_batch_action(self) -> str:
         """完成批量操作。"""
         if self.action == 'submit':
+            self._close_mobile_banking_ad()
+            self._dismiss_in_page_popups(self.page)
+            self._dismiss_popups()
             if self._click_next_step():
                 time.sleep(2)
                 # 上传成功记录页：先全选成功记录，再进入复核页
@@ -1095,6 +1100,13 @@ class PaymentCreator:
             self._dismiss_popups()
             self._upload_batch_file(import_file)
             self._fill_batch_form()
+            # 手机银行广告弹窗会延迟出现，逐 frame 关闭并连续检查几次
+            time.sleep(1.5)
+            for _ in range(4):
+                self._close_mobile_banking_ad()
+                self._dismiss_in_page_popups(self.page)
+                self._dismiss_popups()
+                time.sleep(1)
             self._save_debug_snapshot()
             result = self._finish_batch_action()
             results["batch_import"] = result
@@ -1336,6 +1348,149 @@ class PaymentCreator:
 
     # ==================== 通用工具 ====================
 
+    def _close_mobile_banking_ad(self) -> bool:
+        """逐 frame 关闭“企业手机银行”推广弹窗，只点 ×，不碰遮罩。"""
+        find_js = """
+            () => {
+                const vis = (el) => {
+                    const r = el.getBoundingClientRect();
+                    const st = window.getComputedStyle(el);
+                    return r.width > 0 && r.height > 0 && st.display !== 'none' && st.visibility !== 'hidden';
+                };
+                let best = null;
+                let bestEl = null;
+                for (const el of document.querySelectorAll('div, section, article')) {
+                    const t = (el.textContent || '').replace(/\s+/g, '');
+                    if (!t.includes('企业手机银行')) continue;
+                    if (!vis(el)) continue;
+                    const r = el.getBoundingClientRect();
+                    if (r.width < 200 || r.height < 100) continue;
+                    if (!best || r.width * r.height < best.w * best.h) {
+                        best = { w: r.width, h: r.height };
+                        bestEl = el;
+                    }
+                }
+                if (!bestEl) return null;
+                let box = bestEl;
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                for (let i = 0; i < 4 && box.parentElement; i++) {
+                    const pr = box.parentElement.getBoundingClientRect();
+                    if (pr.width * pr.height > vw * vh * 0.5) break;
+                    const st = window.getComputedStyle(box.parentElement);
+                    if (st.position === 'fixed' || st.position === 'absolute') box = box.parentElement;
+                }
+                const r = box.getBoundingClientRect();
+                return { right: r.right, top: r.top, width: r.width, height: r.height };
+            }
+        """
+        remove_js = """
+            () => {
+                const vis = (el) => {
+                    const r = el.getBoundingClientRect();
+                    const st = window.getComputedStyle(el);
+                    return r.width > 0 && r.height > 0 && st.display !== 'none' && st.visibility !== 'hidden';
+                };
+                let best = null;
+                let bestEl = null;
+                for (const el of document.querySelectorAll('div, section, article')) {
+                    const t = (el.textContent || '').replace(/\s+/g, '');
+                    if (!t.includes('企业手机银行')) continue;
+                    if (!vis(el)) continue;
+                    const r = el.getBoundingClientRect();
+                    if (r.width < 200 || r.height < 100) continue;
+                    if (!best || r.width * r.height < best.w * best.h) {
+                        best = { w: r.width, h: r.height };
+                        bestEl = el;
+                    }
+                }
+                if (!bestEl) return false;
+                let box = bestEl;
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                for (let i = 0; i < 4 && box.parentElement; i++) {
+                    const pr = box.parentElement.getBoundingClientRect();
+                    if (pr.width * pr.height > vw * vh * 0.5) break;
+                    const st = window.getComputedStyle(box.parentElement);
+                    if (st.position === 'fixed' || st.position === 'absolute') box = box.parentElement;
+                }
+                box.remove();
+                return true;
+            }
+        """
+        closed = False
+        viewport = self.page.viewport_size or {"height": 1080}
+        try:
+            pages = self.page.context.pages
+            logger.info(f"浏览器窗口数={len(pages)}, urls={[p.url for p in pages]}")
+        except Exception:
+            pages = []
+        for frame in [self.page] + list(self.page.frames):
+            try:
+                hit = frame.evaluate("""
+                    () => {
+                        const el = document.querySelector('#befADV1 > img:nth-child(2)')
+                            || document.querySelector('#befADV1 img:nth-child(2)');
+                        if (!el) return false;
+                        el.click();
+                        return true;
+                    }
+                """)
+                if hit:
+                    logger.info(f"已点击建行营销弹层关闭按钮 (#befADV1): {frame.url}")
+                    closed = True
+                    time.sleep(0.6)
+            except Exception:
+                pass
+        for idx, frame in enumerate([self.page] + list(self.page.frames)):
+            try:
+                has_text = frame.evaluate(
+                    "() => ((document.body && document.body.innerText) || '').includes('企业手机银行')"
+                )
+                if has_text:
+                    logger.info(f"弹窗文本出现在第 {idx} 个 frame: {frame.url}")
+            except Exception as exc:
+                logger.info(f"第 {idx} 个 frame 无法读取: {exc}")
+        for frame in [self.page] + list(self.page.frames):
+            try:
+                info = frame.evaluate(find_js)
+            except Exception:
+                continue
+            if not info:
+                continue
+            ox = oy = 0.0
+            if frame is not self.page:
+                try:
+                    box = frame.frame_element().bounding_box()
+                    if box:
+                        ox, oy = box["x"], box["y"]
+                except Exception:
+                    pass
+            x = ox + info["right"] - 18
+            y = oy + info["top"] + 18
+            if 0 <= y <= 0.9 * viewport.get("height", 1080):
+                try:
+                    self.page.mouse.click(x, y)
+                    logger.info(f"已点击手机银行弹窗关闭按钮: ({x:.0f}, {y:.0f})")
+                    closed = True
+                    time.sleep(0.6)
+                except Exception:
+                    pass
+            try:
+                still = frame.evaluate(
+                    "() => ((document.body && document.body.innerText) || '').includes('企业手机银行')"
+                )
+            except Exception:
+                still = False
+            if still:
+                try:
+                    if frame.evaluate(remove_js):
+                        logger.info("已直接移除手机银行弹窗容器")
+                        closed = True
+                except Exception:
+                    pass
+        return closed
+
     def _dismiss_popups(self):
         """清理页面弹窗和遮挡层"""
         for label, context in self._iter_contexts():
@@ -1382,7 +1537,7 @@ class PaymentCreator:
                         }
                         // 建行常见的“温馨提示”不是标准 dialog，按文本向上找容器。
                         for (const el of document.querySelectorAll('div, table, td')) {
-                            const text = (el.textContent || '').replace(/\\s+/g, '');
+                            const text = (el.textContent || '').replace(/\s+/g, '');
                             if (!text.includes('温馨提示')) continue;
                             if (!isVisible(el)) continue;
                             if (clickButtonIn(el)) break;

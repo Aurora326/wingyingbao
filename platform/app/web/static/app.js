@@ -49,9 +49,42 @@ async function collectNow(accountId, mode) {
   }
 }
 
-async function retryTask(taskId) {
+async function openRetryTask(taskId, current) {
+  document.getElementById("retry-task-id").value = taskId;
+  const select = document.getElementById("retry-agent");
+  select.innerHTML = '<option value="">沿用原执行机</option>';
   try {
-    await postJSON(`/api/tasks/${taskId}/retry`);
+    const resp = await fetch("/api/agents");
+    if (resp.ok) {
+      const data = await resp.json();
+      (data.items || []).forEach((agent) => {
+        const opt = document.createElement("option");
+        opt.value = agent.code;
+        opt.textContent = `${agent.name}（${agent.code}）${agent.status === "online" ? " · 在线" : " · 离线"}`;
+        select.appendChild(opt);
+      });
+    }
+  } catch (error) {
+    // 拉取执行机列表失败时保留“沿用原执行机”
+  }
+  select.value = current || "";
+  openModal("retry-task-modal");
+}
+
+async function submitRetryTask(event) {
+  if (event) event.preventDefault();
+  const taskId = document.getElementById("retry-task-id").value;
+  const agentCode = document.getElementById("retry-agent").value;
+  try {
+    const resp = await fetch(`/api/tasks/${taskId}/retry`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(agentCode ? { agent_code: agentCode } : {}),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.detail || "重试失败");
+    if (data.ok === false) throw new Error(data.detail || "任务仍在执行中");
+    closeModal("retry-task-modal");
     toast("已重新入队");
     setTimeout(() => location.reload(), 800);
   } catch (error) {
@@ -275,9 +308,11 @@ function populateLogAttempts() {
   }
   logState.runs.forEach((run, index) => {
     const option = document.createElement("option");
-    option.value = String(run.attempt);
+    // 用手动重试会重置 attempt，不能拿它区分批次，改用执行记录 id
+    option.value = String(run.id);
     const status = run.exit_code === 0 ? "成功" : `exit=${run.exit_code ?? "—"}`;
-    option.textContent = `${index === 0 ? "最近一次 · " : ""}第 ${run.attempt} 次执行 · ${status} · ${logDuration(run.duration_ms)}`;
+    const seq = logState.runs.length - index;
+    option.textContent = `${index === 0 ? "最近一次 · " : ""}第 ${seq} 次执行 · ${status} · ${logDuration(run.duration_ms)}`;
     select.appendChild(option);
   });
   select.hidden = logState.runs.length <= 1;
@@ -314,18 +349,19 @@ async function showLog(taskId) {
     }
     populateLogAttempts();
     logState.entries = [];
-    logState.runs.forEach((run) => {
+    logState.runs.forEach((run, index) => {
+      const seq = logState.runs.length - index;
       (run.entries || []).forEach((entry) => {
-        logState.entries.push({ ...entry, attempt: run.attempt });
+        logState.entries.push({ ...entry, attempt: run.id, seq });
       });
     });
     const latest = logState.runs[0];
-    logState.attempt = String(latest.attempt);
+    logState.attempt = String(latest.id);
     const attemptSelect = document.getElementById("log-attempt");
     if (attemptSelect) attemptSelect.value = logState.attempt;
     if (subtitle) {
       const prefix = logState.runs.length > 1 ? `共 ${logState.runs.length} 次执行，默认显示最近一次 · ` : "";
-      subtitle.textContent = `${prefix}第 ${latest.attempt} 次 · 退出码 ${latest.exit_code ?? "—"} · 耗时 ${logDuration(latest.duration_ms)}`;
+      subtitle.textContent = `${prefix}第 ${logState.runs.length} 次 · 退出码 ${latest.exit_code ?? "—"} · 耗时 ${logDuration(latest.duration_ms)}`;
     }
     applyLogFilters();
   } catch (error) {
@@ -338,7 +374,9 @@ function paymentLogEntries(text, date) {
     const match = line.match(/^\[(\d{2}:\d{2}:\d{2})\]\s*(.*)$/);
     const message = match ? match[2] : line.trim();
     let level = "INFO";
-    if (/失败|错误|异常|超时|Traceback|ERROR/i.test(message)) level = "ERROR";
+    // 「失败 0 条」这类汇总不是错误，避免把统计行标红
+    const zeroFailure = /(失败|错误)\s*[:：]?\s*0(\s*[条个])?/.test(message);
+    if (!zeroFailure && /失败|错误|异常|超时|Traceback|ERROR/i.test(message)) level = "ERROR";
     else if (/成功|完成|已解析/.test(message)) level = "SUCCESS";
     else if (/跳过|无审批过程|警告|WARN/i.test(message)) level = "WARNING";
     return {
@@ -490,7 +528,7 @@ function renderLogPage() {
     if (showAttempt) {
       const attempt = document.createElement("div");
       attempt.className = "log-attempt";
-      attempt.textContent = `第 ${entry.attempt} 次`;
+      attempt.textContent = `第 ${entry.seq} 次`;
       when.appendChild(attempt);
     }
 
@@ -625,6 +663,8 @@ function openEditAccountModal(button) {
   document.getElementById("account-id").value = button.dataset.id || "";
   document.getElementById("account-modal-title").textContent = "编辑银行账户";
   document.getElementById("account-submit").textContent = "保存修改";
+  const enabledField = document.getElementById("account-enabled-field");
+  if (enabledField) enabledField.style.display = "none";
 
   const bank = document.getElementById("account-bank");
   bank.value = button.dataset.bank || "";
@@ -676,7 +716,7 @@ async function submitAccountForm(event) {
     } else {
       payload.bank_code = form.bank_code.value;
       payload.account_no = form.account_no.value;
-      payload.collect_enabled = true;
+      payload.collect_enabled = Boolean(form.collect_enabled && form.collect_enabled.checked);
       payload.username = form.username.value;
       payload.password = form.password.value;
       payload.pin = form.pin.value;
@@ -976,10 +1016,308 @@ function initClientPagers() {
   document.querySelectorAll("[data-page-size]").forEach(setupClientPager);
 }
 
+// htmx 换掉一块 DOM 后，里面的客户端分页器要重新挂，并清掉旧的翻页条。
+function reinitPagers(root) {
+  const scope = root && root.querySelectorAll ? root : document;
+  const containers = Array.from(scope.querySelectorAll("[data-page-size]"));
+  if (scope.matches && scope.matches("[data-page-size]")) containers.push(scope);
+  containers.forEach((container) => {
+    if (container.dataset.pagerReady === "1") {
+      const next = container.nextElementSibling;
+      if (next && next.classList.contains("client-pagination")) next.remove();
+      delete container.dataset.pagerReady;
+    }
+    setupClientPager(container);
+  });
+}
+
 function refreshPagers(reset = false) {
   document.querySelectorAll("[data-page-size]").forEach((container) => {
     if (typeof container._pagerRefresh === "function") container._pagerRefresh(reset);
   });
 }
 
+function agentAccessToken(code) {
+  const map = window.__AGENT_ACCESS || {};
+  return map[code] || "";
+}
+
+function buildAgentAccessScript(url, code, token) {
+  const q = (value) => "'" + String(value).replace(/'/g, "''") + "'";
+  return [
+    "$cfgPath = Join-Path $env:APPDATA 'UKeyAgent\\config.json'",
+    "New-Item -ItemType Directory -Force (Split-Path $cfgPath) | Out-Null",
+    "$cfg = if (Test-Path $cfgPath) { Get-Content $cfgPath -Raw -Encoding UTF8 | ConvertFrom-Json } else { [pscustomobject]@{} }",
+    "$cfg | Add-Member -NotePropertyName platform_url -NotePropertyValue " + q(url) + " -Force",
+    "$cfg | Add-Member -NotePropertyName agent_code -NotePropertyValue " + q(code) + " -Force",
+    "$cfg | Add-Member -NotePropertyName agent_token -NotePropertyValue " + q(token) + " -Force",
+    "$cfg | Add-Member -NotePropertyName auto_start_workers -NotePropertyValue $true -Force",
+    "$json = $cfg | ConvertTo-Json -Depth 8",
+    "[System.IO.File]::WriteAllText($cfgPath, $json, (New-Object System.Text.UTF8Encoding($false)))",
+    "Write-Host '已写入' $cfgPath '，请重启 UKey 采集助手'",
+  ].join("\n");
+}
+
+function refreshAgentScript() {
+  const code = (document.getElementById("agent-access-code") || {}).value || "";
+  const url = ((document.getElementById("agent-access-url") || {}).value || "").trim();
+  const token = (document.getElementById("agent-access-token") || {}).value || "";
+  const box = document.getElementById("agent-access-script");
+  if (box) box.value = buildAgentAccessScript(url, code, token);
+}
+
+function openAgentCreate() {
+  const code = document.getElementById("agent-create-code");
+  const name = document.getElementById("agent-create-name");
+  if (code) code.value = "";
+  if (name) name.value = "";
+  openModal("agent-create-modal");
+  if (code) code.focus();
+}
+
+async function createAgent(event) {
+  if (event) event.preventDefault();
+  const code = (document.getElementById("agent-create-code").value || "").trim();
+  const name = (document.getElementById("agent-create-name").value || "").trim();
+  if (!code || !name) {
+    toast("请填写 Agent 编号和显示名称");
+    return;
+  }
+  try {
+    const resp = await fetch("/api/agents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, name }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      toast(data.detail || "创建执行机失败");
+      return;
+    }
+    window.__AGENT_ACCESS = window.__AGENT_ACCESS || {};
+    window.__AGENT_ACCESS[data.code] = data.token;
+    closeModal("agent-create-modal");
+    openAgentAccess(data.code);
+    toast(`执行机 ${data.code} 已创建，刷新后可在列表看到待上线记录`);
+  } catch (error) {
+    toast("创建执行机失败: " + error.message);
+  }
+}
+
+function openAgentAccess(code) {
+  const token = agentAccessToken(code);
+  if (!token) return;
+  document.getElementById("agent-access-code").value = code;
+  document.getElementById("agent-access-url").value = window.__PLATFORM_URL || "";
+  document.getElementById("agent-access-token").value = token;
+  refreshAgentScript();
+  openModal("agent-access-modal");
+}
+
+function copyText(text) {
+  const fallback = () => {
+    const area = document.createElement("textarea");
+    area.value = text;
+    document.body.appendChild(area);
+    area.select();
+    try {
+      document.execCommand("copy");
+    } finally {
+      document.body.removeChild(area);
+    }
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+
+function copyAgentToken() {
+  copyText(document.getElementById("agent-access-token").value);
+}
+
+function copyAgentScript() {
+  copyText(document.getElementById("agent-access-script").value);
+}
+
+function openMasterEdit(btn) {
+  const type = btn.dataset.type;
+  const isPayer = type === "payer";
+  const form = document.getElementById("master-account-form");
+  form.action = "/master-data/update";
+  document.getElementById("master-account-title").textContent = isPayer ? "编辑付款账户" : "编辑收款账户";
+  document.getElementById("master-account-sub").textContent = isPayer
+    ? "付款账户来自账户主数据，这里只修改显示名称"
+    : "修改后立即生效，用于后续制单";
+  document.getElementById("ma-type").value = type;
+  document.getElementById("ma-id").value = btn.dataset.id || "";
+  document.getElementById("ma-name").value = btn.dataset.name || "";
+  document.getElementById("ma-account").value = btn.dataset.account || "";
+  document.getElementById("ma-bank").value = btn.dataset.bank || "";
+  document.getElementById("ma-branch").value = btn.dataset.branch || "";
+  document.getElementById("ma-status").value = btn.dataset.status || "active";
+  ["ma-account", "ma-bank", "ma-branch"].forEach((id) => {
+    document.getElementById(id).readOnly = isPayer;
+  });
+  document.getElementById("ma-status-field").style.display = isPayer ? "none" : "";
+  openModal("master-account-modal");
+}
+
+function openMasterDelete(btn) {
+  const type = btn.dataset.type;
+  document.getElementById("md-type").value = type;
+  document.getElementById("md-id").value = btn.dataset.id || "";
+  document.getElementById("master-delete-title").textContent = type === "payer" ? "删除付款账户" : "删除收款账户";
+  document.getElementById("master-delete-text").textContent =
+    `确定删除「${btn.dataset.name || ""}」吗？删除后无法恢复。`;
+  openModal("master-delete-modal", "#master-delete-submit");
+}
+
+function openPayeeCreate() {
+  const form = document.getElementById("master-account-form");
+  form.action = "/master-data/payee";
+  document.getElementById("master-account-title").textContent = "新增收款账户";
+  document.getElementById("master-account-sub").textContent = "收款账户用于付款协同，可手工维护";
+  document.getElementById("ma-type").value = "payee";
+  document.getElementById("ma-id").value = "";
+  ["ma-name", "ma-account", "ma-bank", "ma-branch"].forEach((id) => {
+    const el = document.getElementById(id);
+    el.value = "";
+    el.readOnly = false;
+  });
+  document.getElementById("ma-status-field").style.display = "none";
+  openModal("master-account-modal", "#ma-name");
+}
+
+function syncSidebarToggle() {
+  const btn = document.querySelector(".side-toggle");
+  if (!btn) return;
+  const collapsed = document.documentElement.classList.contains("sidebar-collapsed");
+  const label = collapsed ? "展开侧栏" : "收起侧栏";
+  btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  btn.title = label;
+  const text = btn.querySelector("span");
+  if (text) text.textContent = label;
+  document.querySelectorAll(".nav a").forEach((a) => {
+    const navLabel = a.querySelector("span");
+    if (!navLabel) return;
+    if (collapsed) a.title = navLabel.textContent.trim();
+    else a.removeAttribute("title");
+  });
+}
+
+function toggleSidebar() {
+  const collapsed = document.documentElement.classList.toggle("sidebar-collapsed");
+  try {
+    localStorage.setItem("sidebar-collapsed", collapsed ? "1" : "0");
+  } catch (e) {}
+  syncSidebarToggle();
+}
+
+// 服务端用 HX-Trigger 发 {"showMessage": {"value": "..."}}，这里统一转成 toast。
+document.body.addEventListener("showMessage", (event) => {
+  const value = event.detail && event.detail.value;
+  if (value) toast(value);
+});
+
+// htmx 局部请求出错时不能静默，否则用户以为保存成功了。
+document.body.addEventListener("htmx:responseError", (event) => {
+  const xhr = event.detail && event.detail.xhr;
+  const text = xhr && xhr.responseText ? xhr.responseText.trim() : "";
+  toast(text && text.length <= 80 ? text : `操作失败（${xhr ? xhr.status : "网络错误"}）`);
+});
+
+// 弹窗里的表单用 htmx 提交成功后，自动关掉弹窗。
+document.body.addEventListener("htmx:afterRequest", (event) => {
+  const detail = event.detail || {};
+  if (!detail.successful || !detail.elt || !detail.elt.closest) return;
+  const modal = detail.elt.closest(".modal");
+  if (modal && modal.id) closeModal(modal.id);
+});
+
+// 局部替换时先记下滚动位置，换完再放回去，避免页面高度瞬间塌陷导致跳回顶部。
+document.body.addEventListener("htmx:beforeSwap", () => {
+  window.__hxScroll = window.scrollY;
+});
+
+document.body.addEventListener("htmx:afterSettle", () => {
+  if (typeof window.__hxScroll === "number") {
+    window.scrollTo(0, window.__hxScroll);
+    window.__hxScroll = null;
+  }
+});
+
+// swap 完成后重新挂载受影响的客户端分页器。
+document.body.addEventListener("htmx:afterSwap", (event) => {
+  const target = event.detail && event.detail.target;
+  if (target) reinitPagers(target);
+});
+
 document.addEventListener("DOMContentLoaded", initClientPagers);
+document.addEventListener("DOMContentLoaded", syncSidebarToggle);
+
+
+function draftLogEntries(text) {
+  const entries = [];
+  let currentTime = "";
+  const levelMap = { TRACE: "DEBUG", DEBUG: "DEBUG", INFO: "INFO", SUCCESS: "SUCCESS", WARNING: "WARNING", ERROR: "ERROR", CRITICAL: "ERROR" };
+  for (const raw of (text || "").split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s*\|\s*(TRACE|DEBUG|INFO|SUCCESS|WARNING|ERROR|CRITICAL)\s*\|\s*(.*)$/);
+    if (match) {
+      currentTime = match[1];
+      const rest = match[3];
+      const separator = rest.indexOf(" - ");
+      const source = separator >= 0 ? rest.slice(0, separator) : "";
+      const message = separator >= 0 ? rest.slice(separator + 3) : rest;
+      entries.push({ time: currentTime, level: levelMap[match[2]] || "INFO", source, text: message, attempt: 1 });
+    } else {
+      entries.push({ time: currentTime, level: "OTHER", source: "", text: line, attempt: 1 });
+    }
+  }
+  return entries;
+}
+
+async function showDraftLog(taskId) {
+  const title = document.getElementById("log-title");
+  const subtitle = document.getElementById("log-subtitle");
+  const search = document.getElementById("log-search");
+  const level = document.getElementById("log-level");
+  const pageSize = document.getElementById("log-page-size");
+  const jump = document.getElementById("log-jump");
+  if (title) title.textContent = `制单任务 #${taskId} 执行日志`;
+  if (search) search.value = "";
+  if (level) level.value = "";
+  if (pageSize) pageSize.value = "10";
+  if (jump) jump.value = "";
+  logState.taskId = `draft-${taskId}`;
+  logState.runs = [];
+  logState.entries = [];
+  logState.filtered = [];
+  logState.page = 1;
+  logState.pageSize = 10;
+  logState.attempt = "1";
+  showLogMessage("加载中…");
+  openModal("log-modal", "#log-search");
+  try {
+    const data = await getJSON(`/payment-drafts/${taskId}/log`);
+    logState.runs = [{ id: 1, attempt: 1, exit_code: data.status === "failed" ? 1 : 0, duration_ms: 0 }];
+    populateLogAttempts();
+    logState.entries = draftLogEntries(data.log_text || "");
+    const label = { queued: "等待执行", running: "执行中", review: "已导入待核对", succeeded: "已制单", failed: "已失败" }[data.status] || data.status;
+    if (subtitle) {
+      subtitle.textContent = [label, data.error_code, data.bank_batch_no ? `批次 ${data.bank_batch_no}` : ""]
+        .filter(Boolean)
+        .join(" · ");
+    }
+    if (!logState.entries.length) {
+      showLogMessage("暂无日志");
+    } else {
+      applyLogFilters();
+    }
+  } catch (error) {
+    showLogMessage("读取失败: " + error.message);
+  }
+}

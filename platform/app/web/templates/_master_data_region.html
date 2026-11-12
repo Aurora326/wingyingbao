@@ -1,0 +1,219 @@
+{% set hx_qs = 'q=' ~ (q|urlencode) ~ '&type=' ~ type ~ '&page=' ~ page_no %}
+<div id="master-region">
+  {% if msg %}<div class="callout">{{ msg }}</div>{% endif %}
+
+  <div class="collect-sheet">
+    <div class="collect-sheet-head">
+      <div>
+        <h2>农行子账簿</h2>
+        <div class="collect-sheet-sub">明源云单据的付款账号是农行主账户时，按项目名称匹配主账户下的多级账簿，落成“主账户-账簿号”。</div>
+      </div>
+      <span class="set-pill {{ 'ok' if abc_auto_match else 'off' }}">{{ '已启用' if abc_auto_match else '已关闭' }}</span>
+    </div>
+
+    <div class="collect-row">
+      <div class="collect-row-label">自动匹配</div>
+      <form method="post" action="/master-data/abc-ledger" class="collect-form"
+            hx-post="/master-data/abc-ledger?{{ hx_qs }}" hx-target="#master-region" hx-swap="outerHTML">
+        <label class="collect-check">
+          <input type="checkbox" name="enabled" value="1" {{ 'checked' if abc_auto_match }}> 导入时自动匹配子账簿
+        </label>
+        <button class="primary small" type="submit">保存开关</button>
+        <span class="collect-hint">关闭后新导入单据不再自动改付款账号，仍可在编辑单据时手动选择。</span>
+      </form>
+    </div>
+
+    <div class="collect-row">
+      <div class="collect-row-label">存量数据</div>
+      <form method="post" action="/master-data/abc-ledger/backfill" class="collect-form"
+            hx-post="/master-data/abc-ledger/backfill?{{ hx_qs }}" hx-target="#master-region" hx-swap="outerHTML">
+        <button class="small" type="submit">重新匹配存量单据</button>
+        <span class="collect-hint">按项目名称重新扫描历史单据，已匹配的不会重复修改。</span>
+      </form>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>子账簿清单</h2>
+        <div class="panel-sub">主账户下的多级账簿与项目对应关系；关联单据数表示有多少付款单据落在该账簿。</div>
+      </div>
+      <span class="filter-count">共 <b>{{ sub_rows | length }}</b> 个</span>
+    </div>
+    <form method="post" action="/master-data/sub-account" class="device-bar"
+          hx-post="/master-data/sub-account?{{ hx_qs }}" hx-target="#master-region" hx-swap="outerHTML">
+      <select name="parent_account_id" class="filter-select">
+        {% for p in parent_options %}
+        <option value="{{ p.id }}">{{ p.name }} · {{ p.account_no }}</option>
+        {% endfor %}
+      </select>
+      <input name="sub_no" placeholder="账簿号，如 0000000021" style="width:160px" required>
+      <input name="ledger_name" placeholder="账簿名称" style="width:210px">
+      <input name="project_name" placeholder="对应项目（可选）" style="width:170px">
+      <button class="small primary" type="submit">新增子账簿</button>
+    </form>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>主账户</th><th>子账簿号</th><th>账簿名称</th><th>对应项目</th><th>关联单据</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for s in sub_rows %}
+        <tr>
+          <td class="nowrap">
+            <div class="mono">{{ s.parent_no }}</div>
+            <div class="cell-sub sub-parent-name" title="{{ s.parent_name }}">{{ s.parent_name }}</div>
+          </td>
+          <td class="mono nowrap">{{ s.sub_no }}</td>
+          <td>{{ s.ledger_name }}</td>
+          <td class="muted">{{ s.project_name or '—' }}</td>
+          <td>{{ s.docs }}</td>
+          <td>
+            {% if s.status == '正常' %}<span class="tag green">正常</span>
+            {% else %}<span class="tag red">停用</span>{% endif %}
+          </td>
+          <td>
+            <form method="post" action="/master-data/sub-account/{{ s.id }}/status"
+                  hx-post="/master-data/sub-account/{{ s.id }}/status?{{ hx_qs }}" hx-target="#master-region" hx-swap="outerHTML">
+              <input type="hidden" name="status" value="{{ '停用' if s.status == '正常' else '正常' }}">
+              <button class="small" type="submit">{{ '停用' if s.status == '正常' else '启用' }}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <div class="collect-hint" style="padding:0 0 14px">新增或减少子账簿也可以直接重新导入《银行账户信息表》的子账簿 sheet；导入时缺失的账簿会自动标记为停用。</div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat">
+      <span class="k">付款账户</span>
+      <span class="v">{{ payer_total }}</span>
+      <span class="f">内部银行账户</span>
+    </div>
+    <div class="stat">
+      <span class="k">收款账户</span>
+      <span class="v">{{ payee_total }}</span>
+      <span class="f">外部收款单位</span>
+    </div>
+    <div class="stat">
+      <span class="k">单据待关联</span>
+      <span class="v {{ 'amber' if unlinked_docs else 'green' }}">{{ unlinked_docs }}</span>
+      <span class="f">点“从付款单据同步”可自动补齐</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>收付款账户</h2>
+        <div class="panel-sub">同一张表维护两类账户，按类型和关键词筛选</div>
+      </div>
+      <span class="filter-count">共 <b>{{ total }}</b> 个</span>
+    </div>
+    <form method="get" action="/master-data" class="device-bar">
+      <div class="search-box">
+        <svg class="ico"><use href="#i-search"/></svg>
+        <input name="q" value="{{ q }}" placeholder="搜索名称、账号或开户行">
+      </div>
+      <select name="type" class="filter-select">
+        <option value="" {{ 'selected' if not type }}>全部类型</option>
+        <option value="payer" {{ 'selected' if type == 'payer' }}>付款账户</option>
+        <option value="payee" {{ 'selected' if type == 'payee' }}>收款账户</option>
+      </select>
+      <button class="small" type="submit">筛选</button>
+    </form>
+
+    {% if rows %}
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>类型</th><th>名称</th><th>账号</th><th>银行</th><th>开户支行</th><th>来源</th><th>关联单据</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><span class="tag {{ 'blue' if row.type == 'payer' else 'green' }}">{{ row.type_label }}</span></td>
+          <td>
+            <b>{{ row.name }}</b>
+            {% if row.remark %}<div class="cell-sub">{{ row.remark }}</div>{% endif %}
+          </td>
+          <td class="mono">{{ row.account_no or '—' }}</td>
+          <td class="muted">{{ row.bank or '—' }}</td>
+          <td class="muted">{{ row.branch or '—' }}</td>
+          <td class="muted">{{ row.source }}</td>
+          <td>{{ row.docs }}</td>
+          <td>
+            {% if row.status in ('正常', '启用') %}<span class="tag green">{{ row.status }}</span>
+            {% else %}<span class="tag red">{{ row.status }}</span>{% endif %}
+          </td>
+          <td>
+            <div class="cell-actions">
+              <button class="small" type="button"
+                      data-type="{{ row.type }}" data-id="{{ row.id }}"
+                      data-name="{{ row.name }}" data-account="{{ row.account_no }}"
+                      data-bank="{{ row.bank }}" data-branch="{{ row.branch }}"
+                      data-status="{{ row._raw_status | default('') if row.type == 'payee' else '' }}"
+                      onclick="openMasterEdit(this)">编辑</button>
+              <button class="small" type="button"
+                      data-type="{{ row.type }}" data-id="{{ row.id }}" data-name="{{ row.name }}"
+                      onclick="openMasterDelete(this)">删除</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty">
+      没有匹配的收付款账户
+      <div class="empty-actions">
+        <form method="post" action="/master-data/sync"
+              hx-post="/master-data/sync?{{ hx_qs }}" hx-target="#master-region" hx-swap="outerHTML">
+          <button class="btn small" type="submit">从付款单据同步</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if pages > 1 %}
+    {% set qs = 'q=' ~ (q|urlencode) ~ '&type=' ~ type ~ '&' %}
+    {% set start = 1 if page_no <= 3 else page_no - 2 %}
+    {% set end = pages if page_no >= pages - 2 else page_no + 2 %}
+    <div class="pagination">
+      {% if page_no > 1 %}
+      <a class="page-btn" href="/master-data?{{ qs }}page={{ page_no - 1 }}">上一页</a>
+      {% else %}
+      <span class="page-btn disabled">上一页</span>
+      {% endif %}
+      {% if start > 1 %}
+      <a class="page-btn" href="/master-data?{{ qs }}page=1">1</a>
+      {% if start > 2 %}<span class="page-gap">…</span>{% endif %}
+      {% endif %}
+      {% for p in range(start, end + 1) %}
+        {% if p == page_no %}
+        <span class="page-btn active">{{ p }}</span>
+        {% else %}
+        <a class="page-btn" href="/master-data?{{ qs }}page={{ p }}">{{ p }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if end < pages %}
+        {% if end < pages - 1 %}<span class="page-gap">…</span>{% endif %}
+        <a class="page-btn" href="/master-data?{{ qs }}page={{ pages }}">{{ pages }}</a>
+      {% endif %}
+      {% if page_no < pages %}
+      <a class="page-btn" href="/master-data?{{ qs }}page={{ page_no + 1 }}">下一页</a>
+      {% else %}
+      <span class="page-btn disabled">下一页</span>
+      {% endif %}
+      <span class="page-info">第 {{ page_no }} / {{ pages }} 页 · 共 {{ total }} 个</span>
+      <form class="page-jump" method="get" action="/master-data">
+        <input type="hidden" name="q" value="{{ q }}">
+        <input type="hidden" name="type" value="{{ type }}">
+        <label>跳至 <input type="number" name="page" min="1" max="{{ pages }}" value="{{ page_no }}"> 页</label>
+        <button class="small" type="submit">跳转</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -36,6 +38,61 @@ def config_path() -> Path:
     return config_dir() / "config.json"
 
 
+MB_EXE_CANDIDATES = (
+    Path(r"C:\wangyingbao\m2\mb.exe"),
+    Path(r"C:\wangyingbao\tools\mb.exe"),
+)
+
+
+def resolve_mb_exe(explicit: str = "") -> str:
+    """配置的 mb.exe 不存在时，在安装目录和常见位置自动查找。"""
+    candidates: list[Path] = []
+    if explicit:
+        candidates.append(Path(explicit))
+    root = app_root()
+    candidates.extend(
+        (
+            root / "mb.exe",
+            root.parent / "mb.exe",
+            root / "runtime" / "mb.exe",
+        )
+    )
+    candidates.extend(MB_EXE_CANDIDATES)
+    for candidate in candidates:
+        try:
+            if candidate.exists():
+                return str(candidate)
+        except OSError:
+            continue
+    return shutil.which("mb.exe") or explicit or ""
+
+
+def discover_ter_ids(mb_exe: str, timeout: int = 10) -> str:
+    """调用 mb.exe find_ter 自动发现局域网机柜编号，多个用逗号拼接。"""
+    if not mb_exe or not Path(mb_exe).exists():
+        return ""
+    try:
+        proc = subprocess.run(
+            [mb_exe, "find_ter"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+            cwd=str(Path(mb_exe).parent),
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    try:
+        payload = json.loads((proc.stdout or "").strip() or "{}")
+    except json.JSONDecodeError:
+        return ""
+    data = payload.get("data")
+    if not payload.get("result") or not isinstance(data, dict):
+        return ""
+    return ",".join(str(key).strip() for key in data if str(key).strip())
+
+
 def log_dir() -> Path:
     path = local_dir() / "logs"
     path.mkdir(parents=True, exist_ok=True)
@@ -49,7 +106,7 @@ class AgentConfig:
     agent_code: str = "cust-1517"
     agent_name: str = "客户机房采集盒子"
     ter_ids: str = ""
-    mb_exe: str = r"C:\mb\mb.exe"
+    mb_exe: str = ""
     mb_user: str = ""
     gf3_exe: str = "gf3"
     collector_root: str = ""
@@ -62,7 +119,6 @@ class AgentConfig:
     oa_collector: str = ""
     payment_interval: int = 30
     payment_timeout: int = 1800
-    auto_start_payment: bool = True
     auto_start_workers: bool = True
     autostart: bool = False
     extras: dict = field(default_factory=dict)

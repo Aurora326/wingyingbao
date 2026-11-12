@@ -18,8 +18,11 @@ from app.models import (
     PaymentDoc,
     PaymentDocChange,
     PaymentReview,
+    SubAccount,
 )
 from app.services.parsers.statement import _to_date, _to_decimal, _to_text
+from app.services.abc_ledger import match_sub_account, sub_account_no
+from app.services.app_settings import ABC_LEDGER_AUTO_MATCH, get_bool
 
 MAIN_SHEET = "付款申请"
 STEP_SHEET = "审批过程"
@@ -118,7 +121,8 @@ def _payee_for(db: Session, row: dict[str, object]) -> tuple[PayeeAccount | None
 
     query = select(PayeeAccount)
     if account_no:
-        query = query.where(PayeeAccount.account_no == account_no, PayeeAccount.payee_name == name)
+        # 账号在同一租户内唯一，按账号查找，避免收款单位名称微调时重复插入
+        query = query.where(PayeeAccount.account_no == account_no)
     else:
         query = query.where(PayeeAccount.payee_name == name)
     payee = db.execute(query).scalars().first()
@@ -192,6 +196,17 @@ def import_payment_excel(db: Session, path: Path, force: bool = False) -> dict:
         payee, created = _payee_for(db, row)
         payees_created += 1 if created else 0
 
+        project_name = _clean_project(_cell(row, "项目信息"))
+        payer_account_no = _cell(row, "付款账户", "付款单位账户")
+        ledger = None
+        if get_bool(db, ABC_LEDGER_AUTO_MATCH, True):
+            ledger = match_sub_account(db, payer_account_no, project_name)
+        payer_sub_account_id = None
+        if ledger is not None:
+            parent, sub = ledger
+            payer_sub_account_id = sub.id
+            payer_account_no = sub_account_no(parent, sub)
+
         existing = db.execute(select(PaymentDoc).where(PaymentDoc.apply_no == apply_no)).scalars().first()
         steps = steps_by_code.get(apply_no, [])
         doc_type_label = _cell(row, "单据类型")
@@ -213,12 +228,13 @@ def import_payment_excel(db: Session, path: Path, force: bool = False) -> dict:
             approval_type=_cell(row, "付款审批类型"),
             contract_name=_cell(row, "合同名称"),
             contract_no=_cell(row, "合同编号"),
-            project_name=_clean_project(_cell(row, "项目信息")),
+            project_name=project_name,
             payee_name=_cell(row, "收款单位") or (payee.payee_name if payee else ""),
             payee_account_no=_cell(row, "收款账号", "收款单位账户") or (payee.account_no if payee else ""),
             payee_bank=_cell(row, "收款开户行", "收款单位开户行") or (payee.bank_name if payee else ""),
             payer_name=payer_name,
-            payer_account_no=_cell(row, "付款账户", "付款单位账户"),
+            payer_account_no=payer_account_no,
+            payer_sub_account_id=payer_sub_account_id,
             payer_bank=_cell(row, "付款开户行", "付款单位开户行"),
             payer_account_id=payer.id if payer else None,
             payee_account_id=payee.id if payee else None,
@@ -241,7 +257,7 @@ def import_payment_excel(db: Session, path: Path, force: bool = False) -> dict:
                 if key == "approval_steps" and not value and existing.approval_steps:
                     continue
                 setattr(existing, key, value)
-            if existing.status not in (STATUS_READY, STATUS_DRAFTED):
+            if existing.status not in (STATUS_READY, STATUS_DRAFTED, "drafting"):
                 existing.status = STATUS_PENDING_CONFIRM
             updated += 1
         else:
@@ -298,7 +314,14 @@ def confirm_accounts(
             )
 
     doc.payer_account_id = payer.id
-    doc.payer_account_no = payer.account_no
+    payer_account_no = payer.account_no
+    if doc.payer_sub_account_id:
+        sub = db.get(SubAccount, doc.payer_sub_account_id)
+        if sub is not None and sub.parent_account_id == payer.id:
+            payer_account_no = sub_account_no(payer, sub)
+        else:
+            doc.payer_sub_account_id = None
+    doc.payer_account_no = payer_account_no
     doc.payee_account_id = payee.id
     doc.payee_account_no = payee.account_no
     doc.payee_bank = payee.bank_name

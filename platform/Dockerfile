@@ -12,6 +12,8 @@ COPY requirements-platform.txt ./
 RUN pip install --no-cache-dir -r requirements-platform.txt
 
 COPY app ./app
+COPY alembic.ini ./
+COPY migrations ./migrations
 
 RUN useradd --create-home --uid 1000 platform \
     && mkdir -p /data \

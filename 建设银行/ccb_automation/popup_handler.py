@@ -257,6 +257,8 @@ class PopupHandlerMixin:
             logger.warning(f"视口比例坐标点击弹窗失败: {e}")
 
         specific_close_selectors = [
+            '#befADV1 > img:nth-child(2)',
+            '#befADV1 img:nth-child(2)',
             '#befADV1 img[onclick*="hide"]',
             '#befADV1 img[src*="mob_drain_close"]',
             '#befADV1 > img[onclick*="hide"]',

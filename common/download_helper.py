@@ -126,8 +126,7 @@ def wait_and_find_new_file(before_files: Dict[Path, Set[str]], timeout: int = 60
                         continue
 
                     is_valid = (
-                        file_name.endswith(('.xlsx', '.xls', '.pdf', '.csv', '.zip')) or
-                        file_size > 1000 or
+                        file_name.endswith(('.xlsx', '.xls', '.csv', '.pdf', '.zip', '.txt', '.html', '.htm')) or
                         (is_guid_filename(file_name) and file_size > 100)
                     )
 
@@ -149,9 +148,9 @@ def wait_and_find_new_file(before_files: Dict[Path, Set[str]], timeout: int = 60
                                 break
                         return file_path
 
-    # 超时兜底：只考虑本次等待期间新出现或更新过的文件，避免误选目录里的旧文件
-    logger.warning("下载超时，尝试兜底查找最近修改的文件...")
-    all_candidates = []
+    # 超时兜底：只看等待期间新出现/更新的、且属于流水常见格式的文件
+    logger.warning("下载超时，尝试兜底查找最近修改的流水文件...")
+    candidates = []
     for download_dir in download_dirs:
         if not download_dir.exists():
             continue
@@ -160,51 +159,24 @@ def wait_and_find_new_file(before_files: Dict[Path, Set[str]], timeout: int = 60
                 continue
             try:
                 stat = f.stat()
-                mtime = stat.st_mtime
-                size = stat.st_size
-                # 排除系统小文件和明显不相关的可执行文件
-                if size < 500 and f.name in ('desktop.ini', 'Thumbs.db', '.DS_Store'):
-                    continue
-                if f.name.endswith(('.exe', '.msi', '.dmg', '.pkg')):
-                    continue
-                # 只保留等待开始后新下载/更新过的文件（留 5 秒时钟误差余量）
-                if mtime < start_time - 5:
-                    continue
-                if size > 500:
-                    all_candidates.append((f, mtime, size))
-                    logger.warning(f"  候选文件: {f} (mtime={mtime}, size={size})")
             except Exception:
                 continue
-
-    if all_candidates:
-        # 优先 Excel/CSV/PDF 等银行流水常见格式，再按修改时间取最新
-        preferred = [c for c in all_candidates if c[0].name.endswith(('.xlsx', '.xls', '.csv', '.pdf', '.zip'))]
-        pool = preferred if preferred else all_candidates
-        pool.sort(key=lambda x: x[1], reverse=True)
-        newest = pool[0]
-        logger.warning(f"超时兜底: {newest[0]} (mtime={newest[1]}, size={newest[2]})")
-        return newest[0]
-
-    # 等待期间没有新文件，退化为全目录最近修改的文件（保留旧行为）
-    logger.warning("等待期间无新文件，回退到全目录最近修改文件...")
-    all_candidates = []
-    for download_dir in download_dirs:
-        if not download_dir.exists():
-            continue
-        for f in download_dir.iterdir():
-            if not f.is_file():
+            if stat.st_size <= 0:
                 continue
-            try:
-                stat = f.stat()
-                if stat.st_size > 500 and not f.name.endswith(('.exe', '.msi')):
-                    all_candidates.append((f, stat.st_mtime, stat.st_size))
-            except Exception:
+            if not (
+                f.name.endswith(('.xlsx', '.xls', '.csv', '.pdf', '.zip')) or
+                is_guid_filename(f.name)
+            ):
                 continue
-    if all_candidates:
-        all_candidates.sort(key=lambda x: x[1], reverse=True)
-        newest = all_candidates[0]
-        logger.warning(f"全目录兜底（非本次下载，仅供参考）: {newest[0]} (mtime={newest[1]}, size={newest[2]})")
-        return newest[0]
+            if stat.st_mtime < start_time - 5:
+                continue
+            candidates.append((f, stat.st_mtime))
 
-    logger.warning("下载超时，且未找到任何候选文件")
+    if candidates:
+        candidates.sort(key=lambda x: x[1], reverse=True)
+        newest = candidates[0][0]
+        logger.warning(f"超时兜底: {newest} (mtime={candidates[0][1]})")
+        return newest
+
+    logger.warning("下载超时，且未找到任何候选流水文件")
     return None
