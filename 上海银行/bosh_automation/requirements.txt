@@ -1,0 +1,5 @@
+# BOSC Bank Automation Tool Dependencies（骨架，按需补）
+playwright>=1.40.0
+pyyaml>=6.0
+loguru>=0.7.0
+requests>=2.31.0

@@ -1,0 +1,26 @@
+# 日志文件
+logs/*.log
+
+# 下载文件
+downloads/*
+!downloads/.gitkeep
+
+# Chrome用户数据
+chrome_user_data/
+
+# 虚拟环境
+venv/
+__pycache__/
+*.pyc
+
+# 打包输出
+build/
+dist/
+*.spec
+
+# 调试文件
+debug/
+
+# 配置文件（包含敏感信息）
+# 骨架阶段把 config.ini 提交进库当作模板；填了真实账号后再视情况忽略
+# config.ini

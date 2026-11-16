@@ -38,6 +38,8 @@ class ReceiptsConfig:
     """电子回单采集配置"""
     enabled: bool = True              # 是否启用回单采集
     days_back: int = 30
+    start_date: str = ""              # 自定义查询起始日期，格式：YYYY-MM-DD
+    end_date: str = ""                # 自定义查询结束日期，格式：YYYY-MM-DD
     accounts: List[str] = field(default_factory=list)
     file_format: str = "pdf"          # 文件格式: pdf
     download_path: str = "./downloads/receipts"

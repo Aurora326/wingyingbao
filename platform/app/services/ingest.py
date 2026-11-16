@@ -73,10 +73,12 @@ def ingest_statement(db: Session, account: BankAccount, path: Path, artifact_id:
 
 
 def _receipt_exists(db: Session, account: BankAccount, object_key: str, parsed: ParsedReceipt) -> bool:
-    query = select(Receipt.id).where(Receipt.account_id == account.id, Receipt.object_key == object_key)
+    query = select(Receipt.id).where(Receipt.account_id == account.id)
     if parsed.receipt_no:
+        # 重新导出会让文件哈希和对象键变化，有回单号时按回单号判重
         query = query.where(Receipt.receipt_no == parsed.receipt_no)
     else:
+        query = query.where(Receipt.object_key == object_key)
         query = query.where(Receipt.receipt_no == "")
         query = query.where(Receipt.amount.is_(None) if parsed.amount is None else Receipt.amount == parsed.amount)
         query = query.where(Receipt.txn_date.is_(None) if parsed.txn_date is None else Receipt.txn_date == parsed.txn_date)

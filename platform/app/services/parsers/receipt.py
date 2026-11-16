@@ -130,7 +130,10 @@ def parse_receipts(path: Path) -> list[ParsedReceipt]:
     blocks = [block for block in BLOCK_SPLIT.split(text) if block.strip()]
     if len(blocks) <= 1:
         return [parse_block(text)]
-    return [parse_block(block) for block in blocks]
+    parsed = [parse_block(block) for block in blocks]
+    # 首个块常是封面/查询条件，没有回单号和金额，跳过
+    kept = [item for item in parsed if item.receipt_no or item.amount is not None]
+    return kept or [parse_block(text)]
 
 
 def parse_receipt(path: Path) -> ParsedReceipt:

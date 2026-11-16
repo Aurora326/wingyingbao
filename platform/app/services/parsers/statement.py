@@ -13,11 +13,13 @@ ALIASES: dict[str, list[str]] = {
     "txn_date": ["交易日期", "记账日期", "交易日", "日期", "入账日期", "交易时间"],
     "txn_time": ["交易时间", "时间"],
     "account": ["账号", "银行账号", "账户号", "卡号"],
-    "counterparty_account": ["对方账号", "对方帐号", "收付方账号", "对方账户"],
-    "counterparty_name": ["对方账户名称", "对方户名", "对方名称", "收(付)方名称", "对方单位名称", "对方单位"],
+    "counterparty_account": ["对方账号", "对方帐号", "对手账号", "收付方账号", "对方账户"],
+    "counterparty_name": ["对方账户名称", "对方户名", "对手名称", "对方名称", "收(付)方名称", "对方单位名称", "对方单位"],
     "counterparty_bank": ["对方账号开户网点名称", "对方开户行", "对方行名", "开户网点", "对方开户机构", "对方银行"],
     "debit": ["借方发生额", "借方金额", "支出金额", "付款金额", "支出", "转出金额"],
     "credit": ["贷方发生额", "贷方金额", "收入金额", "收款金额", "收入", "转入金额"],
+    "direction": ["交易方向", "借贷标志", "收付标志", "资金方向"],
+    "amount": ["交易金额", "交易额"],
     "balance": ["账户余额", "余额"],
     "summary": ["摘要", "用途", "附言", "交易摘要"],
     "serial_no": ["柜员交易号", "唯一流水编号", "流水号", "交易流水号", "凭证号", "业务编号", "网银流水号"],
@@ -134,7 +136,10 @@ def find_header(rows: list[list]) -> tuple[int, dict[str, int]]:
     for position, row in enumerate(rows[:60]):
         cells = [_to_text(c) for c in row]
         index = _header_index(cells)
-        if "txn_date" in index and ("debit" in index or "credit" in index) and len(index) >= 4:
+        has_amount = "debit" in index or "credit" in index or (
+            "amount" in index and "direction" in index
+        )
+        if "txn_date" in index and has_amount and len(index) >= 4:
             return position, index
         if len(index) > len(best[1]):
             best = (position, index)
@@ -175,14 +180,22 @@ def parse_statement(path: Path) -> ParsedStatement:
         txn_date = _to_date(cell("txn_date"))
         if txn_date is None:
             continue
-        debit = _to_decimal(cell("debit"))
-        credit = _to_decimal(cell("credit"))
-        if debit is None and credit is None:
-            continue
-        if debit is not None and debit != 0:
-            direction, amount = "debit", abs(debit)
+        if "debit" in index or "credit" in index:
+            debit = _to_decimal(cell("debit"))
+            credit = _to_decimal(cell("credit"))
+            if debit is None and credit is None:
+                continue
+            if debit is not None and debit != 0:
+                direction, amount = "debit", abs(debit)
+            else:
+                direction, amount = "credit", abs(credit or Decimal("0"))
         else:
-            direction, amount = "credit", abs(credit or Decimal("0"))
+            amount = _to_decimal(cell("amount"))
+            flag = _to_text(cell("direction"))
+            if amount is None or not flag:
+                continue
+            amount = abs(amount)
+            direction = "debit" if ("借" in flag or "出" in flag) else "credit"
         if not parsed.account_no:
             parsed.account_no = _to_text(cell("account"))
 
