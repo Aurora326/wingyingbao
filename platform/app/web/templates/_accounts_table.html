@@ -7,6 +7,8 @@
         <tr>
           <th>银行账户</th>
           <th>账号</th>
+          <th>账户性质</th>
+          <th>付款权限</th>
           <th>采集状态</th>
           <th class="num">账户余额</th>
           <th>采集计划</th>
@@ -32,6 +34,13 @@
             <button class="inline-copy" onclick="copyText('{{ a.account_no }}', '账号已复制')" title="复制账号" aria-label="复制账号">
               <svg class="ico"><use href="#i-copy"/></svg>
             </button>
+          </td>
+          <td>
+            {% if a.account_type %}<span class="set-pill">{{ a.account_type }}</span>{% else %}<span class="faint">未分类</span>{% endif %}
+            {% if a.usage_tag %}<div class="cell-sub">{{ a.usage_tag }}</div>{% endif %}
+          </td>
+          <td>
+            {% if a.payment_enabled %}<span class="tag green">可付款</span>{% else %}<span class="tag red">不可付款</span>{% endif %}
           </td>
           <td>
             {% if a.collect_enabled %}<span class="tag green">自动采集</span>{% else %}<span class="tag">已暂停</span>{% endif %}

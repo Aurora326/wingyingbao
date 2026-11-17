@@ -47,7 +47,7 @@
       <h2>银行账户</h2>
       <p>余额来自最近一次采集，点击「查看流水」可查看该账户的交易明细</p>
     </div>
-    <div class="section-meta">
+    <div class="section-meta" id="accounts-live-stats">
       <span>自动采集 <b class="green">{{ ns.enabled }}</b> 个</span>
       <span>已绑 UKey <b>{{ ns.bound }}</b> 个</span>
       <span>尚未采集 <b class="{{ 'amber' if ns.pending else '' }}">{{ ns.pending }}</b> 个</span>
@@ -245,8 +245,7 @@
     </div>
     <div class="modal-foot">
       <button type="button" onclick="closeModal('delete-account-modal')">取消</button>
-      <button type="button" class="small" id="delete-account-toggle" onclick="toggleAccountFromModal()">停用采集</button>
-      <button type="button" class="danger" id="delete-account-submit" onclick="confirmDeleteAccount()" disabled>确认删除</button>
+      <button type="button" id="delete-account-toggle" onclick="toggleAccountFromModal()">停用采集</button>      <button type="button" class="danger" id="delete-account-submit" onclick="confirmDeleteAccount()" disabled>确认删除</button>
     </div>
   </div>
 </div>

@@ -11,7 +11,19 @@ WORKDIR /app
 COPY requirements-platform.txt ./
 RUN pip install --no-cache-dir -r requirements-platform.txt
 
+# pg_dump / pg_restore 供备份与恢复使用；版本与数据库服务端保持一致
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt trixie-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-client-16 \
+    && apt-get purge -y --auto-remove curl gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY app ./app
+COPY backup.py ./
 COPY alembic.ini ./
 COPY migrations ./migrations
 

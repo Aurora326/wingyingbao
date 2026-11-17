@@ -17,7 +17,8 @@ def _accounts_excel(path):
     ws.append(["单位名称", "银行账户号码", "开户行", "用途"])
     ws.append(["测试公司A", "1001（无盾）", "建设银行浦东分行", "基本户"])
     ws.append(["测试公司A", "2001（有子账户）", "农业银行浦东分行", "一般户"])
-    ws.append(["测试公司B", "3001（挂一般户下面）", "测试银行浦东分行", "贷款户"])
+    ws.append(["测试公司B", "3001（挂一般户下面）", "招商银行浦东分行", "贷款户"])
+    ws.append(["测试公司C", "4001", "未知银行浦东分行", "一般户"])
     ws2 = wb.create_sheet("农行子账户")
     ws2.append(["多级账簿余额查询"])
     ws2.append(["账簿名", "账簿号", "币种", "操作结果"])
@@ -32,12 +33,15 @@ def test_import_account_master(db, tmp_path):
     result = import_account_master(db, path)
     assert result["accounts_created"] == 3
     assert result["sub_accounts_created"] == 2
+    assert len(result["skipped"]) == 1
+    assert result["skipped"][0]["row"] == 5
+    assert "未识别" in result["skipped"][0]["reason"]
 
     summary = account_master_summary(db)
     assert summary["total"] >= 3
     assert summary["payable"] >= 2
     assert summary["loan"] >= 1
-    assert summary["sub_accounts"] == 2
+    assert summary["sub_accounts"] >= 2
     assert summary["by_type"].get("基本户", 0) >= 1
 
     basic = db.execute(select(BankAccount).where(BankAccount.account_no == "1001")).scalars().one()

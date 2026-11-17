@@ -122,7 +122,7 @@ async def import_excel(
     with target.open("wb") as fh:
         shutil.copyfileobj(file.file, fh)
     try:
-        return import_payment_excel(db, target, force=force)
+        return import_payment_excel(db, target, force=force, operator=_operator(request))
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

@@ -85,8 +85,13 @@
     {% endif %}
     {% endif %}
 
-    {% if can_menu(nav_role, 'statements') or can_menu(nav_role, 'receipts') or can_menu(nav_role, 'payments') %}
+    {% if can_menu(nav_role, 'statements') or can_menu(nav_role, 'receipts') or can_menu(nav_role, 'payments') or can_menu(nav_role, 'tasks') %}
     <div class="group">收付款</div>
+    {% if can_menu(nav_role, 'tasks') %}
+    <a href="/tasks" class="{{ 'active' if page == 'tasks' }}" {% if page == 'tasks' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-clock"/></svg><span>采集任务</span>
+    </a>
+    {% endif %}
     {% if can_menu(nav_role, 'statements') %}
     <a href="/statements" class="{{ 'active' if page == 'statements' }}" {% if page == 'statements' %}aria-current="page"{% endif %}>
       <svg class="ico"><use href="#i-file"/></svg><span>银行流水</span>
@@ -114,11 +119,11 @@
     </a>
     {% endif %}
 
-    {% if can_menu(nav_role, 'devices') or can_menu(nav_role, 'payment_settings') or can_menu(nav_role, 'tasks') or can_menu(nav_role, 'settings') or can_menu(nav_role, 'master_data') %}
+    {% if can_menu(nav_role, 'devices') or can_menu(nav_role, 'payment_settings') or can_menu(nav_role, 'settings') or can_menu(nav_role, 'master_data') %}
     <div class="group">设置</div>
     {% if can_menu(nav_role, 'master_data') %}
     <a href="/master-data" class="{{ 'active' if page == 'master_data' }}" {% if page == 'master_data' %}aria-current="page"{% endif %}>
-      <svg class="ico"><use href="#i-wallet"/></svg><span>基础资料</span>
+      <svg class="ico"><use href="#i-wallet"/></svg><span>收付款账户</span>
     </a>
     {% endif %}
     {% if can_menu(nav_role, 'payment_settings') %}
@@ -129,11 +134,6 @@
     {% if can_menu(nav_role, 'devices') %}
     <a href="/devices" class="{{ 'active' if page == 'devices' }}" {% if page == 'devices' %}aria-current="page"{% endif %}>
       <svg class="ico"><use href="#i-device"/></svg><span>UKey 设备</span>
-    </a>
-    {% endif %}
-    {% if can_menu(nav_role, 'tasks') %}
-    <a href="/tasks" class="{{ 'active' if page == 'tasks' }}" {% if page == 'tasks' %}aria-current="page"{% endif %}>
-      <svg class="ico"><use href="#i-clock"/></svg><span>采集任务</span>
     </a>
     {% endif %}
     {% if can_menu(nav_role, 'settings') %}

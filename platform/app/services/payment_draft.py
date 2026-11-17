@@ -13,6 +13,7 @@ from pathlib import Path
 
 from openpyxl import Workbook
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -25,6 +26,7 @@ from app.models import (
     UkeyDevice,
 )
 from app.services import security
+from app.services.audit import write_audit
 
 STATUS_DRAFTING = "drafting"
 
@@ -76,12 +78,20 @@ def _check_doc(doc: PaymentDoc) -> str:
     return ""
 
 
-def load_docs(db: Session, doc_ids: list[int], books: set[int] | None = None) -> tuple[list[PaymentDoc], list[dict]]:
+def load_docs(
+    db: Session,
+    doc_ids: list[int],
+    books: set[int] | None = None,
+    for_update: bool = False,
+) -> tuple[list[PaymentDoc], list[dict]]:
     """按传入顺序取出单据，并把不能制单的挑出来。books 为空集表示无权制单。"""
     wanted = list(dict.fromkeys(int(i) for i in doc_ids))
     if not wanted:
         raise DraftError("请先选择要制单的单据")
-    docs = db.execute(select(PaymentDoc).where(PaymentDoc.id.in_(wanted))).scalars().all()
+    query = select(PaymentDoc).where(PaymentDoc.id.in_(wanted))
+    if for_update:
+        query = query.with_for_update()
+    docs = db.execute(query).scalars().all()
     by_id = {doc.id: doc for doc in docs}
     picked: list[PaymentDoc] = []
     problems: list[dict] = []
@@ -172,12 +182,15 @@ def _write_file(task_dir: Path, task: PaymentDraftTask, docs: list[PaymentDoc]) 
                 doc.payee_name,
                 doc.payee_account_no,
                 doc.payee_bank,
-                float(doc.amount or 0),
+                Decimal(doc.amount or 0),
                 doc.currency,
                 doc.subject,
                 doc.project_name,
             ]
         )
+    for row in ws.iter_rows(min_row=2, min_col=8, max_col=8):
+        for cell in row:
+            cell.number_format = "#,##0.00"
     ws.freeze_panes = "A2"
     wb.save(path)
     return path
@@ -185,7 +198,7 @@ def _write_file(task_dir: Path, task: PaymentDraftTask, docs: list[PaymentDoc]) 
 
 def create_batch(db: Session, doc_ids: list[int], operator: str = "", books: set[int] | None = None) -> PaymentDraftBatch:
     """按付款账户拆分并落库，单据进入制单中，同一批不会重复发起。"""
-    docs, problems = load_docs(db, doc_ids, books)
+    docs, problems = load_docs(db, doc_ids, books, for_update=True)
     if problems:
         names = "、".join(item["apply_no"] or f"#{item['id']}" for item in problems[:5])
         raise DraftError(f"{len(problems)} 条单据不能制单：{names}", problems)
@@ -245,7 +258,24 @@ def create_batch(db: Session, doc_ids: list[int], operator: str = "", books: set
             doc.draft_batch_id = batch.id
             doc.draft_task_id = task.id
 
-    db.commit()
+    write_audit(
+        db,
+        operator,
+        "draft_batch_create",
+        "payment_draft_batch",
+        batch.id,
+        {
+            "batch_no": batch.batch_no,
+            "doc_count": len(docs),
+            "amount": str(batch.total_amount),
+            "accounts": len(groups),
+        },
+    )
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise DraftError("批次创建冲突，请刷新后重试") from exc
     return batch
 
 
@@ -270,11 +300,33 @@ def mark_task_done(db: Session, task_id: int, operator: str = "") -> PaymentDraf
     task.done_by = operator
     task.done_at = now
     _refresh_batch(db, task.batch_id)
+    write_audit(
+        db,
+        operator,
+        "draft_task_done",
+        "payment_draft_task",
+        task.id,
+        {
+            "batch_id": task.batch_id,
+            "bank_code": task.bank_code,
+            "payer_account_no": task.payer_account_no,
+            "doc_count": task.doc_count,
+            "amount": str(task.amount or 0),
+            "to_status": task.status,
+        },
+    )
     db.commit()
     return task
 
 
-def fail_task(db: Session, task_id: int, message: str, release: bool = True) -> PaymentDraftTask:
+def fail_task(
+    db: Session,
+    task_id: int,
+    message: str,
+    release: bool = True,
+    operator: str = "",
+    audit_action: str = "",
+) -> PaymentDraftTask:
     """任务失败。release=True 时把单据退回可制单，出纳可以改完再发一次。"""
     task = db.get(PaymentDraftTask, task_id)
     if task is None:
@@ -290,13 +342,37 @@ def fail_task(db: Session, task_id: int, message: str, release: bool = True) -> 
             doc.draft_batch_id = None
             doc.draft_task_id = None
     _refresh_batch(db, task.batch_id)
+    if audit_action:
+        write_audit(
+            db,
+            operator,
+            audit_action,
+            "payment_draft_task",
+            task.id,
+            {
+                "batch_id": task.batch_id,
+                "bank_code": task.bank_code,
+                "payer_account_no": task.payer_account_no,
+                "doc_count": task.doc_count,
+                "amount": str(task.amount or 0),
+                "reason": task.error_msg,
+                "to_status": task.status,
+            },
+        )
     db.commit()
     return task
 
 
 def cancel_task(db: Session, task_id: int, operator: str = "") -> PaymentDraftTask:
     """撤回：没制单完成的单据退回可制单。"""
-    return fail_task(db, task_id, f"已由 {operator or 'someone'} 撤回", release=True)
+    return fail_task(
+        db,
+        task_id,
+        f"已由 {operator or 'someone'} 撤回",
+        release=True,
+        operator=operator,
+        audit_action="draft_task_cancel",
+    )
 
 
 def _refresh_batch(db: Session, batch_id: int) -> None:
@@ -393,6 +469,7 @@ def claim_draft_task(db: Session, agent_code: str) -> dict | None:
             (PaymentDraftTask.agent_code == agent_code) | (PaymentDraftTask.agent_code == ""),
         )
         .order_by(PaymentDraftTask.id)
+        .with_for_update(skip_locked=True)
         .limit(1)
     ).scalars().first()
     if task is None:

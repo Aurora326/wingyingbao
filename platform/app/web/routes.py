@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import threading
 from pathlib import Path
 
 from fastapi import APIRouter, Form, HTTPException, Request
@@ -16,9 +17,11 @@ from app.api import recon as recon_api
 from app.api import tasks as tasks_api
 from app.config import settings
 from app.db import SessionLocal
-from app.models import Agent, AppUser, AuditLog, BankAccount, CollectionTask, PaymentCollectTask, Tenant
-from app.services import security
+from app.models import Agent, AlertEvent, AppUser, AuditLog, BankAccount, CollectionTask, LoginAttempt, PaymentCollectTask, Tenant
+from app.services import alerts, app_settings, login_guard, security
 from app.services import permissions
+from app.services.audit import write_audit
+from app.services.backup import run_backup_job
 from app.services.abc_ledger import sub_region
 from app.services.banks import bank_label
 from app.services.banks import list_banks
@@ -92,6 +95,17 @@ _AUDIT_ACTIONS = {
     "user_role": "调整用户角色",
     "user_toggle": "启用或停用用户",
     "user_password": "重置用户密码",
+    "login_locked": "登录失败锁定",
+    "payment_import": "导入付款单据",
+    "payment_confirm": "确认付款账户",
+    "payment_edit": "编辑付款单据",
+    "payment_review": "审核付款单据",
+    "payment_export": "导出制单草稿",
+    "draft_batch_create": "生成制单批次",
+    "draft_task_done": "标记制单完成",
+    "draft_task_cancel": "撤回制单任务",
+    "payee_create": "新建收款账户",
+    "payee_change": "变更收款账户",
 }
 _AUDIT_TARGETS = {
     "collection_task": "采集任务",
@@ -99,6 +113,11 @@ _AUDIT_TARGETS = {
     "bank_account": "银行账户",
     "agent": "采集 Agent",
     "app_user": "平台用户",
+    "payment_doc": "付款单据",
+    "payment_draft": "制单草稿",
+    "payment_draft_batch": "制单批次",
+    "payment_draft_task": "制单任务",
+    "payee_account": "收款账户",
 }
 _AUDIT_STATUS = {"succeeded": "已完成", "failed": "未完成", "running": "进行中", "cancelled": "已停止"}
 
@@ -114,11 +133,22 @@ _AUDIT_USER_ACTIONS = {
     "user_toggle",
     "user_password",
     "user_password_self",
+    "login_locked",
     "cashier_scope",
     "cashier_delegation",
     "cashier_delegation_self",
     "task_stop",
     "task_stop_batch",
+    "payment_import",
+    "payment_confirm",
+    "payment_edit",
+    "payment_review",
+    "payment_export",
+    "draft_batch_create",
+    "draft_task_done",
+    "draft_task_cancel",
+    "payee_create",
+    "payee_change",
 }
 _AUDIT_ERRORS = {
     "LOGIN_FAILED": "登录失败",
@@ -167,6 +197,42 @@ def _audit_summary(log: AuditLog) -> str:
         return f"{'启用' if detail.get('is_active') else '停用'}用户 {detail.get('username', '')}"
     if log.action == "user_password":
         return f"重置用户 {detail.get('username', '')} 的密码"
+    if log.action == "login_locked":
+        return (
+            f"账户 {log.actor or detail.get('username', '')} 连续登录失败 "
+            f"{detail.get('failures', 0)} 次，已临时锁定"
+        )
+    if log.action == "payment_import":
+        return (
+            f"导入付款单据：新增 {detail.get('inserted', 0)}，"
+            f"更新 {detail.get('updated', 0)}，跳过 {detail.get('skipped', 0)}"
+        )
+    if log.action == "payment_confirm":
+        return f"确认单据 {detail.get('apply_no', '')}，金额 {detail.get('amount', '')}"
+    if log.action == "payment_edit":
+        return f"编辑单据 {detail.get('apply_no', '')}"
+    if log.action == "payment_review":
+        decision = "通过" if detail.get("decision") == "approve" else "驳回"
+        return f"{decision}单据 {detail.get('apply_no', '')}，金额 {detail.get('amount', '')}"
+    if log.action == "payment_export":
+        return f"导出 {detail.get('count', 0)} 张单据，合计 {detail.get('amount', '')}"
+    if log.action == "draft_batch_create":
+        return (
+            f"生成批次 {detail.get('batch_no', '')}，"
+            f"{detail.get('doc_count', 0)} 张单据，合计 {detail.get('amount', '')}"
+        )
+    if log.action == "draft_task_done":
+        return (
+            f"制单完成：{detail.get('bank_code', '')} "
+            f"{detail.get('doc_count', 0)} 张，合计 {detail.get('amount', '')}"
+        )
+    if log.action == "draft_task_cancel":
+        return f"撤回制单任务：{detail.get('bank_code', '')} {detail.get('doc_count', 0)} 张"
+    if log.action == "payee_create":
+        return f"新建收款账户 {detail.get('payee_name', '')}（{detail.get('account_no', '')}）"
+    if log.action == "payee_change":
+        fields = "、".join((detail.get("changes") or {}).keys())
+        return f"变更收款账户：{fields}" if fields else "变更收款账户"
     if log.action == "usb_robot_sync":
         source = "本地 MB" if detail.get("source") == "local" else "服务商接口"
         suffix = f"，{detail.get('created', 0)} 新增 / {detail.get('updated', 0)} 更新" if detail.get("created") is not None else ""
@@ -212,6 +278,35 @@ def _audit_details(log: AuditLog) -> list[tuple[str, str]]:
         if key in detail:
             label = {"total": "设备总数", "created": "新增", "updated": "更新"}[key]
             rows.append((label, str(detail[key])))
+    for key, label in (
+        ("apply_no", "单据"),
+        ("amount", "金额"),
+        ("from_status", "原状态"),
+        ("to_status", "新状态"),
+        ("opinion", "审核意见"),
+        ("batch_no", "批次号"),
+        ("count", "数量"),
+        ("payee_name", "收款单位"),
+        ("account_no", "账号"),
+        ("reason", "原因"),
+        ("file", "文件"),
+    ):
+        if detail.get(key) not in (None, ""):
+            rows.append((label, str(detail[key])))
+    if detail.get("decision"):
+        rows.append(("审核结论", "通过" if detail["decision"] == "approve" else "驳回"))
+    changes = detail.get("changes")
+    if isinstance(changes, dict):
+        parts = []
+        for key, value in changes.items():
+            if isinstance(value, dict):
+                parts.append(f"{key}：{value.get('from', '')} 改为 {value.get('to', '')}")
+            else:
+                parts.append(f"{key}：{value}")
+        rows.append(("变更", "；".join(parts)))
+    apply_nos = detail.get("apply_nos")
+    if isinstance(apply_nos, list) and apply_nos:
+        rows.append(("单据号", "、".join(str(item) for item in apply_nos[:10])))
     return rows
 
 
@@ -230,14 +325,58 @@ def login_page(request: Request):
 @router.post("/login")
 def login_submit(request: Request, username: str = Form(...), password: str = Form(...)):
     username = username.strip()
+    ip = request.client.host if request.client else ""
     with SessionLocal() as db:
-        user = db.execute(select(AppUser).where(AppUser.username == username)).scalars().first()
-        if user is None or not security.verify_password(password, user.password_hash):
+        remaining = login_guard.lock_remaining(db, username)
+        if remaining > 0:
+            minutes = max(1, (remaining + 59) // 60)
             return templates.TemplateResponse(
-                request=request, name="login.html", context={"error": "用户名或密码错误"}, status_code=401
+                request=request,
+                name="login.html",
+                context={"error": f"尝试次数过多，请 {minutes} 分钟后再试"},
+                status_code=429,
             )
-    response = RedirectResponse("/", status_code=303)
+        user = db.execute(select(AppUser).where(AppUser.username == username)).scalars().first()
+        if (
+            user is None
+            or not user.is_active
+            or not security.verify_password(password, user.password_hash)
+        ):
+            count, locked = login_guard.record_failure(db, username, ip)
+            if locked:
+                write_audit(
+                    db,
+                    username,
+                    "login_locked",
+                    "app_user",
+                    username,
+                    {"ip": ip, "failures": count},
+                )
+                db.commit()
+                return templates.TemplateResponse(
+                    request=request,
+                    name="login.html",
+                    context={"error": f"尝试次数过多，请 {login_guard.LOCK_MINUTES} 分钟后再试"},
+                    status_code=429,
+                )
+            return templates.TemplateResponse(
+                request=request,
+                name="login.html",
+                context={"error": "用户名或密码错误"},
+                status_code=401,
+            )
+        login_guard.clear_failures(db, username)
+        needs_change = security.is_default_password(user.username, user.password_hash)
+    response = RedirectResponse("/profile?force=1" if needs_change else "/", status_code=303)
     response.set_cookie("session", security.create_session(username), httponly=True, samesite="lax")
+    if needs_change:
+        response.set_cookie(
+            "pwd_change",
+            "1",
+            max_age=security.SESSION_TTL,
+            httponly=True,
+            samesite="lax",
+        )
     return response
 
 
@@ -281,13 +420,31 @@ def dashboard_page(request: Request):
 TASK_PAGE_SIZE = 20
 
 
-def _task_list_context(db, status: str, page: int = 1, size: int = TASK_PAGE_SIZE) -> dict:
+def _default_task_date(value: str | None) -> str:
+    """未带参数时默认只看当天，显式传 all 表示不限日期。"""
+    if value is None:
+        return dt.date.today().isoformat()
+    if value == "all":
+        return ""
+    return value
+
+
+def _task_list_context(
+    db,
+    status: str,
+    page: int = 1,
+    size: int = TASK_PAGE_SIZE,
+    date_from: str = "",
+    date_to: str = "",
+) -> dict:
     page = max(page, 1)
+    date_args = {"date_from": date_from, "date_to": date_to}
     result = tasks_api.list_tasks(
         status=status or None,
         limit=size,
         offset=(page - 1) * size,
         db=db,
+        **date_args,
     )
     total = result["total"]
     pages = max(1, (total + size - 1) // size)
@@ -298,11 +455,14 @@ def _task_list_context(db, status: str, page: int = 1, size: int = TASK_PAGE_SIZ
             limit=size,
             offset=(page - 1) * size,
             db=db,
+            **date_args,
         )
+    count_query = select(CollectionTask.status, func.count(CollectionTask.id))
+    date_filters = tasks_api.task_date_filters(date_from, date_to)
+    if date_filters:
+        count_query = count_query.where(*date_filters)
     status_counts = dict(
-        db.execute(
-            select(CollectionTask.status, func.count(CollectionTask.id)).group_by(CollectionTask.status)
-        ).all()
+        db.execute(count_query.group_by(CollectionTask.status)).all()
     )
     last_task = db.execute(
         select(CollectionTask).order_by(CollectionTask.id.desc()).limit(1)
@@ -342,6 +502,10 @@ def _task_list_context(db, status: str, page: int = 1, size: int = TASK_PAGE_SIZ
         "pages": pages,
         "total": total,
         "size": size,
+        "date_from": date_from,
+        "date_to": date_to,
+        "today": dt.date.today().isoformat(),
+        "counts": status_counts,
     }
 
 
@@ -376,6 +540,7 @@ def _payment_task_list_context(db, status: str, page: int = 1, size: int = 20, s
     }
     return {
         "payment_tasks": [task_dict(item) for item in rows],
+        "counts": counts,
         "status": status,
         "stats": stats,
         "page_no": page,
@@ -402,10 +567,19 @@ def _payment_config_context(db, is_admin: bool = False) -> dict:
 
 
 @router.get("/tasks")
-def tasks_page(request: Request, status: str = "", page: int = 1, size: int = TASK_PAGE_SIZE, source: str = ""):
+def tasks_page(
+    request: Request,
+    status: str = "",
+    page: int = 1,
+    size: int = TASK_PAGE_SIZE,
+    source: str = "",
+    date_from: str | None = None,
+    date_to: str = "",
+):
     denied = _deny_menu(request, "tasks")
     if denied:
         return denied
+    date_from = _default_task_date(date_from)
     resolved_size = normalize_size(size, TASK_PAGE_SIZE)
     with SessionLocal() as db:
         if source in ("payment", "oa"):
@@ -419,7 +593,7 @@ def tasks_page(request: Request, status: str = "", page: int = 1, size: int = TA
                     )
                 )
         else:
-            context = _task_list_context(db, status, page, resolved_size)
+            context = _task_list_context(db, status, page, resolved_size, date_from, date_to)
             if not is_hx(request, "task-region"):
                 context["accounts"] = accounts_api.list_accounts(db)["items"]
             context["task_source"] = "bank"
@@ -431,16 +605,25 @@ def tasks_page(request: Request, status: str = "", page: int = 1, size: int = TA
 
 
 @router.get("/tasks/partial")
-def tasks_partial(request: Request, status: str = "", page: int = 1, size: int = TASK_PAGE_SIZE, source: str = ""):
+def tasks_partial(
+    request: Request,
+    status: str = "",
+    page: int = 1,
+    size: int = TASK_PAGE_SIZE,
+    source: str = "",
+    date_from: str | None = None,
+    date_to: str = "",
+):
     denied = _deny_menu(request, "tasks")
     if denied:
         return denied
+    date_from = _default_task_date(date_from)
     resolved_size = normalize_size(size, TASK_PAGE_SIZE)
     with SessionLocal() as db:
         if source in ("payment", "oa"):
             context = _payment_task_list_context(db, status, page, resolved_size, source=source)
         else:
-            context = _task_list_context(db, status, page, resolved_size)
+            context = _task_list_context(db, status, page, resolved_size, date_from, date_to)
             context["task_source"] = "bank"
             context["source"] = ""
     return templates.TemplateResponse(request=request, name="tasks_partial.html", context=context)
@@ -792,7 +975,7 @@ def devices_page(
     )
 
 
-SETTINGS_TABS = {"users", "system"}
+SETTINGS_TABS = {"users", "system", "alerts"}
 ROLE_LABELS = permissions.ROLE_LABELS
 
 
@@ -856,6 +1039,24 @@ def _render_settings(
         user_total = sum(n for a, n in action_counts.items() if a in _AUDIT_USER_ACTIONS)
         all_total = sum(action_counts.values())
         devices = accounts_api.list_devices(db)["items"]
+        alert_config = alerts.load_config(db)
+        alert_pager = paginate_scalars(
+            db,
+            select(AlertEvent).order_by(AlertEvent.id.desc()),
+            page,
+            size,
+            default_size=20,
+        )
+        alert_open = db.execute(
+            select(func.count()).select_from(AlertEvent).where(AlertEvent.handled_at.is_(None))
+        ).scalar() or 0
+        backup_state = {
+            "running": app_settings.get_bool(db, "backup_running", False),
+            "last_at": app_settings.get_value(db, "backup_last_at", ""),
+            "last_file": app_settings.get_value(db, "backup_last_file", ""),
+            "last_size": app_settings.get_value(db, "backup_last_size", "0"),
+            "last_error": app_settings.get_value(db, "backup_last_error", ""),
+        }
 
     user_pager = paginate_items(users, page, size, default_size=10)
 
@@ -879,6 +1080,13 @@ def _render_settings(
         "log_params": log_params,
         "devices": devices,
         "settings": settings,
+        "alert_config": alert_config,
+        "alert_events": alert_pager["items"],
+        "alert_pager": alert_pager,
+        "alert_open_count": alert_open,
+        "alert_kind_labels": alerts.KIND_LABELS,
+        "alert_status_labels": alerts.STATUS_LABELS,
+        "backup_state": backup_state,
         "current_user_id": user.id,
         "msg": request.query_params.get("msg", ""),
     }
@@ -886,6 +1094,8 @@ def _render_settings(
         return templates.TemplateResponse(request=request, name="_settings_users_table.html", context=context)
     if is_hx(request, "settings-logs-region"):
         return templates.TemplateResponse(request=request, name="_settings_logs_table.html", context=context)
+    if is_hx(request, "settings-alerts-region") and tab == "alerts":
+        return templates.TemplateResponse(request=request, name="_settings_alerts.html", context=context)
     return templates.TemplateResponse(
         request=request,
         name="settings.html",
@@ -915,6 +1125,91 @@ def settings_system_page(request: Request, page: int = 1, size: int = 10, audit:
     return _render_settings(request, "system", page=page, size=size, audit=audit)
 
 
+@router.get("/settings/alerts")
+def settings_alerts_page(request: Request):
+    return _render_settings(request, "alerts")
+
+
+@router.post("/settings/backup/now")
+def settings_backup_now(request: Request):
+    _settings_admin(request)
+    with SessionLocal() as db:
+        if app_settings.get_bool(db, "backup_running", False):
+            return _settings_redirect("system", "备份正在进行中")
+    threading.Thread(target=run_backup_job, daemon=True).start()
+    return _settings_redirect("system", "备份任务已开始，稍后刷新查看结果")
+
+
+@router.post("/settings/alerts")
+def settings_alerts_save(
+    request: Request,
+    enabled: str = Form("0"),
+    webhook: str = Form(""),
+    device_offline_minutes: str = Form("30"),
+    account_stale_days: str = Form("2"),
+    cooldown_hours: str = Form("6"),
+    quiet_hours: str = Form(""),
+):
+    admin = _settings_admin(request)
+    webhook = webhook.strip()
+    quiet_hours = quiet_hours.strip()
+    if webhook and not webhook.startswith(("http://", "https://")):
+        return _settings_redirect("alerts", "Webhook 地址需以 http:// 或 https:// 开头")
+    if not alerts.valid_quiet_hours(quiet_hours):
+        return _settings_redirect("alerts", "静默时段格式应为 22:00-07:00")
+
+    def _positive(text: str, fallback: int) -> int:
+        try:
+            value = int(text.strip())
+        except ValueError:
+            return fallback
+        return value if value > 0 else fallback
+
+    offline = _positive(device_offline_minutes, 30)
+    stale = _positive(account_stale_days, 2)
+    cooldown = _positive(cooldown_hours, 6)
+    with SessionLocal() as db:
+        app_settings.set_value(db, "alert_enabled", "1" if enabled == "1" else "0")
+        app_settings.set_value(db, "alert_webhook", webhook)
+        app_settings.set_value(db, "alert_device_offline_minutes", str(offline))
+        app_settings.set_value(db, "alert_account_stale_days", str(stale))
+        app_settings.set_value(db, "alert_cooldown_hours", str(cooldown))
+        app_settings.set_value(db, "alert_quiet_hours", quiet_hours)
+        db.add(
+            AuditLog(
+                actor=admin.username,
+                action="alert_settings",
+                target_type="app_setting",
+                target_id="alerts",
+                detail={"enabled": enabled == "1", "webhook_configured": bool(webhook)},
+            )
+        )
+        db.commit()
+    return _settings_redirect("alerts", "告警设置已保存")
+
+
+@router.post("/settings/alerts/test")
+def settings_alerts_test(request: Request):
+    _settings_admin(request)
+    with SessionLocal() as db:
+        cfg = alerts.load_config(db)
+    ok, error = alerts.send_test(cfg)
+    return _settings_redirect("alerts", "测试消息已发送" if ok else f"测试发送失败：{error}")
+
+
+@router.post("/settings/alerts/{event_id}/handle")
+def settings_alert_handle(request: Request, event_id: int):
+    admin = _settings_admin(request)
+    with SessionLocal() as db:
+        event = db.get(AlertEvent, event_id)
+        if event is None:
+            return _settings_redirect("alerts", "告警不存在")
+        event.handled_at = dt.datetime.now()
+        event.handled_by = admin.username
+        db.commit()
+    return _settings_redirect("alerts", "告警已标记处理")
+
+
 @router.post("/settings/users")
 def settings_create_user(
     request: Request,
@@ -931,8 +1226,9 @@ def settings_create_user(
         return _settings_redirect("users", "登录账户至少 2 个字符")
     if any(ch.isspace() for ch in username):
         return _settings_redirect("users", "登录账户不能包含空格")
-    if len(password) < 8:
-        return _settings_redirect("users", "密码至少 8 个字符")
+    error = security.validate_password(password, username)
+    if error:
+        return _settings_redirect("users", error)
     role = role if role in ROLE_LABELS else "user"
     target_tenant = admin.tenant_id
     if target_tenant is None and tenant_id.isdigit():
@@ -1011,8 +1307,10 @@ def settings_update_user(
         return _settings_redirect("users", "姓名不能为空")
     if len(username) < 2 or any(ch.isspace() for ch in username):
         return _settings_redirect("users", "登录账户至少 2 个字符且不能包含空格")
-    if password and len(password) < 8:
-        return _settings_redirect("users", "密码至少 8 个字符")
+    if password:
+        error = security.validate_password(password, username)
+        if error:
+            return _settings_redirect("users", error)
     if role not in ROLE_LABELS:
         return _settings_redirect("users", "无效的用户角色")
     with SessionLocal() as db:
@@ -1037,6 +1335,11 @@ def settings_update_user(
         target.is_active = is_active == "1"
         if password:
             target.password_hash = security.hash_password(password)
+            attempt = db.execute(
+                select(LoginAttempt).where(LoginAttempt.username == target.username)
+            ).scalars().first()
+            if attempt is not None:
+                db.delete(attempt)
         if admin.tenant_id is None and tenant_id.isdigit():
             target.tenant_id = int(tenant_id)
         db.add(

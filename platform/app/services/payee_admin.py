@@ -6,6 +6,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models import PayeeAccount, PayeeAccountChange
+from app.services.audit import write_audit
 
 PAYEE_FIELDS = ("payee_name", "account_no", "bank_name", "branch_name", "cnaps_code", "currency", "status")
 
@@ -80,6 +81,19 @@ def create_payee(db: Session, values: dict, operator: str = "") -> PayeeAccount:
         source="手工",
     )
     db.add(payee)
+    db.flush()
+    write_audit(
+        db,
+        operator,
+        "payee_create",
+        "payee_account",
+        payee.id,
+        {
+            "payee_name": payee.payee_name,
+            "account_no": payee.account_no,
+            "bank_name": payee.bank_name,
+        },
+    )
     db.commit()
     db.refresh(payee)
     return payee
@@ -93,8 +107,21 @@ def request_change(db: Session, payee_id: int, values: dict, reason: str = "", o
     new_values = {key: values[key] for key in PAYEE_FIELDS if key in values and values[key] is not None}
     if not new_values:
         raise PayeeError("没有需要变更的字段")
+    before = {key: getattr(payee, key, "") for key in new_values}
     for key, value in new_values.items():
         setattr(payee, key, value)
+    changes = {
+        key: {"from": str(before.get(key) or ""), "to": str(value or "")}
+        for key, value in new_values.items()
+    }
+    write_audit(
+        db,
+        operator,
+        "payee_change",
+        "payee_account",
+        payee.id,
+        {"changes": changes, "reason": reason},
+    )
     db.commit()
     db.refresh(payee)
     return payee

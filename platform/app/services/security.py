@@ -67,6 +67,54 @@ def verify_password(password: str, stored: str) -> bool:
         return False
 
 
+PASSWORD_MIN = 8
+PASSWORD_MAX = 128
+WEAK_PASSWORDS = {
+    "admin123",
+    "admin@123",
+    "12345678",
+    "123456789",
+    "password",
+    "passw0rd",
+    "qwerty123",
+    "abc12345",
+    "11111111",
+    "88888888",
+    "a1234567",
+    "1qaz2wsx",
+}
+
+
+def validate_password(password: str, username: str = "") -> str:
+    """返回不符合密码策略的原因，空字符串表示通过。
+
+    按结构性问题优先的顺序检查，避免一个密码同时命中多条规则时，
+    用笼统的弱密码提示盖住真正需要改的地方。
+    """
+    if len(password) < PASSWORD_MIN:
+        return f"密码至少 {PASSWORD_MIN} 个字符"
+    if len(password) > PASSWORD_MAX:
+        return f"密码不能超过 {PASSWORD_MAX} 个字符"
+    if username and password.lower() == username.lower():
+        return "密码不能与登录账户相同"
+    if len(set(password)) == 1:
+        return "密码不能全部是相同字符"
+    if not any(ch.isalpha() for ch in password):
+        return "密码至少包含一个字母"
+    if not any(ch.isdigit() for ch in password):
+        return "密码至少包含一个数字"
+    if password.lower() in WEAK_PASSWORDS:
+        return "这是常见的弱密码，容易被猜到，请换一个"
+    return ""
+
+
+def is_default_password(username: str, password_hash: str) -> bool:
+    """管理员仍在使用配置里的初始密码。"""
+    return username == settings.admin_user and verify_password(
+        settings.admin_password, password_hash
+    )
+
+
 def _sign(payload: str) -> str:
     return hmac.new(settings.secret_key.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
 

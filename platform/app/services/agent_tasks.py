@@ -94,6 +94,7 @@ def claim_agent_task(db: Session, agent_code: str) -> dict | None:
             CollectionTask.cancel_requested.is_(False),
         )
         .order_by(CollectionTask.priority, CollectionTask.created_at)
+        .with_for_update(skip_locked=True)
         .limit(1)
     ).scalars().first()
     if task is None:

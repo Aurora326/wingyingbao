@@ -102,7 +102,7 @@
         <div class="field"><label for="pay-edit-approval-type">付款审批类型</label><input id="pay-edit-approval-type" name="approval_type"></div>
         <div class="field"><label for="pay-edit-currency">币种</label><input id="pay-edit-currency" name="currency"></div>
         <div class="field full">
-          <label for="pay-edit-payee-search">收款方（基础资料）</label>
+          <label for="pay-edit-payee-search">收款方（收付款账户）</label>
           <div class="combo">
             <input type="text" id="pay-edit-payee-search" placeholder="搜索收款单位、账号或开户行" autocomplete="off"
                    onfocus="openCombo('payee')" oninput="filterCombo('payee')" onkeydown="comboKey(event, 'payee')">
@@ -111,7 +111,7 @@
           </div>
         </div>
         <div class="field full">
-          <label for="pay-edit-payer-search">付款方（基础资料）</label>
+          <label for="pay-edit-payer-search">付款方（收付款账户）</label>
           <div class="combo">
             <input type="text" id="pay-edit-payer-search" placeholder="搜索账户名、账号或银行" autocomplete="off"
                    onfocus="openCombo('payer')" oninput="filterCombo('payer')" onkeydown="comboKey(event, 'payer')">

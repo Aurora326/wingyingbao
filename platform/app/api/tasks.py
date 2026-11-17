@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import re
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,12 +17,29 @@ from app.services.scheduler import enqueue_task, task_range, task_types_for
 router = APIRouter(prefix="/api", tags=["tasks"])
 
 
+def task_date_filters(date_from: str = "", date_to: str = "") -> list:
+    """按创建日期过滤任务，日期为 YYYY-MM-DD，截止日含当天。"""
+    try:
+        filters = []
+        if date_from:
+            start = dt.date.fromisoformat(date_from)
+            filters.append(CollectionTask.created_at >= dt.datetime.combine(start, dt.time.min))
+        if date_to:
+            end = dt.date.fromisoformat(date_to) + dt.timedelta(days=1)
+            filters.append(CollectionTask.created_at < dt.datetime.combine(end, dt.time.min))
+        return filters
+    except ValueError:
+        return []
+
+
 @router.get("/tasks")
 def list_tasks(
     status: str | None = None,
     account_id: int | None = None,
     limit: int = 100,
     offset: int = 0,
+    date_from: str = "",
+    date_to: str = "",
     db: Session = Depends(get_db),
 ):
     conditions = []
@@ -29,6 +47,7 @@ def list_tasks(
         conditions.append(CollectionTask.status == status)
     if account_id:
         conditions.append(CollectionTask.account_id == account_id)
+    conditions.extend(task_date_filters(date_from, date_to))
 
     count_query = select(func.count(CollectionTask.id))
     query = select(CollectionTask)

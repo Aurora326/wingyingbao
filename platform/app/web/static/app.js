@@ -225,7 +225,9 @@ async function confirmDeleteAccount() {
   try {
     await deleteAccountRequest(ctx.id, input.value);
     toast("账户已删除");
-    setTimeout(() => location.reload(), 600);
+    closeModal("delete-account-modal");
+    submit.textContent = "确认删除";
+    refreshAccountsRegion();
   } catch (error) {
     toast("删除失败: " + error.message);
     submit.textContent = "确认删除";
@@ -241,7 +243,9 @@ async function toggleAccountFromModal() {
   try {
     const result = await postJSON(`/api/accounts/${ctx.id}/toggle`);
     toast(result.collect_enabled ? "已启用采集" : "已停用采集");
-    setTimeout(() => location.reload(), 600);
+    closeModal("delete-account-modal");
+    button.disabled = false;
+    refreshAccountsRegion();
   } catch (error) {
     toast("操作失败: " + error.message);
     button.disabled = false;
@@ -727,10 +731,35 @@ async function submitAccountForm(event) {
       await postJSON("/api/accounts", payload);
       toast("账户已创建");
     }
-    setTimeout(() => location.reload(), 600);
+    closeModal("account-modal");
+    toast(accountId ? "账户已更新" : "账户已创建");
+    if (submit) submit.disabled = false;
+    refreshAccountsRegion();
   } catch (error) {
     toast((accountId ? "更新失败: " : "创建失败: ") + error.message);
     if (submit) submit.disabled = false;
+  }
+}
+
+function refreshAccountsRegion() {
+  return refreshRegions(["accounts-table-region", "accounts-live-stats"]);
+}
+
+async function refreshRegions(ids) {
+  const existing = ids.filter((id) => document.getElementById(id));
+  if (!existing.length) return;
+  try {
+    const response = await fetch(window.location.href, { cache: "no-store" });
+    if (!response.ok) return;
+    const doc = new DOMParser().parseFromString(await response.text(), "text/html");
+    existing.forEach((id) => {
+      const current = document.getElementById(id);
+      const next = doc.getElementById(id);
+      if (current && next) current.replaceWith(next);
+    });
+  } catch (error) {
+    // 局部刷新失败时退回整页刷新，避免界面停在旧数据
+    location.reload();
   }
 }
 
@@ -749,7 +778,13 @@ async function submitDeviceForm(event) {
       mb_user: form.mb_user ? form.mb_user.value : "",
     });
     toast("设备已创建");
-    setTimeout(() => location.reload(), 600);
+    closeModal("device-modal");
+    refreshRegions([
+      "accounts-devices-region",
+      "accounts-table-region",
+      "accounts-live-stats",
+      "devices-agents-region",
+    ]);
   } catch (error) {
     toast("创建失败: " + error.message);
   }
@@ -761,7 +796,12 @@ async function syncRobotDevices() {
     const source = result.source === "local" ? "本地 MB" : "服务商接口";
     const suffix = result.errors && result.errors.length ? `，${result.errors.length} 个机柜读取失败` : "";
     toast(`同步完成（${source}）: 共 ${result.total} 台，新增 ${result.created}，更新 ${result.updated}${suffix}`);
-    setTimeout(() => location.reload(), 1000);
+    refreshRegions([
+      "accounts-devices-region",
+      "accounts-table-region",
+      "accounts-live-stats",
+      "devices-agents-region",
+    ]);
   } catch (error) {
     toast("同步失败: " + error.message);
   }
@@ -1062,6 +1102,8 @@ function openMasterEdit(btn) {
   const isPayer = type === "payer";
   const form = document.getElementById("master-account-form");
   form.action = "/master-data/update";
+  form.setAttribute("hx-post", "/master-data/update");
+  if (window.htmx) htmx.process(form);
   document.getElementById("master-account-title").textContent = isPayer ? "编辑付款账户" : "编辑收款账户";
   document.getElementById("master-account-sub").textContent = isPayer
     ? "付款账户来自账户主数据，这里只修改显示名称"
@@ -1093,6 +1135,8 @@ function openMasterDelete(btn) {
 function openPayeeCreate() {
   const form = document.getElementById("master-account-form");
   form.action = "/master-data/payee";
+  form.setAttribute("hx-post", "/master-data/payee");
+  if (window.htmx) htmx.process(form);
   document.getElementById("master-account-title").textContent = "新增收款账户";
   document.getElementById("master-account-sub").textContent = "收款账户用于付款协同，可手工维护";
   document.getElementById("ma-type").value = "payee";

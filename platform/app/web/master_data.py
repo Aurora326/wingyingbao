@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from urllib.parse import parse_qs, urlparse
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
@@ -103,8 +104,17 @@ def _int_param(params, key: str, default: int) -> int:
 
 
 def _query_parts(request: Request) -> tuple[str, str, int, int, int, int]:
-    """筛选条件跟着 hx 请求走，片段渲染后不会跳回默认列表。"""
-    params = request.query_params
+    """筛选条件跟着 hx 请求走，片段渲染后不会跳回默认列表。
+
+    htmx 表单 POST 的筛选参数不在请求 URL 上，改从当前页面地址取，
+    这样保存后列表还停在原来的搜索和页码。
+    """
+    params: dict[str, str] = dict(request.query_params)
+    if not any(key in params for key in ("q", "type", "page", "size")):
+        current = request.headers.get("HX-Current-URL", "")
+        if current:
+            parsed = parse_qs(urlparse(current).query)
+            params = {key: values[0] for key, values in parsed.items() if values}
     return (
         params.get("q", ""),
         params.get("type", ""),

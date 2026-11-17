@@ -22,6 +22,7 @@ from app.services.payment import (
     review_doc,
 )
 from app.services import permissions
+from app.services.audit import write_audit
 from app.services.payment_scope import active_delegations, allowed_book_sets
 from app.services.payment_collect import (
     PaymentCollectError,
@@ -294,11 +295,19 @@ async def payments_import(request: Request, file: UploadFile = File(...), force:
         shutil.copyfileobj(file.file, fh)
     try:
         with SessionLocal() as db:
-            result = import_payment_excel(db, target, force=force)
+            result = import_payment_excel(db, target, force=force, operator=_operator(request))
     except Exception as exc:
         return _redirect(f"导入失败：{exc}")
+    skipped_rows = result.get("skipped_rows") or []
+    detail = ""
+    if skipped_rows:
+        preview = "；".join(
+            f"第 {item['row']} 条 {item.get('apply_no') or '无单号'}：{item['reason']}"
+            for item in skipped_rows[:3]
+        )
+        detail = f"（{preview}）"
     return _redirect(
-        f"导入完成：新增 {result['inserted']}，更新 {result['updated']}，跳过 {result['skipped']}，新收款账户 {result['payees_created']}"
+        f"导入完成：新增 {result['inserted']}，更新 {result['updated']}，跳过 {result['skipped']}，新收款账户 {result['payees_created']}{detail}"
     )
 
 
@@ -335,6 +344,13 @@ async def payments_edit(request: Request, doc_id: int):
             return _redirect("付款单据不存在", next_url)
         if doc.status == "drafting":
             return _redirect("单据正在制单中，如需修改请先在制单任务里撤回", next_url)
+        before = {
+            "apply_no": doc.apply_no,
+            "amount": str(doc.amount or ""),
+            "status": doc.status,
+            "payer_account_no": doc.payer_account_no,
+            "payee_account_no": doc.payee_account_no,
+        }
         apply_no = value("apply_no")
         if not apply_no:
             return _redirect("申请编号不能为空", next_url)
@@ -416,6 +432,27 @@ async def payments_edit(request: Request, doc_id: int):
         doc.approval_handler = value("approval_handler")
         doc.status = status
         doc.description = value("description")
+        after = {
+            "apply_no": doc.apply_no,
+            "amount": str(doc.amount or ""),
+            "status": doc.status,
+            "payer_account_no": doc.payer_account_no,
+            "payee_account_no": doc.payee_account_no,
+        }
+        changed = {
+            key: {"from": before[key], "to": after[key]}
+            for key in before
+            if before[key] != after[key]
+        }
+        if changed:
+            write_audit(
+                db,
+                _operator(request),
+                "payment_edit",
+                "payment_doc",
+                doc.id,
+                {"apply_no": doc.apply_no, "changes": changed},
+            )
         try:
             db.commit()
         except IntegrityError:

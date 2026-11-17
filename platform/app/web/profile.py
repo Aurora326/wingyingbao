@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
@@ -26,6 +26,19 @@ def _redirect(msg: str = "") -> RedirectResponse:
     return RedirectResponse(target, status_code=303)
 
 
+def _profile_flash(message: str, kind: str = "error") -> RedirectResponse:
+    """密码表单的提示只在页面内出现一次，不把中文原因带进地址栏。"""
+    response = RedirectResponse("/profile", status_code=303)
+    response.set_cookie(
+        "profile_flash",
+        quote(f"{kind}:{message}"),
+        max_age=30,
+        httponly=True,
+        samesite="lax",
+    )
+    return response
+
+
 def _current(request: Request) -> AppUser | None:
     user = getattr(request.state, "user", None)
     if user is None:
@@ -38,6 +51,12 @@ def profile_page(request: Request, msg: str = ""):
     user = _current(request)
     if user is None:
         return RedirectResponse("/login", status_code=303)
+    pw_flash = request.cookies.get("profile_flash", "")
+    pw_kind = pw_message = ""
+    if pw_flash:
+        decoded = unquote(pw_flash)
+        if ":" in decoded:
+            pw_kind, pw_message = decoded.split(":", 1)
     role = permissions.effective_role(user.role)
     books: list[str] = []
     outgoing: list[dict] = []
@@ -106,7 +125,7 @@ def profile_page(request: Request, msg: str = ""):
             "role_label": permissions.role_label(me.role),
             "created_at": me.created_at,
         }
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request=request,
         name="profile.html",
         context={
@@ -120,8 +139,13 @@ def profile_page(request: Request, msg: str = ""):
             "today": dt.date.today(),
             "max_days": MAX_DELEGATION_DAYS,
             "msg": msg,
+            "pw_error": pw_message if pw_kind == "error" else "",
+            "pw_ok": pw_message if pw_kind == "ok" else "",
         },
     )
+    if pw_flash:
+        response.delete_cookie("profile_flash")
+    return response
 
 
 @router.post("/profile/password")
@@ -133,14 +157,15 @@ def change_password(
     user = _current(request)
     if user is None:
         return RedirectResponse("/login", status_code=303)
-    if len(new_password) < 8:
-        return _redirect("新密码至少 8 个字符")
+    error = security.validate_password(new_password, user.username)
+    if error:
+        return _profile_flash(error)
     if new_password == old_password:
-        return _redirect("新密码不能与原密码相同")
+        return _profile_flash("新密码不能与原密码相同")
     with SessionLocal() as db:
         me = db.get(AppUser, user.id)
         if me is None or not security.verify_password(old_password, me.password_hash):
-            return _redirect("原密码不正确")
+            return _profile_flash("原密码不正确")
         me.password_hash = security.hash_password(new_password)
         db.add(
             AuditLog(
@@ -152,7 +177,9 @@ def change_password(
             )
         )
         db.commit()
-    return _redirect("密码已修改，下次登录请使用新密码")
+    response = _profile_flash("密码已修改，下次登录请使用新密码", "ok")
+    response.delete_cookie("pwd_change")
+    return response
 
 
 @router.post("/profile/delegations")

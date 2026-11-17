@@ -183,19 +183,6 @@ def test_accounts_devices_sub_server_pagination_and_htmx(db, admin_client):
     assert dev_full.status_code == 200
     assert "data-page-size" not in dev_full.text
 
-    # 6. /payment-settings 三个表格
-    for idx in range(12):
-        u = AppUser(username=f"ps_user_{idx:02d}", password_hash="x", role="cashier", is_active=True)
-        db.add(u)
-        db.flush()
-        db.add(CashierScope(user_id=u.id, book_set_id=book.id, role="cashier", status="active"))
-    db.commit()
-
-    ps_acct = admin_client.get("/payment-settings?tab=accounts&page=2&size=10", headers=_hx_headers("ps-accounts-region"))
-    assert ps_acct.status_code == 200
-    assert 'id="ps-accounts-region"' in ps_acct.text
-    _assert_unified_pager(ps_acct.text, target="ps-accounts-region")
-
 
 def test_business_lists_pagination_and_htmx(db, admin_client):
     ent = Enterprise(name="业务分页企业")

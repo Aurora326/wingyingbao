@@ -82,6 +82,17 @@ def create_app() -> FastAPI:
                     select(AppUser).where(AppUser.username == username)
                 ).scalars().first()
             if user is not None and user.is_active:
+                if request.cookies.get("pwd_change") == "1" and not (
+                    path == "/profile"
+                    or path == "/profile/password"
+                    or path == "/logout"
+                    or path.startswith("/static")
+                ):
+                    if path.startswith("/api"):
+                        from fastapi.responses import JSONResponse
+
+                        return JSONResponse({"detail": "请先修改初始密码"}, status_code=403)
+                    return RedirectResponse("/profile?force=1", status_code=303)
                 if not permissions.can_access_path(user.role, request.method, path):
                     if path.startswith("/api"):
                         from fastapi.responses import JSONResponse

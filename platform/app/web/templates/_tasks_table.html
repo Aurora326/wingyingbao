@@ -57,5 +57,5 @@
       </div>
     </div>
   {% endif %}
-  {{ pagination_bar('/tasks', 'task-region', page_no, pages, total, size, unit='条', params={'status': status, 'size': size}) }}
+  {{ pagination_bar('/tasks', 'task-region', page_no, pages, total, size, unit='条', params={'status': status, 'size': size, 'date_from': date_from or 'all', 'date_to': date_to}) }}
 </div>

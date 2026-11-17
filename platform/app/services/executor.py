@@ -69,6 +69,7 @@ def claim_task(db, agent_code: str | None = None) -> ClaimedTask | None:
     query = select(CollectionTask).where(CollectionTask.status == "queued")
     if agent_code:
         query = query.where(CollectionTask.agent_code == agent_code)
+    query = query.with_for_update(skip_locked=True)
     task = db.execute(query.order_by(CollectionTask.priority, CollectionTask.created_at).limit(1)).scalars().first()
     if task is None:
         return None

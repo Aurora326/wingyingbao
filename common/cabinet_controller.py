@@ -16,6 +16,10 @@ from loguru import logger as _loguru_logger
 # 采集程序有自己的日志目录，不该被这个副作用影响
 logger = _loguru_logger
 
+# 电脑重启后 MB 客户端服务有时在运行但不再建立 USB 共享，
+# 表现为 load_port 成功、usb_share 却一直是 0，重启该服务即可恢复。
+MB_CLIENT_SERVICE = "MbiCltSvr"
+
 
 class CabinetController(abc.ABC):
     """机柜控制器抽象基类"""
@@ -171,11 +175,8 @@ class MBCabinetController(CabinetController):
             logger.error(f"[MB] 执行命令异常: {e}")
             return {"success": False, "error": str(e)}
     
-    def _port_attached(self):
-        """查机柜状态，确认本端口是否真的挂到了本机。
-
-        返回 True/False；读不到状态时返回 None（不做判断，避免误判卡住流程）。
-        """
+    def _port_share_state(self):
+        """读本端口的机柜状态条目；读不到返回 None。"""
         result = self._execute_subcommand("status")
         try:
             ports = result["data"]["data"]["data"][0]["usb_port_manage"]["usb_port_info"]
@@ -183,8 +184,18 @@ class MBCabinetController(CabinetController):
             return None
         for item in ports:
             if str(item.get("usb_port")) == str(self.port):
-                return str(item.get("usb_share")) == "1" and bool(item.get("client_ip"))
+                return item
         return None
+
+    def _port_attached(self):
+        """查机柜状态，确认本端口是否真的挂到了本机。
+
+        返回 True/False；读不到状态时返回 None（不做判断，避免误判卡住流程）。
+        """
+        item = self._port_share_state()
+        if item is None:
+            return None
+        return str(item.get("usb_share")) == "1" and bool(item.get("client_ip"))
 
     def _wait_port_attached(self, timeout: float = 20.0):
         deadline = time.time() + timeout
@@ -199,12 +210,61 @@ class MBCabinetController(CabinetController):
             time.sleep(2)
         return False
 
+    def _restart_client_service(self, timeout: float = 45.0) -> bool:
+        """重启 MB 客户端服务，恢复“运行中但不建立共享”的状态。"""
+        if os.name != "nt":
+            return False
+
+        def _state() -> str:
+            try:
+                out = subprocess.run(
+                    ["sc", "query", MB_CLIENT_SERVICE],
+                    capture_output=True, text=True, timeout=15,
+                ).stdout or ""
+            except Exception:
+                return ""
+            for key in ("RUNNING", "STOPPED", "START_PENDING", "STOP_PENDING"):
+                if key in out:
+                    return key
+            return ""
+
+        try:
+            subprocess.run(
+                ["sc", "stop", MB_CLIENT_SERVICE],
+                capture_output=True, text=True, timeout=30,
+            )
+            deadline = time.time() + timeout / 2
+            while time.time() < deadline and _state() != "STOPPED":
+                time.sleep(2)
+
+            subprocess.run(
+                ["sc", "start", MB_CLIENT_SERVICE],
+                capture_output=True, text=True, timeout=30,
+            )
+            deadline = time.time() + timeout / 2
+            while time.time() < deadline and _state() != "RUNNING":
+                time.sleep(2)
+            if _state() == "RUNNING":
+                logger.info(f"[MB] 已重启客户端服务 {MB_CLIENT_SERVICE}")
+                time.sleep(3)
+                return True
+            logger.warning(f"[MB] 重启后 {MB_CLIENT_SERVICE} 未进入运行状态")
+        except Exception as e:
+            logger.warning(f"[MB] 重启客户端服务失败: {e}")
+        return False
+
     def connect(self) -> bool:
         """插入U盾到MB机柜端口。
 
         load_port 有时返回成功但机械臂没到位，端口并没真正挂到本机，
-        浏览器就看不到证书、登录必然失败。这里插完校验一次，没挂上就强制重插。
+        浏览器就看不到证书、登录必然失败。这里插完校验一次，没挂上就强制重插；
+        重插仍不成功时重启 MB 客户端服务再试一次（重启电脑后的常见故障）。
         """
+        if self._port_attached() is True:
+            logger.info(f"[MB] 端口 {self.port} 已处于挂载状态，直接复用")
+            self._connected = True
+            return True
+
         for attempt in range(1, 3):
             result = self._execute_subcommand("load_port")
             if not result.get("success", False):
@@ -219,7 +279,21 @@ class MBCabinetController(CabinetController):
             logger.warning(f"[MB] 第 {attempt} 次插入后端口未挂载，强制拔出重插")
             self._execute_subcommand("force_shutdown_port")
             time.sleep(3)
-        logger.error(f"[MB] 端口 {self.port} 多次插入仍未挂载")
+
+        logger.warning(f"[MB] 端口 {self.port} 仍未挂载，尝试重启客户端服务后重试")
+        if self._restart_client_service():
+            result = self._execute_subcommand("load_port")
+            if result.get("success", False) and self._wait_port_attached() is not False:
+                self._connected = True
+                logger.info(f"[MB] 端口 {self.port} 重启服务后挂载成功")
+                return True
+
+        state = self._port_share_state() or {}
+        logger.error(
+            f"[MB] 端口 {self.port} 多次插入仍未挂载"
+            f"（usb_share={state.get('usb_share')!r} client_ip={state.get('client_ip')!r} "
+            f"port_power={state.get('port_power')!r}）"
+        )
         self._connected = False
         return False
     

@@ -9,6 +9,9 @@
 </div>
 
 {% if msg %}<div class="callout">{{ msg }}</div>{% endif %}
+{% if request.cookies.get('pwd_change') == '1' %}
+<div class="callout warn">当前账户仍在使用初始密码，请先修改密码，修改完成后才能继续使用系统。</div>
+{% endif %}
 
 <div class="panel set-panel">
   <div class="profile-head">
@@ -24,9 +27,11 @@
   <div class="panel-head">
     <div>
       <h2>修改密码</h2>
-      <div class="panel-sub">修改后下次登录使用新密码，当前登录状态不受影响。</div>
+      <div class="panel-sub">至少 8 位，需同时包含字母和数字，不能与登录账户相同；修改后下次登录使用新密码。</div>
     </div>
   </div>
+  {% if pw_error %}<div class="callout error panel-alert">{{ pw_error }}</div>{% endif %}
+  {% if pw_ok %}<div class="callout success panel-alert">{{ pw_ok }}</div>{% endif %}
   <form method="post" action="/profile/password" class="set-form set-form-bar">
     <label>原密码<input type="password" name="old_password" required autocomplete="current-password"></label>
     <label>新密码<input type="password" name="new_password" required minlength="8" autocomplete="new-password"></label>

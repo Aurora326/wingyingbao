@@ -115,6 +115,8 @@ class Scheduler(threading.Thread):
         self._stop = threading.Event()
         self._last_slot: dict[int, str] = {}
         self._last_payment_slot: dict[int, str] = {}
+        self._last_alert_at: dt.datetime | None = None
+        self._last_backup_date: dt.date | None = None
 
     def stop(self) -> None:
         self._stop.set()
@@ -172,6 +174,33 @@ class Scheduler(threading.Thread):
                             ).start()
                 except Exception:
                     continue
+
+        self._alert_tick(now)
+        self._backup_tick(now)
+
+    def _backup_tick(self, now: dt.datetime) -> None:
+        """每天 02:30 之后触发一次自动备份，重启后当天只补一次。"""
+        if now.hour != 2 or now.minute < 30:
+            return
+        if self._last_backup_date == now.date():
+            return
+        self._last_backup_date = now.date()
+        from app.services.backup import run_backup_job
+
+        threading.Thread(target=run_backup_job, daemon=True).start()
+
+    def _alert_tick(self, now: dt.datetime) -> None:
+        if self._last_alert_at is not None and (now - self._last_alert_at).total_seconds() < 60:
+            return
+        self._last_alert_at = now
+        from app.services import alerts
+
+        try:
+            with SessionLocal() as db:
+                alerts.scan(db, now)
+                alerts.deliver(db, now)
+        except Exception:
+            pass
 
     def run(self) -> None:
         while not self._stop.is_set():

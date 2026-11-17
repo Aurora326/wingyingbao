@@ -6,23 +6,11 @@
     <div class="eyebrow">设置</div>
     <h1>付款配置</h1>
   </div>
-  <div class="head-meta">
-    <a class="btn small" href="/payments">返回付款协同</a>
-  </div>
 </div>
 
 {% if msg %}<div class="callout">{{ msg }}</div>{% endif %}
 
-<div class="summary-strip">
-  <span><b>{{ summary.total }}</b> 银行账户</span>
-  <span><b class="green">{{ summary.payable }}</b> 可付款</span>
-  <span><b>{{ summary.loan }}</b> 贷款户</span>
-  <span><b>{{ summary.supervised }}</b> 监管户</span>
-  <span><b>{{ summary.sub_accounts }}</b> 项目子账簿</span>
-</div>
-
 <div class="settings-tabs" role="tablist" aria-label="付款配置">
-  <a class="settings-tab {{ 'active' if tab == 'accounts' }}" href="/payment-settings?tab=accounts" {% if tab == 'accounts' %}aria-current="page"{% endif %}>账户主数据</a>
   <a class="settings-tab {{ 'active' if tab == 'source' }}" href="/payment-settings?tab=source" {% if tab == 'source' %}aria-current="page"{% endif %}>采集账号</a>
   <a class="settings-tab {{ 'active' if tab == 'cashiers' }}" href="/payment-settings?tab=cashiers" {% if tab == 'cashiers' %}aria-current="page"{% endif %}>出纳分配</a>
 </div>
@@ -58,25 +46,6 @@
     <label>密码<input type="password" name="password" placeholder="{{ '已配置，留空不修改' if oa_configured else '请输入密码' }}"></label>
     <button class="primary small" type="submit">保存账号</button>
   </form>
-</div>
-{% endif %}
-
-{% if tab == 'accounts' %}
-<div class="panel set-panel">
-  <div class="panel-head">
-    <div>
-      <h2>账户主数据</h2>
-      <div class="panel-sub">导入《银行账户信息表.xlsx》，自动识别基本户、一般户、贷款户、监管户和子账簿。</div>
-    </div>
-    <form method="post" action="/payment-settings/accounts/import?tab=accounts" enctype="multipart/form-data" class="set-form">
-      <input type="file" id="account-file" name="file" accept=".xlsx,.xlsm" required hidden>
-      <label class="btn small" for="account-file">选择 Excel</label>
-      <span id="account-file-name" class="set-file-name">未选择文件</span>
-      <button class="primary small" type="submit">导入账户 Excel</button>
-    </form>
-  </div>
-
-  {% include "_ps_accounts_table.html" %}
 </div>
 {% endif %}
 
@@ -230,16 +199,6 @@
 
 
 <script>
-  (function () {
-    const input = document.getElementById('account-file');
-    const name = document.getElementById('account-file-name');
-    if (input && name) {
-      input.addEventListener('change', function () {
-        name.textContent = input.files && input.files[0] ? input.files[0].name : '未选择文件';
-      });
-    }
-  })();
-
   (function () {
     const select = document.getElementById('scope-user');
     const search = document.getElementById('scope-search');

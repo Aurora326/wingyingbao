@@ -22,6 +22,7 @@ from app.models import (
 )
 from app.services.parsers.statement import _to_date, _to_decimal, _to_text
 from app.services.abc_ledger import match_sub_account, sub_account_no
+from app.services.audit import write_audit
 
 MAIN_SHEET = "付款申请"
 STEP_SHEET = "审批过程"
@@ -152,7 +153,7 @@ def _payer_for(db: Session, row: dict[str, object]) -> BankAccount | None:
     return None
 
 
-def import_payment_excel(db: Session, path: Path, force: bool = False) -> dict:
+def import_payment_excel(db: Session, path: Path, force: bool = False, operator: str = "") -> dict:
     """导入明源云双表 Excel：付款申请 + 审批过程。按申请编号幂等。"""
     main_rows = _read_sheet(path, MAIN_SHEET)
     step_rows = _read_sheet(path, STEP_SHEET) if STEP_SHEET in load_workbook(path, read_only=True).sheetnames else []
@@ -173,19 +174,23 @@ def import_payment_excel(db: Session, path: Path, force: bool = False) -> dict:
 
     inserted = updated = skipped = payees_created = 0
     errors: list[str] = []
-    for row in main_rows:
+    skipped_rows: list[dict] = []
+    for index, row in enumerate(main_rows, start=1):
         apply_no = _cell(row, "申请编号")
         if not apply_no:
             skipped += 1
+            skipped_rows.append({"row": index, "apply_no": "", "reason": "缺少申请编号"})
             continue
         if _cell(row, "审核状态") == "未审核":
             skipped += 1
+            skipped_rows.append({"row": index, "apply_no": apply_no, "reason": "审核状态为未审核"})
             continue
         flow_status = _cell(row, "流程状态")
         amount = _amount(row)
         if amount is None:
             errors.append(f"{apply_no}: 缺少金额")
             skipped += 1
+            skipped_rows.append({"row": index, "apply_no": apply_no, "reason": "缺少金额"})
             continue
 
         payer_name = _cell(row, "付款单位")
@@ -259,12 +264,28 @@ def import_payment_excel(db: Session, path: Path, force: bool = False) -> dict:
             updated += 1
         else:
             skipped += 1
+            skipped_rows.append({"row": index, "apply_no": apply_no, "reason": "单据已存在，未覆盖"})
 
+    write_audit(
+        db,
+        operator,
+        "payment_import",
+        "payment_doc",
+        "batch",
+        {
+            "file": path.name,
+            "force": bool(force),
+            "inserted": inserted,
+            "updated": updated,
+            "skipped": skipped,
+        },
+    )
     db.commit()
     return {
         "inserted": inserted,
         "updated": updated,
         "skipped": skipped,
+        "skipped_rows": skipped_rows[:50],
         "payees_created": payees_created,
         "errors": errors[:20],
     }
@@ -278,11 +299,14 @@ def confirm_accounts(
     reason: str = "",
     operator: str = "",
 ) -> PaymentDoc:
-    doc = db.get(PaymentDoc, doc_id)
+    doc = db.execute(
+        select(PaymentDoc).where(PaymentDoc.id == doc_id).with_for_update()
+    ).scalars().first()
     if doc is None:
         raise PaymentError("付款单据不存在")
     if doc.status not in (STATUS_PENDING_CONFIRM, STATUS_REJECTED):
         raise PaymentError("当前状态不允许确认账户")
+    from_status = doc.status
 
     payer = db.get(BankAccount, payer_account_id) if payer_account_id else None
     payee = db.get(PayeeAccount, payee_account_id) if payee_account_id else None
@@ -326,18 +350,37 @@ def confirm_accounts(
     doc.confirmed_by = operator
     doc.confirmed_at = dt.datetime.now()
     doc.reject_reason = ""
+    write_audit(
+        db,
+        operator,
+        "payment_confirm",
+        "payment_doc",
+        doc.id,
+        {
+            "apply_no": doc.apply_no,
+            "amount": str(doc.amount or "0"),
+            "payer_account_no": doc.payer_account_no,
+            "payee_account_no": doc.payee_account_no,
+            "from_status": from_status,
+            "to_status": doc.status,
+            "reason": reason,
+        },
+    )
     db.commit()
     return doc
 
 
 def review_doc(db: Session, doc_id: int, action: str, opinion: str = "", reviewer: str = "") -> PaymentDoc:
-    doc = db.get(PaymentDoc, doc_id)
+    doc = db.execute(
+        select(PaymentDoc).where(PaymentDoc.id == doc_id).with_for_update()
+    ).scalars().first()
     if doc is None:
         raise PaymentError("付款单据不存在")
     if doc.status != STATUS_PENDING_REVIEW:
         raise PaymentError("当前状态不允许审核")
     if action not in ("approve", "reject"):
         raise PaymentError("审核动作不合法")
+    from_status = doc.status
 
     db.add(PaymentReview(doc_id=doc.id, reviewer=reviewer, action=action, opinion=opinion))
     doc.reviewed_by = reviewer
@@ -348,6 +391,21 @@ def review_doc(db: Session, doc_id: int, action: str, opinion: str = "", reviewe
     else:
         doc.status = STATUS_REJECTED
         doc.reject_reason = opinion
+    write_audit(
+        db,
+        reviewer,
+        "payment_review",
+        "payment_doc",
+        doc.id,
+        {
+            "apply_no": doc.apply_no,
+            "amount": str(doc.amount or "0"),
+            "from_status": from_status,
+            "to_status": doc.status,
+            "decision": action,
+            "opinion": opinion,
+        },
+    )
     db.commit()
     return doc
 
@@ -369,8 +427,18 @@ DRAFT_HEADERS = [
 
 def export_draft(db: Session, doc_ids: list[int], operator: str = "") -> tuple[Path, int]:
     """生成制单草稿 Excel。平台只产出草稿，银行复核/授权不在平台内完成。"""
-    docs = [db.get(PaymentDoc, doc_id) for doc_id in doc_ids]
-    docs = [doc for doc in docs if doc is not None and doc.status == STATUS_READY]
+    wanted = list(dict.fromkeys(int(doc_id) for doc_id in doc_ids))
+    if not wanted:
+        raise PaymentError("没有可制单的单据")
+    locked = db.execute(
+        select(PaymentDoc).where(PaymentDoc.id.in_(wanted)).with_for_update()
+    ).scalars().all()
+    by_id = {doc.id: doc for doc in locked}
+    docs = [
+        by_id[doc_id]
+        for doc_id in wanted
+        if doc_id in by_id and by_id[doc_id].status == STATUS_READY
+    ]
     if not docs:
         raise PaymentError("没有可制单的单据")
 
@@ -392,12 +460,15 @@ def export_draft(db: Session, doc_ids: list[int], operator: str = "") -> tuple[P
                 doc.payee_name,
                 doc.payee_account_no,
                 doc.payee_bank,
-                float(doc.amount or 0),
+                Decimal(doc.amount or 0),
                 doc.currency,
                 doc.subject,
                 doc.project_name,
             ]
         )
+    for row in ws.iter_rows(min_row=2, min_col=8, max_col=8):
+        for cell in row:
+            cell.number_format = "#,##0.00"
     ws.freeze_panes = "A2"
     wb.save(path)
 
@@ -406,5 +477,17 @@ def export_draft(db: Session, doc_ids: list[int], operator: str = "") -> tuple[P
         doc.drafted_by = operator
         doc.drafted_at = dt.datetime.now()
         doc.draft_ref = str(path)
+    write_audit(
+        db,
+        operator,
+        "payment_export",
+        "payment_draft",
+        path.name,
+        {
+            "count": len(docs),
+            "amount": str(sum((Decimal(doc.amount or 0) for doc in docs), Decimal("0"))),
+            "apply_nos": [doc.apply_no for doc in docs[:50]],
+        },
+    )
     db.commit()
     return path, len(docs)

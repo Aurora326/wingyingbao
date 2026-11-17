@@ -19,11 +19,14 @@ def get_bool(db: Session, key: str, default: bool = False) -> bool:
     return value.strip().lower() in ("1", "true", "on", "yes")
 
 
-def set_bool(db: Session, key: str, value: bool) -> None:
+def set_value(db: Session, key: str, value: str) -> None:
     row = db.execute(select(AppSetting).where(AppSetting.key == key)).scalars().first()
     if row is None:
-        row = AppSetting(key=key, value="1" if value else "0")
-        db.add(row)
+        db.add(AppSetting(key=key, value=value))
     else:
-        row.value = "1" if value else "0"
+        row.value = value
     db.commit()
+
+
+def set_bool(db: Session, key: str, value: bool) -> None:
+    set_value(db, key, "1" if value else "0")

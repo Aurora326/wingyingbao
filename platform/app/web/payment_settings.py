@@ -1,20 +1,15 @@
 from __future__ import annotations
 
 import datetime as dt
-import shutil
-from pathlib import Path
 
-from fastapi import APIRouter, File, Form, Request, UploadFile
+from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import func, select
 
-from app.config import settings
 from app.db import SessionLocal
-from app.models import AppUser, AuditLog, BankAccount, BookSet, CashierDelegation, CashierScope, Enterprise, PayeeAccount, PaymentDoc, PaymentSourceAccount, SubAccount
-from app.services.account_master import AccountMasterError, account_master_summary, import_account_master
+from app.models import AppUser, AuditLog, BookSet, CashierDelegation, CashierScope, PaymentDoc, PaymentSourceAccount
 from app.services.payment_collect import get_source_credentials, save_source_credentials
 from app.services.scheduler import cron_matches
-from app.services.banks import BANK_NAMES
 from app.services.payee_admin import (
     PayeeError,
     approve_change,
@@ -23,12 +18,11 @@ from app.services.payee_admin import (
     request_change,
 )
 from app.services import permissions
-from app.web.pagination import is_hx, paginate_items
 from app.web.routes import templates
 
 router = APIRouter()
 
-PAYMENT_TABS = {"accounts", "source", "cashiers"}
+PAYMENT_TABS = {"source", "cashiers"}
 
 
 def _operator(request: Request) -> str:
@@ -42,9 +36,9 @@ def _is_named(book: BookSet) -> bool:
 
 
 def _redirect(request: Request, msg: str = "") -> RedirectResponse:
-    tab = request.query_params.get("tab", "accounts")
+    tab = request.query_params.get("tab", "source")
     if tab not in PAYMENT_TABS:
-        tab = "accounts"
+        tab = "source"
     target = f"/payment-settings?tab={tab}"
     if msg:
         from urllib.parse import quote
@@ -73,25 +67,13 @@ def _redirect_after_source(request: Request, next_page: str, msg: str) -> Redire
 
 
 @router.get("/payment-settings")
-def payment_settings_page(
-    request: Request,
-    tab: str = "accounts",
-    page: int = 1,
-    size: int = 10,
-):
+def payment_settings_page(request: Request, tab: str = "source"):
     user = getattr(request.state, "user", None)
     if user is None or not permissions.can_menu(user.role, "payment_settings"):
         return RedirectResponse("/", status_code=303)
     if tab not in PAYMENT_TABS:
-        tab = "accounts"
+        tab = "source"
     with SessionLocal() as db:
-        accounts = [
-            a for a in db.execute(select(BankAccount).order_by(BankAccount.id)).scalars().all()
-            if a.account_type
-        ]
-        subs = db.execute(select(SubAccount).order_by(SubAccount.parent_account_id, SubAccount.sub_no)).scalars().all()
-        enterprises = {e.id: e.name for e in db.execute(select(Enterprise)).scalars().all()}
-        books = {b.enterprise_id: b for b in db.execute(select(BookSet)).scalars().all()}
         scopes = db.execute(select(CashierScope).order_by(CashierScope.id.desc())).scalars().all()
         delegations = db.execute(
             select(CashierDelegation).order_by(CashierDelegation.id.desc())
@@ -105,38 +87,20 @@ def payment_settings_page(
                 .group_by(PaymentDoc.book_set_id)
             ).all()
         )
-        sub_count: dict[int, int] = {}
-        for sub in subs:
-            sub_count[sub.parent_account_id] = sub_count.get(sub.parent_account_id, 0) + 1
         user_map = {u.id: u for u in users}
         book_map = {b.id: b for b in book_sets}
-        summary = account_master_summary(db)
         source_username, source_password = get_source_credentials(db)
         source_configured = bool(source_username and source_password)
         oa_username, oa_password = get_source_credentials(db, "oa")
         oa_configured = bool(oa_username and oa_password)
 
-    acct_pager = paginate_items(accounts, page, size, default_size=10)
-
-    acct_params = {"tab": "accounts", "size": acct_pager["size"]}
-
     context = {
         "page": "payment_settings",
         "tab": tab,
-        "accounts": accounts,
-        "account_rows": acct_pager["items"],
-        "acct_pager": acct_pager,
-        "acct_params": acct_params,
-        "account_map": {a.id: a for a in accounts},
-        "enterprises": enterprises,
-        "books": books,
-        "summary": summary,
         "source_username": source_username,
         "source_configured": source_configured,
         "oa_username": oa_username,
         "oa_configured": oa_configured,
-        "sub_count": sub_count,
-        "bank_names": BANK_NAMES,
         "scopes": scopes,
         "cashier_users": [u for u in users if u.role == "cashier"],
         "scope_owner": {s.book_set_id: user_map.get(s.user_id) for s in scopes if s.status == "active"},
@@ -151,8 +115,6 @@ def payment_settings_page(
         "book_map": book_map,
         "msg": request.query_params.get("msg", ""),
     }
-    if is_hx(request, "ps-accounts-region"):
-        return templates.TemplateResponse(request=request, name="_ps_accounts_table.html", context=context)
     return templates.TemplateResponse(
         request=request,
         name="payment_settings.html",
@@ -208,27 +170,6 @@ def save_source_schedule(
         db.commit()
     label = "OA" if source == "oa" else "明源云"
     return _redirect_after_source(request, next, f"{label}定时采集计划已保存")
-
-
-@router.post("/payment-settings/accounts/import")
-async def import_accounts(request: Request, file: UploadFile = File(...)):
-    if not file.filename or Path(file.filename).suffix.lower() not in (".xlsx", ".xlsm"):
-        return _redirect(request, "请选择账户主数据 Excel")
-    upload_dir = settings.data_dir / "payment_uploads"
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    target = upload_dir / f"accounts_{dt.datetime.now():%Y%m%d_%H%M%S}.xlsx"
-    with target.open("wb") as fh:
-        shutil.copyfileobj(file.file, fh)
-    try:
-        with SessionLocal() as db:
-            result = import_account_master(db, target)
-    except AccountMasterError as exc:
-        return _redirect(request, f"导入失败：{exc}")
-    return _redirect(request,
-        f"账户导入完成：新增 {result['accounts_created']}，更新 {result['accounts_updated']}，"
-        f"子账簿新增 {result['sub_accounts_created']}，更新 {result['sub_accounts_updated']}，"
-        f"停用 {result.get('sub_accounts_disabled', 0)}"
-    )
 
 
 @router.post("/payment-settings/cashiers")

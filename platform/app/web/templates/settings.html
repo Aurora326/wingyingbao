@@ -9,6 +9,9 @@
     <a class="{{ 'active' if tab == 'system' }}" href="/settings/system" {% if tab == 'system' %}aria-current="page"{% endif %}>
       <svg class="ico"><use href="#i-sliders"/></svg><span>系统维护</span>
     </a>
+    <a class="{{ 'active' if tab == 'alerts' }}" href="/settings/alerts" {% if tab == 'alerts' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-alert"/></svg><span>告警通知</span>
+    </a>
   </aside>
 
   <div class="settings-content">
@@ -40,7 +43,7 @@
       管理员可进入平台管理；财务总监可查看全部业务并负责对账；出纳只处理分配给自己账套的收付款。
     </div>
 
-    {% else %}
+    {% elif tab == 'system' %}
     <div class="page-head">
       <div>
         <div class="eyebrow">平台管理</div>
@@ -80,6 +83,30 @@
     <div class="panel">
       <div class="panel-head">
         <div>
+          <h2>数据备份</h2>
+          <div class="panel-sub">每天 02:30 自动备份数据库和归档文件，保留 14 天；备份文件在数据目录的 backups 下</div>
+        </div>
+        <div class="head-meta">
+          <form method="post" action="/settings/backup/now">
+            <button class="small" type="submit" {{ 'disabled' if backup_state.running }}>{{ '备份进行中' if backup_state.running else '立即备份' }}</button>
+          </form>
+        </div>
+      </div>
+      {% if backup_state.last_error %}
+      <div class="callout backup-error">上次备份失败：{{ backup_state.last_error }}</div>
+      {% endif %}
+      <div class="summary-strip backup-summary">
+        <span>最近备份 <b>{{ backup_state.last_at or '还没有' }}</b></span>
+        {% if backup_state.last_file %}
+        <span>文件 <b class="mono">{{ backup_state.last_file }}</b></span>
+        <span>大小 <b>{{ (backup_state.last_size|int / 1048576)|round(1) }} MB</b></span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
           <h2>操作记录</h2>
           <div class="panel-sub">共 {{ audit_counts.all }} 条记录，其中 {{ audit_counts.user }} 条由人操作产生，点击「详情」可查看原始字段</div>
         </div>
@@ -104,6 +131,77 @@
         </table>
       </div>
     </details>
+    {% else %}
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">平台管理</div>
+        <h1>告警通知</h1>
+      </div>
+      <div class="head-meta">
+        <span class="tag {{ 'green' if alert_config.enabled and alert_config.webhook else 'gray' }}">
+          {{ '通道已启用' if alert_config.enabled and alert_config.webhook else '通道未配置' }}
+        </span>
+      </div>
+    </div>
+
+    <div class="summary-strip">
+      <span><b>{{ alert_open_count }}</b> 条待处理</span>
+      <span>设备离线 <b>{{ alert_config.device_offline_minutes }}</b> 分钟</span>
+      <span>未采集 <b>{{ alert_config.account_stale_days }}</b> 天</span>
+      <span>同类冷却 <b>{{ alert_config.cooldown_hours }}</b> 小时</span>
+    </div>
+
+    <form class="panel" method="post" action="/settings/alerts">
+      <div class="panel-head">
+        <div>
+          <h2>通知设置</h2>
+          <div class="panel-sub">采集失败、设备离线、账户长期未采集和付款采集失败会推送到企业微信群；未配置通道时只记录在这里</div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="alert-enabled">启用告警</label>
+          <select id="alert-enabled" name="enabled">
+            <option value="1" {{ 'selected' if alert_config.enabled }}>启用</option>
+            <option value="0" {{ 'selected' if not alert_config.enabled }}>停用</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="alert-offline">设备离线阈值（分钟）</label>
+          <input id="alert-offline" name="device_offline_minutes" type="number" min="1" value="{{ alert_config.device_offline_minutes }}">
+        </div>
+        <div class="field">
+          <label for="alert-stale">未采集阈值（天）</label>
+          <input id="alert-stale" name="account_stale_days" type="number" min="1" value="{{ alert_config.account_stale_days }}">
+        </div>
+        <div class="field">
+          <label for="alert-cooldown">同类告警冷却（小时）</label>
+          <input id="alert-cooldown" name="cooldown_hours" type="number" min="1" value="{{ alert_config.cooldown_hours }}">
+        </div>
+        <div class="field">
+          <label for="alert-quiet">静默时段（留空表示不静默）</label>
+          <input id="alert-quiet" name="quiet_hours" value="{{ alert_config.quiet_hours }}" placeholder="如 22:00-07:00">
+        </div>
+        <div class="field field-wide">
+          <label for="alert-webhook">企业微信机器人 Webhook</label>
+          <input id="alert-webhook" name="webhook" value="{{ alert_config.webhook }}" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..." autocomplete="off">
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="submit" formaction="/settings/alerts/test" formmethod="post">发送测试</button>
+        <button class="primary" type="submit">保存设置</button>
+      </div>
+    </form>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>告警记录</h2>
+          <div class="panel-sub">处理完成后点「标记处理」，同类告警在冷却时间内不会重复推送</div>
+        </div>
+      </div>
+      {% include "_settings_alerts.html" %}
+    </div>
     {% endif %}
   </div>
 </div>
@@ -276,6 +374,13 @@
   .link-btn.link-danger:hover { background: var(--red-soft); color: var(--red); }
   .set-empty { padding: 32px 16px !important; text-align: center; color: var(--muted); }
   .settings-hint { margin-top: 18px; font-size: 12px; line-height: 1.7; color: var(--muted); }
+  .backup-error { margin: 0 16px 12px; border-left-color: var(--red); }
+  .backup-summary { margin: 0 16px 16px; }
+  .form-grid .field-wide { grid-column: 1 / -1; }
+  .row-action { display: inline; }
+  .alert-table td { vertical-align: top; }
+  .alert-table .ta-right { text-align: right; }
+  .alert-table .cell-sub { margin-top: 4px; font-size: 11.5px; line-height: 1.6; color: var(--muted); white-space: pre-line; }
   .audit-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
   .audit-tabs a {
     display: inline-flex;

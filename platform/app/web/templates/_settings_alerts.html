@@ -1,0 +1,40 @@
+{% from "_ui.html" import pagination_bar %}
+<div id="settings-alerts-region">
+  {% if alert_events %}
+  <div class="table-scroll">
+    <table class="log-table alert-table">
+      <thead>
+        <tr><th>时间</th><th>级别</th><th>告警内容</th><th>发送状态</th><th class="ta-right">操作</th></tr>
+      </thead>
+      <tbody>
+        {% for item in alert_events %}
+        <tr>
+          <td class="when mono">{{ item.created_at.strftime('%m-%d %H:%M') }}</td>
+          <td><span class="tag {{ 'red' if item.level == 'critical' else 'amber' }}">{{ '严重' if item.level == 'critical' else '提醒' }}</span></td>
+          <td class="summary">
+            <b>{{ item.title }}</b>
+            {% if item.content %}<div class="cell-sub">{{ item.content }}</div>{% endif %}
+          </td>
+          <td>
+            <span class="tag {{ 'green' if item.status == 'sent' else ('red' if item.status == 'failed' else 'gray') }}">{{ alert_status_labels.get(item.status, item.status) }}</span>
+            {% if item.error_msg %}<div class="cell-sub">{{ item.error_msg }}</div>{% endif %}
+          </td>
+          <td class="ta-right">
+            {% if item.handled_at %}
+            <span class="muted">已处理 · {{ item.handled_by }}</span>
+            {% else %}
+            <form class="row-action" method="post" action="/settings/alerts/{{ item.id }}/handle">
+              <button class="small" type="submit">标记处理</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination_bar('/settings/alerts', 'settings-alerts-region', alert_pager.page, alert_pager.pages, alert_pager.total, alert_pager.size, unit='条告警', params={}) }}
+  {% else %}
+  <div class="empty">还没有告警记录</div>
+  {% endif %}
+</div>

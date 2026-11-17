@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import time
 
-from backup import copy_new_files, prune_backups
+from app.services.backup import copy_new_files, list_backups, prune_backups
 
 
 def test_copy_new_files_skips_same_size(tmp_path):
@@ -34,3 +34,15 @@ def test_prune_backups(tmp_path):
     assert prune_backups(root, keep_days=14) == 1
     assert not stale.exists()
     assert fresh.exists()
+
+
+def test_list_backups_reads_directories(tmp_path):
+    root = tmp_path / "backups"
+    entry = root / "20260101_020000"
+    entry.mkdir(parents=True)
+    (entry / "app_20260101_020000.dump").write_bytes(b"dump")
+
+    items = list_backups(root)
+    assert items[0]["name"] == "20260101_020000"
+    assert items[0]["dumps"] == ["app_20260101_020000.dump"]
+    assert items[0]["size"] == 4

@@ -270,6 +270,7 @@ def claim_payment_task(db: Session, agent_code: str) -> dict | None:
             or_(PaymentCollectTask.agent_code == "", PaymentCollectTask.agent_code == agent_code),
         )
         .order_by(PaymentCollectTask.id)
+        .with_for_update(skip_locked=True)
         .limit(1)
     ).scalars().first()
     if task is None:

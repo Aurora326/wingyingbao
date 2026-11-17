@@ -61,14 +61,20 @@ def _account_type(value: str) -> tuple[str, str]:
 
 
 def _read_sheet(rows, required: str) -> list[dict[str, object]]:
+    return [row for _, row in _read_sheet_numbered(rows, required)]
+
+
+def _read_sheet_numbered(rows, required: str) -> list[tuple[int, dict[str, object]]]:
     for index, row in enumerate(rows[:10]):
         headers = [_text(cell) for cell in row]
         if required in headers:
             result = []
-            for raw in rows[index + 1:]:
+            for offset, raw in enumerate(rows[index + 1 :], start=index + 2):
                 if not raw or all(cell in (None, "") for cell in raw):
                     continue
-                result.append({headers[i]: raw[i] for i in range(min(len(headers), len(raw)))})
+                result.append(
+                    (offset, {headers[i]: raw[i] for i in range(min(len(headers), len(raw)))})
+                )
             return result
     return []
 
@@ -87,24 +93,47 @@ def import_account_master(db: Session, path: Path) -> dict:
     wb = load_workbook(path, data_only=True)
     first = wb.worksheets[0]
     rows = list(first.iter_rows(values_only=True))
-    accounts = _read_sheet(rows, "单位名称")
-    if not accounts:
+    account_rows = _read_sheet_numbered(rows, "单位名称")
+    if not account_rows:
         raise AccountMasterError("未找到「单位名称」表头")
 
     created = updated = enterprises_created = 0
     account_index: dict[tuple[str, str], BankAccount] = {}
     pending_parent_hints: list[BankAccount] = []
+    skipped: list[dict] = []
 
-    for row in accounts:
+    for row_no, row in account_rows:
         company = _text(row.get("单位名称"))
         raw_no = row.get("银行账户号码")
         bank = _text(row.get("开户行"))
         usage = _text(row.get("用途"))
         if not company or not raw_no:
+            skipped.append(
+                {
+                    "row": row_no,
+                    "company": company,
+                    "account_no": _text(raw_no),
+                    "reason": "缺少单位名称或银行账户号码",
+                }
+            )
             continue
         account_no, has_ukey, has_sub, parent_hint = _clean_account(raw_no)
         bank_code = _bank_code(bank)
         if not account_no or not bank_code:
+            if not account_no:
+                reason = "银行账户号码为空"
+            elif not bank:
+                reason = "开户行为空"
+            else:
+                reason = f"开户行「{bank}」未识别"
+            skipped.append(
+                {
+                    "row": row_no,
+                    "company": company,
+                    "account_no": _text(raw_no),
+                    "reason": reason,
+                }
+            )
             continue
         account_type, usage_tag = _account_type(usage)
         enterprise, ent_created = _enterprise(db, company)
@@ -218,6 +247,7 @@ def import_account_master(db: Session, path: Path) -> dict:
     return {
         "accounts_created": created,
         "accounts_updated": updated,
+        "skipped": skipped,
         "sub_accounts_created": sub_created,
         "sub_accounts_updated": sub_updated,
         "sub_accounts_disabled": sub_disabled,

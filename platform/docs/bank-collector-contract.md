@@ -81,5 +81,5 @@ Agent 以 `python run_draft.py --task <task.json>` 调用。任务文件比采�
 ## 公共约定
 
 - 键盘输入统一走 `common/keyboard_helper.py`（AiKeyboard），不要用 `keyboard` 等注入库。
-- 机柜控制统一走 `common/cabinet_controller.py`，类型支持 `mb` / `gf3` / `mock` / `other`。
+- 机柜控制统一走 `common/cabinet_controller.py`，类型支持 `mb` / `gf3` / `mock` / `other`。MB 控制器插入后会校验端口是否真正共享；仍不成功会重启 `MbiCltSvr` 客户端服务再试一次（重启电脑后“插入成功但不识别”的常见故障）。
 - 配置加载统一走 `common/config_loader.py`，平台下发的区间、密钥、机柜参数由各银行 `run_task.py` 覆盖到老配置上。

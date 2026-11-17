@@ -598,3 +598,37 @@ class PaymentDraftTask(Base, TimestampMixin, TenantMixin):
     error_code: Mapped[str] = mapped_column(String(32), default="")
     bank_batch_no: Mapped[str] = mapped_column(String(64), default="")
     log_text: Mapped[str] = mapped_column(Text, default="")
+
+
+class AlertEvent(Base, TimestampMixin, TenantMixin):
+    """平台告警事件：扫描命中后入表，外发与处理状态都记在这里。"""
+
+    __tablename__ = "alert_event"
+    __table_args__ = (Index("ix_alert_event_kind_object", "kind", "object_type", "object_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    level: Mapped[str] = mapped_column(String(16), default="warning")
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    content: Mapped[str] = mapped_column(Text, default="")
+    object_type: Mapped[str] = mapped_column(String(32), default="")
+    object_id: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    error_msg: Mapped[str] = mapped_column(String(512), default="")
+    sent_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    handled_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    handled_by: Mapped[str] = mapped_column(String(64), default="")
+
+
+class LoginAttempt(Base, TimestampMixin):
+    """登录失败计数与临时锁定，按登录账户记录，登录前不区分租户。"""
+
+    __tablename__ = "login_attempt"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    fail_count: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    last_failed_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    last_ip: Mapped[str] = mapped_column(String(64), default="")
