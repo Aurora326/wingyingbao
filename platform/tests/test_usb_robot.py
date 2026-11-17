@@ -182,26 +182,3 @@ def test_sync_keeps_gf3_device_separate(db):
     mb_row = next(row for row in rows if row.backend == "mb")
     assert mb_row.name == "MB-9999-1"
     assert mb_row.external_id == "pid-1"
-
-
-def test_ensure_schema_adds_device_backend(tmp_path):
-    from sqlalchemy import create_engine, inspect, text
-
-    from app.db import ensure_schema
-
-    engine = create_engine(f"sqlite:///{tmp_path / 'old.db'}", future=True)
-    with engine.begin() as connection:
-        connection.execute(
-            text(
-                "CREATE TABLE ukey_device (id INTEGER PRIMARY KEY, name VARCHAR(64), "
-                "bank_code VARCHAR(32), gf3_cabinet INTEGER, gf3_port INTEGER, status VARCHAR(16), "
-                "last_heartbeat DATETIME, cert_subject VARCHAR(256), cert_expires_at DATE)"
-            )
-        )
-    ensure_schema(engine)
-    columns = {column["name"] for column in inspect(engine).get_columns("ukey_device")}
-    assert {"backend", "external_id", "agent_code", "extra"} <= columns
-
-    with engine.begin() as connection:
-        connection.execute(text("INSERT INTO ukey_device (name, bank_code) VALUES ('旧设备', 'citic')"))
-        assert connection.execute(text("SELECT backend FROM ukey_device")).scalar() == "gf3"

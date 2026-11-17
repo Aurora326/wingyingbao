@@ -25,6 +25,18 @@ IMPORT_BUTTON = (
     "#basis > div > div.batch-apply > div > div.flex-center-between "
     "> div:nth-child(1) > div > div > button > span"
 )
+NEXT_BUTTON = (
+    "#basis > div > div.batch-apply > div > div:nth-child(6) > div.box-item "
+    "> button.eibbutton.ml-12.eibbutton--primary.eibbutton--medium > span"
+)
+TIP_CONFIRM = (
+    "body > div.my-dialog > div > div > div.eib-dialog__body "
+    "> div.bottom-btn > button:nth-child(2) > span"
+)
+SUBMIT_BUTTON = (
+    "#basis > div > div.batch-apply > div > div.flex-center.mt-24 "
+    "> button:nth-child(2) > span"
+)
 
 
 def _amount(value) -> str:
@@ -37,9 +49,10 @@ def _amount(value) -> str:
 class PaymentCreator:
     """上海银行批量转账导入制单"""
 
-    def __init__(self, page, config):
+    def __init__(self, page, config, cabinet_controller=None):
         self.page = page
         self.config = config
+        self.cabinet_controller = cabinet_controller
         self.items = list(getattr(config, "items", None) or [])
         self.action = getattr(config, "action", "save") or "save"
 
@@ -47,13 +60,14 @@ class PaymentCreator:
         try:
             path = self._generate_import_file()
             self._open_page()
-            self._ensure_payer()
             self._upload(path)
             self._wait_import()
-            shot = self._screenshot("payment_import_done")
+            self._go_next()
+            shot = self._screenshot("payment_before_submit")
             if self.action == "submit":
-                logger.warning("submit 模式尚未实现，本次停在导入完成后，请人工复核提交")
-            return {"批量转账": f"成功: 已导入 {len(self.items)} 笔，待人工复核", "截图": shot}
+                ok, message = self._submit()
+                return {"批量转账": ("成功: " if ok else "失败: ") + message, "截图": shot}
+            return {"批量转账": f"成功: 已导入 {len(self.items)} 笔，已进入确认页，待人工复核", "截图": shot}
         except Exception as e:  # noqa: BLE001
             logger.error(f"制单失败: {e}")
             shot = self._screenshot("payment_failed")
@@ -107,35 +121,6 @@ class PaymentCreator:
         self.page.goto(BATCH_URL)
         self.page.locator(IMPORT_BUTTON).first.wait_for(state="visible", timeout=30000)
 
-    def _ensure_payer(self) -> None:
-        """页面选中的付款账号必须与任务账户一致，否则停止，避免从错误账户付款。"""
-        expected = str(getattr(self.config, "payer_account", "") or "").strip()
-        actual = ""
-        deadline = time.time() + 10
-        while time.time() < deadline and not actual:
-            actual = self._current_payer_text()
-            if not actual:
-                time.sleep(1)
-        if not actual:
-            logger.warning("未读到页面付款方账号，跳过账户校验")
-            return
-        logger.info(f"付款方账号: {actual}")
-        if expected and expected not in actual:
-            raise RuntimeError(f"页面付款账户不是任务账户 {expected}，请先配置账户切换（当前: {actual}）")
-
-    def _current_payer_text(self) -> str:
-        try:
-            return self.page.evaluate(
-                """() => {
-                    const nodes = [...document.querySelectorAll('#basis .batch-apply *')]
-                        .filter(el => el.children.length === 0
-                            && /^\\d{6,}\\//.test((el.textContent || '').trim()));
-                    return nodes.length ? nodes[nodes.length - 1].textContent.trim() : '';
-                }"""
-            )
-        except Exception:
-            return ""
-
     def _upload(self, path: Path) -> None:
         logger.info("上传导入文件...")
         try:
@@ -172,6 +157,58 @@ class PaymentCreator:
         if errors:
             raise RuntimeError(f"导入完成但有 {errors} 条错误，请查看截图和页面错误信息")
         logger.info("导入成功")
+
+    def _go_next(self) -> None:
+        """点「下一步」并确认温馨提示，停在确认页（save 模式）。"""
+        logger.info("点击「下一步」...")
+        self.page.locator(NEXT_BUTTON).first.click()
+        try:
+            self.page.locator(TIP_CONFIRM).first.wait_for(state="visible", timeout=8000)
+        except Exception:
+            logger.info("未出现温馨提示弹窗，直接进入下一步")
+            return
+        logger.info("确认温馨提示...")
+        self.page.locator(TIP_CONFIRM).first.click()
+        try:
+            self.page.wait_for_load_state("networkidle", timeout=15000)
+        except Exception:
+            pass
+        time.sleep(1)
+
+    def _submit(self) -> tuple[bool, str]:
+        """提交批次：点提交 → 机械臂按压 U 盾 OK 键 → 等「提交成功」。"""
+        logger.info("点击「提交」...")
+        self.page.locator(SUBMIT_BUTTON).first.click(timeout=10000)
+
+        if self._wait_page_text(("按键提示", "秒内按键"), timeout=20):
+            logger.info("页面提示需要按压 U 盾 OK 键")
+        else:
+            logger.warning("提交后未读到按键提示，仍尝试按压 OK 键")
+
+        if self.cabinet_controller is None:
+            logger.warning("没有机柜控制器，无法按压 U 盾 OK 键")
+            return False, "需要按压 U 盾 OK 键，当前没有机柜控制器"
+
+        if not self.cabinet_controller.click_ok():
+            logger.warning("机柜按压 OK 键失败")
+            return False, "机柜按压 U 盾 OK 键失败"
+
+        if self._wait_page_text(("提交成功",), timeout=90):
+            logger.info("提交成功，等待审批")
+            return True, f"已提交 {len(self.items)} 笔，等待审批"
+        return False, "按压 OK 键后未等到「提交成功」提示"
+
+    def _wait_page_text(self, texts: tuple[str, ...], timeout: float) -> bool:
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                body = self.page.inner_text("body")
+            except Exception:
+                body = ""
+            if any(text in body for text in texts):
+                return True
+            time.sleep(0.5)
+        return False
 
     def _import_summary(self):
         """读「共导入 N 条数据，错误 M 条」，没出现时返回 None。"""

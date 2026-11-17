@@ -1,0 +1,65 @@
+{% from "_ui.html" import match_type_text, pagination_bar %}
+<div class="panel" id="recon-items-region">
+  <div class="panel-head">
+    <div>
+      <h2>批次 #{{ batch_id }} 明细</h2>
+      <div class="panel-sub">逐笔核对银行流水与内部单据</div>
+    </div>
+    <a class="more" href="/recon">返回全部批次 <svg class="ico"><use href="#i-arrow"/></svg></a>
+  </div>
+  {% if item_rows %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>状态</th><th>银行流水</th><th>内部单据</th><th>匹配方式</th><th class="num">差额</th><th></th></tr></thead>
+    <tbody>
+      {% for item in item_rows %}
+      <tr>
+        <td>
+          {% if item.status == 'matched' %}<span class="tag green">已对上</span>
+          {% elif item.status == 'ignored' %}<span class="tag">已忽略</span>
+          {% else %}<span class="tag red">待处理</span>{% endif %}
+        </td>
+        <td>
+          {% if item.statement %}
+            <b>{{ item.statement.counterparty or '—' }}</b>
+            <div class="cell-sub">{{ item.statement.date | dt }} · {{ '收入' if item.statement.direction == 'credit' else '支出' }} {{ item.statement.amount | money }}</div>
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
+        <td>
+          {% if item.doc %}
+            <b>{{ item.doc.counterparty or item.doc.doc_no }}</b>
+            <div class="cell-sub">{{ item.doc.date | dt }} · {{ item.doc.amount | money }}</div>
+          {% else %}
+            <span class="muted">未对应</span>
+            {% if item.candidates %}
+            <div class="cell-sub">
+              可能是：
+              {% for c in item.candidates %}{{ c.counterparty or c.doc_no or c.internal_doc_id }}（{{ c.amount | money }}）{{ '；' if not loop.last }}{% endfor %}
+            </div>
+            {% endif %}
+          {% endif %}
+        </td>
+        <td class="muted">{{ match_type_text(item.match_type) }}</td>
+        <td class="num">{{ item.diff_amount | money }}</td>
+        <td class="right nowrap">
+          {% if item.status == 'unmatched' and item.statement %}
+            <select id="doc-{{ item.id }}" style="min-width:170px;">
+              <option value="">选择对应的内部单据</option>
+              {% for d in docs %}
+              <option value="{{ d.id }}">{{ d.doc_date | dt }} · {{ d.counterparty or d.doc_no }} · {{ d.amount | money }}</option>
+              {% endfor %}
+            </select>
+            <button class="small primary" onclick="confirmReconItem({{ item.id }}, 'doc-{{ item.id }}')">确认对上</button>
+            <button class="small" onclick="ignoreReconItem({{ item.id }})">忽略</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {{ pagination_bar('/recon', 'recon-items-region', item_pager.page, item_pager.pages, item_pager.total, item_pager.size, unit='条明细', params=item_params, page_param='item_page', size_param='item_size') }}
+  {% else %}
+    <div class="empty">这个批次没有明细</div>
+  {% endif %}
+</div>

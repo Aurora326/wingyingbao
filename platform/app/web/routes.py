@@ -17,14 +17,18 @@ from app.api import tasks as tasks_api
 from app.config import settings
 from app.db import SessionLocal
 from app.models import Agent, AppUser, AuditLog, BankAccount, CollectionTask, PaymentCollectTask, Tenant
-from app.services import collectors, security
+from app.services import security
 from app.services import permissions
+from app.services.abc_ledger import sub_region
+from app.services.banks import bank_label
 from app.services.banks import list_banks
 from app.services.payment_collect import (
     get_source_credentials,
     get_source_schedule,
     task_dict,
 )
+
+from app.web.pagination import PAGE_SIZES, is_hx, normalize_size, page_url, paginate_items, paginate_scalars
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
@@ -44,6 +48,9 @@ templates.env.globals["can_menu"] = permissions.can_menu
 templates.env.globals["can_edit_accounts"] = permissions.can_edit_accounts
 templates.env.globals["can_collect_accounts"] = permissions.can_collect_accounts
 templates.env.globals["role_label"] = permissions.role_label
+templates.env.globals["bank_label"] = bank_label
+templates.env.globals["page_url"] = page_url
+templates.env.globals["PAGE_SIZES"] = PAGE_SIZES
 
 
 def _fmt_money(value) -> str:
@@ -77,6 +84,11 @@ _AUDIT_ACTIONS = {
     "account_device_update": "调整账户 UKey",
     "credential_update": "更新登录信息",
     "user_create": "新建用户",
+    "user_edit": "编辑用户",
+    "cashier_scope": "分配出纳账套",
+    "cashier_delegation": "出纳委托",
+    "cashier_delegation_self": "出纳自助委托",
+    "user_password_self": "修改自己的密码",
     "user_role": "调整用户角色",
     "user_toggle": "启用或停用用户",
     "user_password": "重置用户密码",
@@ -89,6 +101,25 @@ _AUDIT_TARGETS = {
     "app_user": "平台用户",
 }
 _AUDIT_STATUS = {"succeeded": "已完成", "failed": "未完成", "running": "进行中", "cancelled": "已停止"}
+
+# 人操作平台产生的动作；其余（Agent 上报、任务结束）属于机器事件，不进审计主视图
+_AUDIT_USER_ACTIONS = {
+    "account_create",
+    "account_update",
+    "account_device_update",
+    "credential_update",
+    "user_create",
+    "user_edit",
+    "user_role",
+    "user_toggle",
+    "user_password",
+    "user_password_self",
+    "cashier_scope",
+    "cashier_delegation",
+    "cashier_delegation_self",
+    "task_stop",
+    "task_stop_batch",
+}
 _AUDIT_ERRORS = {
     "LOGIN_FAILED": "登录失败",
     "SELECTOR_NOT_FOUND": "页面元素未找到",
@@ -198,6 +229,7 @@ def login_page(request: Request):
 
 @router.post("/login")
 def login_submit(request: Request, username: str = Form(...), password: str = Form(...)):
+    username = username.strip()
     with SessionLocal() as db:
         user = db.execute(select(AppUser).where(AppUser.username == username)).scalars().first()
         if user is None or not security.verify_password(password, user.password_hash):
@@ -370,40 +402,45 @@ def _payment_config_context(db, is_admin: bool = False) -> dict:
 
 
 @router.get("/tasks")
-def tasks_page(request: Request, status: str = "", page: int = 1, source: str = ""):
+def tasks_page(request: Request, status: str = "", page: int = 1, size: int = TASK_PAGE_SIZE, source: str = ""):
     denied = _deny_menu(request, "tasks")
     if denied:
         return denied
+    resolved_size = normalize_size(size, TASK_PAGE_SIZE)
     with SessionLocal() as db:
         if source in ("payment", "oa"):
-            context = _payment_task_list_context(db, status, page, source=source)
-            user = getattr(request.state, "user", None)
-            context.update(
-                _payment_config_context(
-                    db,
-                    bool(user and permissions.can_menu(user.role, "payment_settings")),
+            context = _payment_task_list_context(db, status, page, resolved_size, source=source)
+            if not is_hx(request, "task-region"):
+                user = getattr(request.state, "user", None)
+                context.update(
+                    _payment_config_context(
+                        db,
+                        bool(user and permissions.can_menu(user.role, "payment_settings")),
+                    )
                 )
-            )
         else:
-            context = _task_list_context(db, status, page)
-            context["accounts"] = accounts_api.list_accounts(db)["items"]
+            context = _task_list_context(db, status, page, resolved_size)
+            if not is_hx(request, "task-region"):
+                context["accounts"] = accounts_api.list_accounts(db)["items"]
             context["task_source"] = "bank"
             context["source"] = ""
     context.update(page="tasks")
     context["msg"] = request.query_params.get("msg", "")
-    return templates.TemplateResponse(request=request, name="tasks.html", context=context)
+    tpl = "_tasks_region.html" if is_hx(request, "task-region") else "tasks.html"
+    return templates.TemplateResponse(request=request, name=tpl, context=context)
 
 
 @router.get("/tasks/partial")
-def tasks_partial(request: Request, status: str = "", page: int = 1, source: str = ""):
+def tasks_partial(request: Request, status: str = "", page: int = 1, size: int = TASK_PAGE_SIZE, source: str = ""):
     denied = _deny_menu(request, "tasks")
     if denied:
         return denied
+    resolved_size = normalize_size(size, TASK_PAGE_SIZE)
     with SessionLocal() as db:
         if source in ("payment", "oa"):
-            context = _payment_task_list_context(db, status, page, source=source)
+            context = _payment_task_list_context(db, status, page, resolved_size, source=source)
         else:
-            context = _task_list_context(db, status, page)
+            context = _task_list_context(db, status, page, resolved_size)
             context["task_source"] = "bank"
             context["source"] = ""
     return templates.TemplateResponse(request=request, name="tasks_partial.html", context=context)
@@ -412,110 +449,286 @@ def tasks_partial(request: Request, status: str = "", page: int = 1, source: str
 @router.get("/statements")
 def statements_page(
     request: Request,
-    account_id: int | None = None,
+    account_id: str = "",
     date_from: str = "",
     date_to: str = "",
     q: str = "",
     direction: str = "",
     page: int = 1,
+    size: int = 50,
 ):
+    resolved_account_id = int(account_id) if account_id.isdigit() else None
+    resolved_size = normalize_size(size, 50)
+    page_no = max(page, 1)
+    d_from = dt.date.fromisoformat(date_from) if date_from else None
+    d_to = dt.date.fromisoformat(date_to) if date_to else None
     with SessionLocal() as db:
         result = data_api.list_statements(
-            account_id=account_id,
-            date_from=dt.date.fromisoformat(date_from) if date_from else None,
-            date_to=dt.date.fromisoformat(date_to) if date_to else None,
+            account_id=resolved_account_id,
+            date_from=d_from,
+            date_to=d_to,
             q=q or None,
             direction=direction or None,
-            page=page,
-            size=50,
+            page=page_no,
+            size=resolved_size,
             db=db,
         )
+        pages = max(1, (result["total"] + resolved_size - 1) // resolved_size)
+        if page_no > pages:
+            page_no = pages
+            result = data_api.list_statements(
+                account_id=resolved_account_id,
+                date_from=d_from,
+                date_to=d_to,
+                q=q or None,
+                direction=direction or None,
+                page=page_no,
+                size=resolved_size,
+                db=db,
+            )
         accounts = accounts_api.list_accounts(db)["items"]
-    return templates.TemplateResponse(
-        request=request,
-        name="statements.html",
-        context={
-            "page": "statements",
-            "data": result,
-            "accounts": accounts,
-            "filters": {"account_id": account_id, "date_from": date_from, "date_to": date_to, "q": q, "direction": direction},
+    ctx = {
+        "page": "statements",
+        "data": result,
+        "accounts": accounts,
+        "filters": {
+            "account_id": resolved_account_id,
+            "date_from": date_from,
+            "date_to": date_to,
+            "q": q,
+            "direction": direction,
         },
-    )
+    }
+    tpl = "_statements_region.html" if is_hx(request, "statements-region") else "statements.html"
+    return templates.TemplateResponse(request=request, name=tpl, context=ctx)
 
 
 @router.get("/receipts")
 def receipts_page(
     request: Request,
-    account_id: int | None = None,
+    account_id: str = "",
     date_from: str = "",
     date_to: str = "",
     q: str = "",
     page: int = 1,
+    size: int = 50,
 ):
+    resolved_account_id = int(account_id) if account_id.isdigit() else None
+    resolved_size = normalize_size(size, 50)
+    page_no = max(page, 1)
+    d_from = dt.date.fromisoformat(date_from) if date_from else None
+    d_to = dt.date.fromisoformat(date_to) if date_to else None
     with SessionLocal() as db:
         result = data_api.list_receipts(
-            account_id=account_id,
-            date_from=dt.date.fromisoformat(date_from) if date_from else None,
-            date_to=dt.date.fromisoformat(date_to) if date_to else None,
+            account_id=resolved_account_id,
+            date_from=d_from,
+            date_to=d_to,
             q=q or None,
-            page=page,
-            size=50,
+            page=page_no,
+            size=resolved_size,
             db=db,
         )
+        pages = max(1, (result["total"] + resolved_size - 1) // resolved_size)
+        if page_no > pages:
+            page_no = pages
+            result = data_api.list_receipts(
+                account_id=resolved_account_id,
+                date_from=d_from,
+                date_to=d_to,
+                q=q or None,
+                page=page_no,
+                size=resolved_size,
+                db=db,
+            )
         accounts = accounts_api.list_accounts(db)["items"]
-    return templates.TemplateResponse(
-        request=request,
-        name="receipts.html",
-        context={
-            "page": "receipts",
-            "data": result,
-            "accounts": accounts,
-            "filters": {"account_id": account_id, "date_from": date_from, "date_to": date_to, "q": q},
+    ctx = {
+        "page": "receipts",
+        "data": result,
+        "accounts": accounts,
+        "filters": {
+            "account_id": resolved_account_id,
+            "date_from": date_from,
+            "date_to": date_to,
+            "q": q,
         },
-    )
+    }
+    tpl = "_receipts_region.html" if is_hx(request, "receipts-region") else "receipts.html"
+    return templates.TemplateResponse(request=request, name=tpl, context=ctx)
 
 
 @router.get("/recon")
-def recon_page(request: Request, batch_id: int | None = None):
+def recon_page(
+    request: Request,
+    batch_id: str = "",
+    page: int = 1,
+    size: int = 10,
+    item_page: int = 1,
+    item_size: int = 10,
+):
     denied = _deny_menu(request, "recon")
     if denied:
         return denied
+    resolved_batch_id = int(batch_id) if batch_id.isdigit() else None
     with SessionLocal() as db:
         batches = recon_api.list_batches(db)["items"]
-        items = recon_api.batch_items(batch_id, db=db)["items"] if batch_id else []
+        items = recon_api.batch_items(resolved_batch_id, db=db)["items"] if resolved_batch_id else []
         docs = recon_api.list_docs(limit=100, db=db)["items"]
+    batch_pager = paginate_items(batches, page, size, default_size=10)
+    item_pager = paginate_items(items, item_page, item_size, default_size=10)
+    batch_params = {"size": batch_pager["size"], "batch_id": resolved_batch_id or ""}
+    item_params = {"batch_id": resolved_batch_id or "", "item_size": item_pager["size"]}
+    if batch_pager["page"] > 1:
+        item_params["page"] = batch_pager["page"]
+    if batch_pager["size"] != 10:
+        item_params["size"] = batch_pager["size"]
+    if item_pager["page"] > 1:
+        batch_params["item_page"] = item_pager["page"]
+    if item_pager["size"] != 10:
+        batch_params["item_size"] = item_pager["size"]
+
+    context = {
+        "page": "recon",
+        "batches": batches,
+        "batch_rows": batch_pager["items"],
+        "batch_pager": batch_pager,
+        "batch_params": batch_params,
+        "items": items,
+        "item_rows": item_pager["items"],
+        "item_pager": item_pager,
+        "item_params": item_params,
+        "docs": docs,
+        "batch_id": resolved_batch_id,
+    }
+    if is_hx(request, "recon-batches-region"):
+        return templates.TemplateResponse(request=request, name="_recon_batches_table.html", context=context)
+    if is_hx(request, "recon-items-region"):
+        return templates.TemplateResponse(request=request, name="_recon_items_table.html", context=context)
     return templates.TemplateResponse(
         request=request,
         name="recon.html",
-        context={"page": "recon", "batches": batches, "items": items, "docs": docs, "batch_id": batch_id},
+        context=context,
     )
 
 
+ACCOUNT_TABS = {"accounts", "devices", "sub"}
+
+
 @router.get("/accounts")
-def accounts_page(request: Request):
+def accounts_page(
+    request: Request,
+    tab: str = "accounts",
+    page: int = 1,
+    size: int = 10,
+    dpage: int = 1,
+    dsize: int = 10,
+    dq: str = "",
+    spage: int = 1,
+    ssize: int = 10,
+    q: str = "",
+):
+    if tab not in ACCOUNT_TABS:
+        tab = "accounts"
+    user = getattr(request.state, "user", None)
+    role = user.role if user else "user"
+    can_edit = permissions.can_edit_accounts(role)
+    can_collect = permissions.can_collect_accounts(role)
+    can_manage_devices = permissions.can_menu(role, "devices")
+    can_master_data = permissions.can_menu(role, "master_data")
+    if tab == "sub" and not can_master_data:
+        tab = "accounts"
+
     with SessionLocal() as db:
         accounts = accounts_api.list_accounts(db)["items"]
         devices = accounts_api.list_devices(db)["items"]
+        sub_data = sub_region(db)
+
+    keyword = q.strip().lower()
+    if keyword:
+        accounts = [
+            a
+            for a in accounts
+            if keyword
+            in f"{a.get('account_no') or ''} {a.get('account_name') or ''}".lower()
+        ]
+
     device_bindings = {
         account["device_id"]: f"{account['bank_code']} · {account['account_no']}"
         for account in accounts
         if account.get("device_id")
     }
-    return templates.TemplateResponse(
-        request=request,
-        name="accounts.html",
-        context={
-            "page": "accounts",
-            "accounts": accounts,
-            "devices": devices,
-            "device_bindings": device_bindings,
-            "banks": list_banks(),
-        },
-    )
+    acct_pager = paginate_items(accounts, page, size, default_size=10)
+
+    keyword = dq.strip().lower()
+    filtered_devices = [
+        d
+        for d in devices
+        if not keyword
+        or keyword
+        in " ".join(
+            [
+                str(d.get("name") or ""),
+                bank_label(d.get("bank_code")),
+                str(d.get("gf3") or ""),
+                str(d.get("agent_name") or ""),
+                str(device_bindings.get(d.get("id"), "")),
+            ]
+        ).lower()
+    ]
+    dev_pager = paginate_items(filtered_devices, dpage, dsize, default_size=10)
+    sub_paged = paginate_items(sub_data["sub_rows"], spage, ssize, default_size=10)
+
+    acct_params = {"tab": "accounts", "size": acct_pager["size"]}
+    if q.strip():
+        acct_params["q"] = q.strip()
+    dev_params = {"tab": "devices", "dsize": dev_pager["size"], "dq": dq.strip()}
+    sub_params = {"tab": "sub", "ssize": sub_paged["size"]}
+    if acct_pager["page"] > 1:
+        dev_params["page"] = acct_pager["page"]
+        sub_params["page"] = acct_pager["page"]
+    if acct_pager["size"] != 10:
+        dev_params["size"] = acct_pager["size"]
+        sub_params["size"] = acct_pager["size"]
+
+    context = {
+        "page": "accounts",
+        "tab": tab,
+        "q": q.strip(),
+        "accounts": accounts,
+        "account_rows": acct_pager["items"],
+        "acct_pager": acct_pager,
+        "acct_params": acct_params,
+        "devices": devices,
+        "device_rows": dev_pager["items"],
+        "dev_pager": dev_pager,
+        "dev_params": dev_params,
+        "dq": dq.strip(),
+        "device_bindings": device_bindings,
+        "banks": list_banks(),
+        "can_edit": can_edit,
+        "can_collect": can_collect,
+        "can_manage_devices": can_manage_devices,
+        "can_master_data": can_master_data,
+        "sub_page_rows": sub_paged["items"],
+        "sub_pager": sub_paged,
+        "sub_params": sub_params,
+        "msg": request.query_params.get("msg", ""),
+        **sub_data,
+    }
+    if is_hx(request, "accounts-table-region"):
+        return templates.TemplateResponse(request=request, name="_accounts_table.html", context=context)
+    if is_hx(request, "accounts-devices-region"):
+        return templates.TemplateResponse(request=request, name="_accounts_devices_table.html", context=context)
+    if is_hx(request, "sub-region"):
+        return templates.TemplateResponse(request=request, name="_sub_accounts_panel.html", context=context)
+    return templates.TemplateResponse(request=request, name="accounts.html", context=context)
 
 
 @router.get("/devices")
-def devices_page(request: Request):
+def devices_page(
+    request: Request,
+    apage: int = 1,
+    asize: int = 10,
+):
     denied = _deny_menu(request, "devices")
     if denied:
         return denied
@@ -555,18 +768,27 @@ def devices_page(request: Request):
         ),
         "bound": sum(1 for account in accounts if account.get("device_id")),
     }
+    agent_pager = paginate_items(agents, apage, asize, default_size=10)
+    agent_params = {"asize": agent_pager["size"]}
+
+    context = {
+        "page": "devices",
+        "devices": devices,
+        "agents": agents,
+        "agent_rows": agent_pager["items"],
+        "agent_pager": agent_pager,
+        "agent_params": agent_params,
+        "stats": stats,
+        "agent_tokens": agent_tokens,
+        "agent_base_url": str(request.base_url).rstrip("/"),
+        "is_admin": role == "admin",
+    }
+    if is_hx(request, "devices-agents-region"):
+        return templates.TemplateResponse(request=request, name="_devices_agents_table.html", context=context)
     return templates.TemplateResponse(
         request=request,
         name="devices.html",
-        context={
-            "page": "devices",
-            "devices": devices,
-            "agents": agents,
-            "stats": stats,
-            "agent_tokens": agent_tokens,
-            "agent_base_url": str(request.base_url).rstrip("/"),
-            "is_admin": role == "admin",
-        },
+        context=context,
     )
 
 
@@ -597,43 +819,77 @@ def _scoped_user(db, admin: AppUser, user_id: int) -> AppUser | None:
     return db.execute(query).scalars().first()
 
 
-def _render_settings(request: Request, tab: str):
+def _render_settings(
+    request: Request,
+    tab: str,
+    page: int = 1,
+    size: int = 10,
+    audit: str = "user",
+):
     user = getattr(request.state, "user", None)
     if user is None or user.role != "admin":
         return RedirectResponse("/", status_code=303)
     if tab not in SETTINGS_TABS:
         tab = "users"
+    if audit not in {"all", "user", "system"}:
+        audit = "user"
     with SessionLocal() as db:
         user_query = select(AppUser).order_by(AppUser.id)
         if user.tenant_id is not None:
             user_query = user_query.where(AppUser.tenant_id == user.tenant_id)
         users = db.execute(user_query).scalars().all()
-        logs = db.execute(select(AuditLog).order_by(AuditLog.id.desc()).limit(50)).scalars().all()
+        log_query = select(AuditLog)
+        if audit == "user":
+            log_query = log_query.where(AuditLog.action.in_(_AUDIT_USER_ACTIONS))
+        elif audit == "system":
+            log_query = log_query.where(AuditLog.action.not_in(_AUDIT_USER_ACTIONS))
+        log_pager = paginate_scalars(
+            db,
+            log_query.order_by(AuditLog.id.desc()),
+            page,
+            size,
+            default_size=10,
+        )
+        action_counts = dict(
+            db.execute(select(AuditLog.action, func.count()).group_by(AuditLog.action)).all()
+        )
+        user_total = sum(n for a, n in action_counts.items() if a in _AUDIT_USER_ACTIONS)
+        all_total = sum(action_counts.values())
         devices = accounts_api.list_devices(db)["items"]
-        tenants = db.execute(select(Tenant).order_by(Tenant.id)).scalars().all()
+
+    user_pager = paginate_items(users, page, size, default_size=10)
+
+    log_params = {"size": log_pager["size"], "audit": audit}
+
+    context = {
+        "page": "settings",
+        "tab": tab,
+        "audit": audit,
+        "audit_counts": {"all": all_total, "user": user_total, "system": all_total - user_total},
+        "users": users,
+        "user_rows": user_pager["items"],
+        "user_pager": user_pager,
+        "role_labels": ROLE_LABELS,
+        "user_count": len(users),
+        "admin_count": sum(1 for item in users if item.role == "admin"),
+        "active_count": sum(1 for item in users if item.is_active),
+        "logs": log_pager["items"],
+        "log_rows": log_pager["items"],
+        "log_pager": log_pager,
+        "log_params": log_params,
+        "devices": devices,
+        "settings": settings,
+        "current_user_id": user.id,
+        "msg": request.query_params.get("msg", ""),
+    }
+    if is_hx(request, "settings-users-region"):
+        return templates.TemplateResponse(request=request, name="_settings_users_table.html", context=context)
+    if is_hx(request, "settings-logs-region"):
+        return templates.TemplateResponse(request=request, name="_settings_logs_table.html", context=context)
     return templates.TemplateResponse(
         request=request,
         name="settings.html",
-        context={
-            "page": "settings",
-            "tab": tab,
-            "users": users,
-            "tenant_map": {t.id: t.name for t in tenants},
-            "role_labels": ROLE_LABELS,
-            "user_count": len(users),
-            "admin_count": sum(1 for item in users if item.role == "admin"),
-            "active_count": sum(1 for item in users if item.is_active),
-            "logs": logs,
-            "devices": devices,
-            "collectors": collectors.status_rows(),
-            "collectors_file": str(settings.collectors_file),
-            "settings": settings,
-            "tenants": tenants,
-            "is_super_admin": user.tenant_id is None,
-            "current_tenant_id": getattr(request.state, "tenant_id", None),
-            "current_user_id": user.id,
-            "msg": request.query_params.get("msg", ""),
-        },
+        context=context,
     )
 
 
@@ -645,32 +901,36 @@ def _deny_menu(request: Request, key: str):
 
 
 @router.get("/settings")
-def settings_page(request: Request, tab: str = "users"):
-    return _render_settings(request, tab)
+def settings_page(request: Request, tab: str = "users", page: int = 1, size: int = 10, audit: str = "user"):
+    return _render_settings(request, tab, page=page, size=size, audit=audit)
 
 
 @router.get("/settings/users")
-def settings_users_page(request: Request):
-    return _render_settings(request, "users")
+def settings_users_page(request: Request, page: int = 1, size: int = 10):
+    return _render_settings(request, "users", page=page, size=size)
 
 
 @router.get("/settings/system")
-def settings_system_page(request: Request):
-    return _render_settings(request, "system")
+def settings_system_page(request: Request, page: int = 1, size: int = 10, audit: str = "user"):
+    return _render_settings(request, "system", page=page, size=size, audit=audit)
 
 
 @router.post("/settings/users")
 def settings_create_user(
     request: Request,
     username: str = Form(...),
+    display_name: str = Form(""),
     password: str = Form(...),
     role: str = Form("user"),
     tenant_id: str = Form(""),
 ):
     admin = _settings_admin(request)
     username = username.strip()
+    display_name = display_name.strip() or username
     if len(username) < 2:
-        return _settings_redirect("users", "用户名至少 2 个字符")
+        return _settings_redirect("users", "登录账户至少 2 个字符")
+    if any(ch.isspace() for ch in username):
+        return _settings_redirect("users", "登录账户不能包含空格")
     if len(password) < 8:
         return _settings_redirect("users", "密码至少 8 个字符")
     role = role if role in ROLE_LABELS else "user"
@@ -679,9 +939,10 @@ def settings_create_user(
         target_tenant = int(tenant_id)
     with SessionLocal() as db:
         if db.execute(select(AppUser).where(AppUser.username == username)).scalars().first():
-            return _settings_redirect("users", f"用户名 {username} 已存在")
+            return _settings_redirect("users", f"登录账户 {username} 已存在")
         user = AppUser(
             username=username,
+            display_name=display_name,
             password_hash=security.hash_password(password),
             role=role,
             tenant_id=target_tenant,
@@ -692,18 +953,18 @@ def settings_create_user(
             db.flush()
         except IntegrityError:
             db.rollback()
-            return _settings_redirect("users", f"用户名 {username} 已存在")
+            return _settings_redirect("users", f"登录账户 {username} 已存在")
         db.add(
             AuditLog(
                 actor=admin.username,
                 action="user_create",
                 target_type="app_user",
                 target_id=str(user.id),
-                detail={"username": username, "role": ROLE_LABELS[role], "tenant_id": target_tenant},
+                detail={"username": username, "display_name": display_name, "role": ROLE_LABELS[role], "tenant_id": target_tenant},
             )
         )
         db.commit()
-    return _settings_redirect("users", f"用户 {username} 已创建")
+    return _settings_redirect("users", f"用户 {display_name} 已创建，登录账户 {username}")
 
 
 @router.post("/settings/users/{user_id}/role")
@@ -732,50 +993,66 @@ def settings_update_user_role(request: Request, user_id: int, role: str = Form(.
     return _settings_redirect("users", f"用户 {username} 的角色已更新")
 
 
-@router.post("/settings/users/{user_id}/toggle")
-def settings_toggle_user(request: Request, user_id: int):
+@router.post("/settings/users/{user_id}/edit")
+def settings_update_user(
+    request: Request,
+    user_id: int,
+    display_name: str = Form(""),
+    username: str = Form(""),
+    role: str = Form(...),
+    tenant_id: str = Form(""),
+    password: str = Form(""),
+    is_active: str = Form("1"),
+):
     admin = _settings_admin(request)
+    display_name = display_name.strip()
+    username = username.strip()
+    if not display_name:
+        return _settings_redirect("users", "姓名不能为空")
+    if len(username) < 2 or any(ch.isspace() for ch in username):
+        return _settings_redirect("users", "登录账户至少 2 个字符且不能包含空格")
+    if password and len(password) < 8:
+        return _settings_redirect("users", "密码至少 8 个字符")
+    if role not in ROLE_LABELS:
+        return _settings_redirect("users", "无效的用户角色")
     with SessionLocal() as db:
         target = _scoped_user(db, admin, user_id)
         if target is None:
             return _settings_redirect("users", "用户不存在")
         if target.id == admin.id:
-            return _settings_redirect("users", "不能停用当前登录用户")
-        username = target.username
-        target.is_active = not target.is_active
-        new_state = target.is_active
+            if role != "admin":
+                return _settings_redirect("users", "不能修改当前登录用户的管理员角色")
+            if username != target.username:
+                return _settings_redirect("users", "不能修改当前登录用户的登录账户")
+            if is_active != "1":
+                return _settings_redirect("users", "不能停用当前登录用户")
+        dup = db.execute(
+            select(AppUser).where(AppUser.username == username, AppUser.id != target.id)
+        ).scalars().first()
+        if dup is not None:
+            return _settings_redirect("users", f"登录账户 {username} 已存在")
+        target.display_name = display_name
+        target.username = username
+        target.role = role
+        target.is_active = is_active == "1"
+        if password:
+            target.password_hash = security.hash_password(password)
+        if admin.tenant_id is None and tenant_id.isdigit():
+            target.tenant_id = int(tenant_id)
         db.add(
             AuditLog(
                 actor=admin.username,
-                action="user_toggle",
+                action="user_edit",
                 target_type="app_user",
                 target_id=str(target.id),
-                detail={"username": username, "is_active": new_state},
+                detail={
+                    "username": username,
+                    "display_name": display_name,
+                    "role": ROLE_LABELS[role],
+                    "is_active": target.is_active,
+                    "password_reset": bool(password),
+                },
             )
         )
         db.commit()
-    return _settings_redirect("users", f"用户 {username} 已{'启用' if new_state else '停用'}")
-
-
-@router.post("/settings/users/{user_id}/password")
-def settings_reset_user_password(request: Request, user_id: int, password: str = Form(...)):
-    admin = _settings_admin(request)
-    if len(password) < 8:
-        return _settings_redirect("users", "密码至少 8 个字符")
-    with SessionLocal() as db:
-        target = _scoped_user(db, admin, user_id)
-        if target is None:
-            return _settings_redirect("users", "用户不存在")
-        username = target.username
-        target.password_hash = security.hash_password(password)
-        db.add(
-            AuditLog(
-                actor=admin.username,
-                action="user_password",
-                target_type="app_user",
-                target_id=str(target.id),
-                detail={"username": username},
-            )
-        )
-        db.commit()
-    return _settings_redirect("users", f"用户 {username} 的密码已重置")
+    return _settings_redirect("users", f"用户 {display_name} 的资料已更新")

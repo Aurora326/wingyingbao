@@ -1,0 +1,27 @@
+<div id="task-region">
+  <div id="task-stats" data-active="{{ stats.running }}">
+    {% if task_source == 'payment' or task_source == 'oa' %}{% include "_payment_tasks_stats.html" %}{% else %}{% include "_tasks_stats.html" %}{% endif %}
+  </div>
+
+  <div class="tabs">
+    {% if task_source == 'payment' or task_source == 'oa' %}
+    {% set all_url = page_url('/tasks', {'source': source, 'size': size}) %}
+    <a class="{{ 'active' if not status }}" href="{{ all_url }}" hx-get="{{ all_url }}" hx-target="#task-region" hx-swap="outerHTML" hx-push-url="true">全部</a>
+    {% for st_key, st_label in (('queued', '等待中'), ('running', '进行中'), ('succeeded', '已完成'), ('failed', '需处理')) %}
+    {% set st_url = page_url('/tasks', {'source': source, 'status': st_key, 'size': size}) %}
+    <a class="{{ 'active' if status == st_key }}" href="{{ st_url }}" hx-get="{{ st_url }}" hx-target="#task-region" hx-swap="outerHTML" hx-push-url="true">{{ st_label }}</a>
+    {% endfor %}
+    {% else %}
+    {% set all_url = page_url('/tasks', {'size': size}) %}
+    <a class="{{ 'active' if not status }}" href="{{ all_url }}" hx-get="{{ all_url }}" hx-target="#task-region" hx-swap="outerHTML" hx-push-url="true">全部</a>
+    {% for st_key, st_label in (('queued', '等待中'), ('leased', '进行中'), ('succeeded', '已完成'), ('cancelled', '已停止'), ('failed', '需处理')) %}
+    {% set st_url = page_url('/tasks', {'status': st_key, 'size': size}) %}
+    <a class="{{ 'active' if status == st_key }}" href="{{ st_url }}" hx-get="{{ st_url }}" hx-target="#task-region" hx-swap="outerHTML" hx-push-url="true">{{ st_label }}</a>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <div id="task-table">
+    {% if task_source == 'payment' or task_source == 'oa' %}{% include "_payment_tasks_table.html" %}{% else %}{% include "_tasks_table.html" %}{% endif %}
+  </div>
+</div>

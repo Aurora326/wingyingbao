@@ -22,6 +22,7 @@ from app.services.payment import (
     review_doc,
 )
 from app.services import permissions
+from app.services.payment_scope import active_delegations, allowed_book_sets
 from app.services.payment_collect import (
     PaymentCollectError,
     enqueue_payment_collect,
@@ -31,6 +32,7 @@ from app.services.payment_collect import (
     task_dict,
 )
 from app.services.banks import BANK_NAMES
+from app.web.pagination import is_hx, normalize_size
 from app.web.routes import templates
 
 router = APIRouter()
@@ -69,13 +71,18 @@ def _redirect(msg: str = "", next_url: str = "") -> RedirectResponse:
 
 
 @router.get("/payments")
-def payments_page(request: Request, status: str = "", q: str = "", payer: str = "", page: int = 1, size: int = 10):
+def payments_page(request: Request, status: str = "pending_confirm", q: str = "", payer: str = "", page: int = 1, size: int = 10):
     user = getattr(request.state, "user", None)
     if user is None or not permissions.can_menu(user.role, "payments"):
         return RedirectResponse("/", status_code=303)
-    size = size if size in (10, 20, 50, 100) else 10
+    if status == "all":
+        status = ""
+    size = normalize_size(size, 10)
     with SessionLocal() as db:
+        books = allowed_book_sets(db, user)
         base = select(PaymentDoc)
+        if books is not None:
+            base = base.where(PaymentDoc.book_set_id.in_(list(books)))
         if q:
             pattern = f"%{q}%"
             base = base.outerjoin(SubAccount, PaymentDoc.payer_sub_account_id == SubAccount.id).where(
@@ -103,7 +110,8 @@ def payments_page(request: Request, status: str = "", q: str = "", payer: str = 
 
         query = base.where(PaymentDoc.status == status) if status else base
         total = db.execute(query.with_only_columns(func.count(PaymentDoc.id)).order_by(None)).scalar_one()
-        page = max(page, 1)
+        pages = max(1, (total + size - 1) // size)
+        page = min(max(page, 1), pages)
         docs = db.execute(
             query.order_by(PaymentDoc.apply_date.desc().nullslast(), PaymentDoc.id.desc())
             .offset((page - 1) * size)
@@ -114,10 +122,40 @@ def payments_page(request: Request, status: str = "", q: str = "", payer: str = 
             for row in db.execute(
                 select(PaymentDoc.payer_name)
                 .where(PaymentDoc.payer_name.is_not(None), PaymentDoc.payer_name != "")
+                .where(
+                    PaymentDoc.book_set_id.in_(list(books))
+                    if books is not None
+                    else True
+                )
                 .distinct()
                 .order_by(PaymentDoc.payer_name)
             ).all()
         ]
+        subs = db.execute(select(SubAccount)).scalars().all()
+        sub_names = {sub.id: sub.ledger_name for sub in subs}
+
+        region_ctx = {
+            "docs": docs,
+            "sub_names": sub_names,
+            "can_draft": permissions.effective_role(user.role) in {"cashier", "admin"},
+            "no_scope": books is not None and not books,
+            "delegations": active_delegations(db, user),
+            "status": status,
+            "q": q,
+            "payer": payer,
+            "payer_options": payer_options,
+            "page_no": page,
+            "size": size,
+            "total": total,
+            "total_all": total_all,
+            "counts": counts,
+            "status_labels": STATUS_LABELS,
+            "status_order": STATUS_ORDER,
+            "msg": request.query_params.get("msg", ""),
+        }
+        if is_hx(request, "payments-region"):
+            return templates.TemplateResponse(request=request, name="_payments_region.html", context=region_ctx)
+
         accounts = db.execute(select(BankAccount).order_by(BankAccount.id)).scalars().all()
         payees = db.execute(
             select(PayeeAccount).where(PayeeAccount.status == "active").order_by(PayeeAccount.payee_name).limit(500)
@@ -149,8 +187,6 @@ def payments_page(request: Request, status: str = "", q: str = "", payer: str = 
             if a.payment_enabled and _valid_bank_account(a.account_no)
         ]
         bank_options = [{"code": code, "name": name} for code, name in BANK_NAMES.items() if code != "mock"]
-        subs = db.execute(select(SubAccount)).scalars().all()
-        sub_names = {sub.id: sub.ledger_name for sub in subs}
         sub_data = [
             {
                 "id": sub.id,
@@ -175,14 +211,12 @@ def payments_page(request: Request, status: str = "", q: str = "", payer: str = 
         name="payments.html",
         context={
             "page": "payments",
-            "docs": docs,
             "accounts": accounts,
             "payees": payees,
             "all_payees": all_payees,
             "payee_data": payee_data,
             "payer_data": payer_data,
             "bank_options": bank_options,
-            "sub_names": sub_names,
             "sub_data": sub_data,
             "bank_names": BANK_NAMES,
             "source_username": source_username,
@@ -193,22 +227,10 @@ def payments_page(request: Request, status: str = "", q: str = "", payer: str = 
             "schedule_cron": schedule["cron"],
             "schedule_limit": schedule["limit"],
             "is_admin": permissions.can_menu(user.role, "payment_settings"),
-            "can_draft": permissions.effective_role(user.role) in {"cashier", "admin"},
-            "status": status,
-            "q": q,
-            "payer": payer,
-            "payer_options": payer_options,
-            "page_no": page,
-            "size": size,
-            "total": total,
-            "total_all": total_all,
-            "counts": counts,
-            "status_labels": STATUS_LABELS,
-            "status_order": STATUS_ORDER,
             "collect_tasks": [task_dict(t) for t in collect_tasks],
             "collector_available": settings.payment_collect_mode == "agent" or settings.mingyuan_collector.exists(),
             "oa_collector_available": settings.payment_collect_mode == "agent" or settings.oa_collector.exists(),
-            "msg": request.query_params.get("msg", ""),
+            **region_ctx,
         },
     )
 
@@ -471,7 +493,7 @@ async def quick_create_payee(request: Request):
 async def quick_create_payer(request: Request):
     user = getattr(request.state, "user", None)
     if user is None or not permissions.can_edit_accounts(user.role):
-        raise HTTPException(status_code=403, detail="只有管理员或资金经理可以新增付款账户")
+        raise HTTPException(status_code=403, detail="只有管理员或财务总监可以新增付款账户")
     form = await request.form()
     name = str(form.get("name") or "").strip()
     account_no = "".join(str(form.get("account_no") or "").split())

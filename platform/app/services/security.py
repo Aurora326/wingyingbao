@@ -71,9 +71,22 @@ def _sign(payload: str) -> str:
     return hmac.new(settings.secret_key.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
+def _pack_user(username: str) -> str:
+    """Cookie 只能放 ASCII，中文用户名必须先编码。"""
+    return base64.urlsafe_b64encode(username.encode("utf-8")).decode("ascii").rstrip("=")
+
+
+def _unpack_user(raw: str) -> str | None:
+    try:
+        name = base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4)).decode("utf-8")
+    except Exception:
+        return None
+    return name if _pack_user(name) == raw else None
+
+
 def create_session(username: str) -> str:
     expires = int(time.time()) + SESSION_TTL
-    payload = f"{username}:{expires}"
+    payload = f"{_pack_user(username)}:{expires}"
     return f"{payload}:{_sign(payload)}"
 
 
@@ -83,12 +96,12 @@ def verify_session(token: str | None) -> str | None:
     parts = token.rsplit(":", 2)
     if len(parts) != 3:
         return None
-    username, expires, signature = parts
-    if not hmac.compare_digest(_sign(f"{username}:{expires}"), signature):
+    user_part, expires, signature = parts
+    if not hmac.compare_digest(_sign(f"{user_part}:{expires}"), signature):
         return None
     try:
         if int(expires) < int(time.time()):
             return None
     except ValueError:
         return None
-    return username
+    return _unpack_user(user_part)

@@ -6,12 +6,11 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func, select
 
 from app.config import settings
 from app.db import SessionLocal
-from app.models import AppUser, BankAccount, BookSet, CashierScope, Enterprise, PayeeAccount, PaymentSourceAccount, SubAccount
+from app.models import AppUser, AuditLog, BankAccount, BookSet, CashierDelegation, CashierScope, Enterprise, PayeeAccount, PaymentDoc, PaymentSourceAccount, SubAccount
 from app.services.account_master import AccountMasterError, account_master_summary, import_account_master
 from app.services.payment_collect import get_source_credentials, save_source_credentials
 from app.services.scheduler import cron_matches
@@ -24,6 +23,7 @@ from app.services.payee_admin import (
     request_change,
 )
 from app.services import permissions
+from app.web.pagination import is_hx, paginate_items
 from app.web.routes import templates
 
 router = APIRouter()
@@ -34,6 +34,11 @@ PAYMENT_TABS = {"accounts", "source", "cashiers"}
 def _operator(request: Request) -> str:
     user = getattr(request.state, "user", None)
     return getattr(user, "username", "") or "system"
+
+
+def _is_named(book: BookSet) -> bool:
+    """没匹配出付款单位名的账套是导入残留，不参与出纳分配。"""
+    return bool(book.name and book.name != "未命名付款单位")
 
 
 def _redirect(request: Request, msg: str = "") -> RedirectResponse:
@@ -68,7 +73,12 @@ def _redirect_after_source(request: Request, next_page: str, msg: str) -> Redire
 
 
 @router.get("/payment-settings")
-def payment_settings_page(request: Request, tab: str = "accounts"):
+def payment_settings_page(
+    request: Request,
+    tab: str = "accounts",
+    page: int = 1,
+    size: int = 10,
+):
     user = getattr(request.state, "user", None)
     if user is None or not permissions.can_menu(user.role, "payment_settings"):
         return RedirectResponse("/", status_code=303)
@@ -83,8 +93,18 @@ def payment_settings_page(request: Request, tab: str = "accounts"):
         enterprises = {e.id: e.name for e in db.execute(select(Enterprise)).scalars().all()}
         books = {b.enterprise_id: b for b in db.execute(select(BookSet)).scalars().all()}
         scopes = db.execute(select(CashierScope).order_by(CashierScope.id.desc())).scalars().all()
+        delegations = db.execute(
+            select(CashierDelegation).order_by(CashierDelegation.id.desc())
+        ).scalars().all()
         users = db.execute(select(AppUser).order_by(AppUser.id)).scalars().all()
         book_sets = db.execute(select(BookSet).order_by(BookSet.id)).scalars().all()
+        book_usage = dict(
+            db.execute(
+                select(PaymentDoc.book_set_id, func.count())
+                .where(PaymentDoc.book_set_id.is_not(None))
+                .group_by(PaymentDoc.book_set_id)
+            ).all()
+        )
         sub_count: dict[int, int] = {}
         for sub in subs:
             sub_count[sub.parent_account_id] = sub_count.get(sub.parent_account_id, 0) + 1
@@ -96,31 +116,47 @@ def payment_settings_page(request: Request, tab: str = "accounts"):
         oa_username, oa_password = get_source_credentials(db, "oa")
         oa_configured = bool(oa_username and oa_password)
 
+    acct_pager = paginate_items(accounts, page, size, default_size=10)
+
+    acct_params = {"tab": "accounts", "size": acct_pager["size"]}
+
+    context = {
+        "page": "payment_settings",
+        "tab": tab,
+        "accounts": accounts,
+        "account_rows": acct_pager["items"],
+        "acct_pager": acct_pager,
+        "acct_params": acct_params,
+        "account_map": {a.id: a for a in accounts},
+        "enterprises": enterprises,
+        "books": books,
+        "summary": summary,
+        "source_username": source_username,
+        "source_configured": source_configured,
+        "oa_username": oa_username,
+        "oa_configured": oa_configured,
+        "sub_count": sub_count,
+        "bank_names": BANK_NAMES,
+        "scopes": scopes,
+        "cashier_users": [u for u in users if u.role == "cashier"],
+        "scope_owner": {s.book_set_id: user_map.get(s.user_id) for s in scopes if s.status == "active"},
+        "delegations": delegations,
+        "today": dt.date.today(),
+        "users": users,
+        "book_sets": book_sets,
+        "used_books": [b for b in book_sets if book_usage.get(b.id) and _is_named(b)],
+        "idle_books": [b for b in book_sets if not book_usage.get(b.id) and _is_named(b)],
+        "book_usage": book_usage,
+        "user_map": user_map,
+        "book_map": book_map,
+        "msg": request.query_params.get("msg", ""),
+    }
+    if is_hx(request, "ps-accounts-region"):
+        return templates.TemplateResponse(request=request, name="_ps_accounts_table.html", context=context)
     return templates.TemplateResponse(
         request=request,
         name="payment_settings.html",
-        context={
-            "page": "payments",
-            "tab": tab,
-            "accounts": accounts,
-            "account_map": {a.id: a for a in accounts},
-            "sub_accounts": subs,
-            "enterprises": enterprises,
-            "books": books,
-            "summary": summary,
-            "source_username": source_username,
-            "source_configured": source_configured,
-            "oa_username": oa_username,
-            "oa_configured": oa_configured,
-            "sub_count": sub_count,
-            "bank_names": BANK_NAMES,
-            "scopes": scopes,
-            "users": users,
-            "book_sets": book_sets,
-            "user_map": user_map,
-            "book_map": book_map,
-            "msg": request.query_params.get("msg", ""),
-        },
+        context=context,
     )
 
 
@@ -196,16 +232,111 @@ async def import_accounts(request: Request, file: UploadFile = File(...)):
 
 
 @router.post("/payment-settings/cashiers")
-def create_cashier(request: Request, user_id: int = Form(...), book_set_id: int = Form(...), role: str = Form("cashier")):
+def assign_cashiers(request: Request, user_id: int = Form(...), book_set_ids: list[int] = Form(default=[])):
+    """把勾选的账套整体分配给一个出纳；已被别人占用的账套会转移过来。"""
+    selected = {int(i) for i in book_set_ids}
     with SessionLocal() as db:
-        scope = CashierScope(user_id=user_id, book_set_id=book_set_id, role=role)
-        db.add(scope)
-        try:
+        target = db.get(AppUser, user_id)
+        if target is None or target.role != "cashier":
+            return _redirect(request, "请选择一个出纳账号")
+        scopes = db.execute(select(CashierScope).where(CashierScope.role == "cashier")).scalars().all()
+        owners = {s.book_set_id: s for s in scopes}
+        removed = 0
+        for book_set_id, scope in list(owners.items()):
+            if scope.user_id == user_id and book_set_id not in selected:
+                db.delete(scope)
+                removed += 1
+        added = 0
+        for book_set_id in selected:
+            scope = owners.get(book_set_id)
+            if scope is None:
+                db.add(CashierScope(user_id=user_id, book_set_id=book_set_id, role="cashier"))
+                added += 1
+            elif scope.user_id != user_id:
+                scope.user_id = user_id
+                added += 1
+        db.add(
+            AuditLog(
+                actor=_operator(request),
+                action="cashier_scope",
+                target_type="app_user",
+                target_id=str(user_id),
+                detail={"display_name": target.display_name or target.username, "books": len(selected), "removed": removed},
+            )
+        )
+        db.commit()
+    return _redirect(request, f"{target.display_name or target.username}：已分配 {len(selected)} 个账套（新增或转移 {added}，收回 {removed}）")
+
+
+@router.post("/payment-settings/delegations")
+def create_delegation(
+    request: Request,
+    from_user_id: int = Form(...),
+    to_user_id: int = Form(...),
+    start_date: str = Form(""),
+    end_date: str = Form(""),
+    remark: str = Form(""),
+):
+    """出纳请假时把名下账套临时委托给另一名出纳，到期自动失效。"""
+    try:
+        start = dt.date.fromisoformat(start_date)
+        end = dt.date.fromisoformat(end_date)
+    except ValueError:
+        return _redirect(request, "请填写有效的委托起止日期")
+    if end < start:
+        return _redirect(request, "截止日期不能早于开始日期")
+    if from_user_id == to_user_id:
+        return _redirect(request, "委托方和受托方不能是同一个人")
+    with SessionLocal() as db:
+        src = db.get(AppUser, from_user_id)
+        dst = db.get(AppUser, to_user_id)
+        if src is None or dst is None or src.role != "cashier" or dst.role != "cashier":
+            return _redirect(request, "委托双方都必须是出纳账号")
+        overlap = db.execute(
+            select(CashierDelegation).where(
+                CashierDelegation.from_user_id == from_user_id,
+                CashierDelegation.status == "active",
+                CashierDelegation.start_date <= end,
+                CashierDelegation.end_date >= start,
+            )
+        ).scalars().first()
+        if overlap is not None:
+            return _redirect(request, "该出纳在这段时间里已有委托，请先结束或调整日期")
+        db.add(
+            CashierDelegation(
+                from_user_id=from_user_id,
+                to_user_id=to_user_id,
+                start_date=start,
+                end_date=end,
+                remark=remark.strip(),
+            )
+        )
+        db.add(
+            AuditLog(
+                actor=_operator(request),
+                action="cashier_delegation",
+                target_type="app_user",
+                target_id=str(from_user_id),
+                detail={
+                    "from": src.display_name or src.username,
+                    "to": dst.display_name or dst.username,
+                    "start": start.isoformat(),
+                    "end": end.isoformat(),
+                },
+            )
+        )
+        db.commit()
+    return _redirect(request, f"{src.display_name or src.username} 的账套已委托给 {dst.display_name or dst.username}")
+
+
+@router.post("/payment-settings/delegations/{delegation_id}/close")
+def close_delegation(request: Request, delegation_id: int):
+    with SessionLocal() as db:
+        row = db.get(CashierDelegation, delegation_id)
+        if row is not None:
+            row.status = "closed"
             db.commit()
-        except IntegrityError:
-            db.rollback()
-            return _redirect(request, "该用户已分配该账套")
-    return _redirect(request, "出纳分配已保存")
+    return _redirect(request, "委托已结束")
 
 
 @router.post("/payment-settings/cashiers/{scope_id}/delete")

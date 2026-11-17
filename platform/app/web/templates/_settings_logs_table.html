@@ -1,0 +1,39 @@
+{% from "_ui.html" import pagination_bar %}
+<div id="settings-logs-region">
+  {% if log_rows %}
+  <div class="table-scroll">
+  <table class="log-table">
+    <thead><tr><th>时间</th><th>操作</th><th>对象</th><th>发生了什么</th></tr></thead>
+    <tbody>
+      {% for log in log_rows %}
+      {% set details = log | audit_details %}
+      <tr>
+        <td class="when">{{ log.created_at.strftime('%m-%d %H:%M') if log.created_at else '—' }}</td>
+        <td>
+          <b>{{ log.action | audit_action }}</b>
+          <div class="cell-sub">{{ log.actor | audit_actor }}</div>
+        </td>
+        <td class="muted nowrap">{{ log | audit_target }}</td>
+        <td class="summary">
+          {{ log | audit_summary }}
+          {% if details %}
+          <details class="log-detail">
+            <summary>详情</summary>
+            <dl class="log-kv">
+              {% for key, value in details %}
+              <dt>{{ key }}</dt><dd>{{ value }}</dd>
+              {% endfor %}
+            </dl>
+          </details>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {{ pagination_bar('/settings/system', 'settings-logs-region', log_pager.page, log_pager.pages, log_pager.total, log_pager.size, unit='条记录', params=log_params) }}
+  {% else %}
+    <div class="empty">还没有操作记录</div>
+  {% endif %}
+</div>

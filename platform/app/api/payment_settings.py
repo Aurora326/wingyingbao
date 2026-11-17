@@ -182,7 +182,7 @@ def create_cashier(payload: CashierIn, db: Session = Depends(get_db)):
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=400, detail="该用户已分配该账套") from exc
+        raise HTTPException(status_code=400, detail="该账套已分配给其他出纳，一个账套只能有一个出纳") from exc
     return {"id": scope.id}
 
 

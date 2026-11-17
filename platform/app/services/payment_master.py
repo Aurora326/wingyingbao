@@ -1,57 +1,18 @@
-"""从付款单据沉淀收/付款基础资料。
+"""从付款单据沉淀收付款基础资料。
 
-收款方沉淀到收款账户库（PayeeAccount），付款方对齐到账户主数据（BankAccount）。
+收款方沉淀到收款账户库（PayeeAccount）；付款方只关联已有的银行账户，不新建。
 只做补全和关联，不覆盖出纳已经维护过的字段。
 """
 from __future__ import annotations
 
-import re
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import BankAccount, Enterprise, PayeeAccount, PaymentDoc
-
-# 按顺序匹配，先长后短，避免「中国银行」误伤「中国建设银行」这类名称
-_BANK_KEYWORDS = (
-    ("工商银行", "icbc"),
-    ("建设银行", "ccb"),
-    ("农业银行", "abc"),
-    ("中国银行", "boc"),
-    ("中信银行", "citic"),
-    ("兴业银行", "cib"),
-    ("上海银行", "bosh"),
-    ("宁波银行", "nb"),
-    ("南京银行", "njcb"),
-    ("广发银行", "cgb"),
-    ("农商", "shrcb"),
-    ("招商银行", "cmb"),
-    ("工行", "icbc"),
-    ("建行", "ccb"),
-    ("农行", "abc"),
-    ("中行", "boc"),
-    ("中信", "citic"),
-    ("兴业", "cib"),
-    ("招行", "cmb"),
-)
-
-_ACCOUNT_RE = re.compile(r"^[0-9]{8,32}$")
+from app.models import BankAccount, PayeeAccount, PaymentDoc
 
 
 def _text(value) -> str:
     return "".join(str(value or "").split())
-
-
-def infer_bank_code(bank_name: str) -> str:
-    text = _text(bank_name)
-    for keyword, code in _BANK_KEYWORDS:
-        if keyword in text:
-            return code
-    return ""
-
-
-def _valid_account(account_no: str) -> bool:
-    return bool(_ACCOUNT_RE.match(account_no))
 
 
 def sync_payees(db: Session) -> dict:
@@ -104,14 +65,13 @@ def sync_payees(db: Session) -> dict:
 
 
 def sync_payers(db: Session) -> dict:
-    created = linked = 0
+    """付款账户由「账户管理」维护，这里只把单据关联到已有账户，不新建。"""
+    linked = 0
     unmatched = 0
-    enterprises = {e.name: e for e in db.execute(select(Enterprise)).scalars().all()}
     docs = db.execute(select(PaymentDoc).where(PaymentDoc.payer_name != "")).scalars().all()
     for doc in docs:
-        name = _text(doc.payer_name)
         account_no = _text(doc.payer_account_no)
-        if not name or not _valid_account(account_no):
+        if not account_no:
             if doc.payer_account_id is None:
                 unmatched += 1
             continue
@@ -119,30 +79,13 @@ def sync_payers(db: Session) -> dict:
             select(BankAccount).where(BankAccount.account_no == account_no)
         ).scalars().first()
         if account is None:
-            enterprise = enterprises.get(name)
-            bank_code = infer_bank_code(doc.payer_bank)
-            if enterprise is None or not bank_code:
-                unmatched += 1
-                continue
-            account = BankAccount(
-                enterprise_id=enterprise.id,
-                bank_code=bank_code,
-                account_no=account_no,
-                account_name=name[:128],
-                currency=doc.currency or "CNY",
-                collect_enabled=False,
-                payment_enabled=True,
-                has_ukey=False,
-                usage_tag="单据同步",
-            )
-            db.add(account)
-            db.flush()
-            created += 1
+            unmatched += 1
+            continue
         if doc.payer_account_id != account.id:
             doc.payer_account_id = account.id
             linked += 1
     db.commit()
-    return {"created": created, "linked": linked, "unmatched": unmatched}
+    return {"created": 0, "linked": linked, "unmatched": unmatched}
 
 
 def sync_payment_master(db: Session) -> dict:

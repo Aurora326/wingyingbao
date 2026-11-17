@@ -105,7 +105,6 @@ def main() -> int:
         automation = BOSCAutomation()
         config = automation.config
         config.collection.payments.enabled = True
-        config.collection.payments.action = "save"
         config.collection.payments.batch_file = str(batch_json)
         config.collection.payments.payer_account = str(task.get("payer_account_no") or "")
         config.collection.payments.payer_name = str(task.get("payer_name") or "")

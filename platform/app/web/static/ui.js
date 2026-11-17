@@ -35,6 +35,8 @@ function openAccountModal() {
   if (note) note.hidden = true;
   const enabledField = document.getElementById("account-enabled-field");
   if (enabledField) enabledField.style.display = "";
+  const enabledLabel = document.getElementById("account-enabled-label");
+  if (enabledLabel) enabledLabel.textContent = "创建后启用自动采集";
   const enabledBox = document.getElementById("account-collect-enabled");
   if (enabledBox) enabledBox.checked = false;
   if (form) {
@@ -64,8 +66,11 @@ function switchPane(name, button) {
     tab.classList.toggle("active", active);
     tab.setAttribute("aria-selected", active ? "true" : "false");
   });
-  const search = document.getElementById("device-search");
-  if (name === "devices" && search) filterDeviceRows(search.value);
+  if (window.history && window.history.replaceState) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", name);
+    window.history.replaceState(null, "", url.toString());
+  }
 }
 
 function togglePassword(inputId, button) {
@@ -73,8 +78,12 @@ function togglePassword(inputId, button) {
   if (!input) return;
   const show = input.type === "password";
   input.type = show ? "text" : "password";
-  button.textContent = show ? "隐藏" : "显示";
-  button.setAttribute("aria-label", show ? "隐藏密码" : "显示密码");
+  const label = show ? "隐藏密码" : "显示密码";
+  button.setAttribute("aria-label", label);
+  button.setAttribute("title", label);
+  const icon = button.querySelector("use");
+  if (icon) icon.setAttribute("href", show ? "#i-eye-off" : "#i-eye");
+  else button.textContent = show ? "隐藏" : "显示";
 }
 
 function describeCron(cron) {
@@ -108,21 +117,8 @@ function applySchedulePreset(value) {
   if (preview) preview.textContent = describeCron(input.value);
 }
 
-function filterDeviceRows(query) {
-  const keyword = (query || "").trim().toLowerCase();
-  const rows = document.querySelectorAll("#device-table tbody tr[data-search]");
-  let visible = 0;
-  rows.forEach((row) => {
-    const hit = !keyword || row.dataset.search.includes(keyword);
-    row.classList.toggle("hidden", !hit);
-    if (hit) visible += 1;
-  });
-  const count = document.getElementById("device-count-visible");
-  if (count) count.textContent = visible;
-  if (typeof refreshPagers === "function") refreshPagers(true);
-}
-
 function sanitizeFilterForm(form) {
+  if (form.hasAttribute("hx-get") || form.hasAttribute("hx-post")) return;
   Array.from(form.elements).forEach((el) => {
     if (el.name && el.tagName !== "BUTTON" && el.value === "") el.disabled = true;
   });
@@ -150,8 +146,12 @@ function quickRange(kind) {
   document.querySelectorAll("[data-range]").forEach((el) => {
     el.classList.toggle("active", el.dataset.range === kind);
   });
-  sanitizeFilterForm(form);
-  form.submit();
+  if (typeof form.requestSubmit === "function") {
+    form.requestSubmit();
+  } else {
+    sanitizeFilterForm(form);
+    form.submit();
+  }
 }
 
 function copyText(text, message) {
@@ -236,6 +236,4 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   const preset = document.getElementById("schedule-preset");
   if (preset) applySchedulePreset(preset.value);
-  const search = document.getElementById("device-search");
-  if (search) filterDeviceRows(search.value);
 });

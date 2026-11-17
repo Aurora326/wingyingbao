@@ -76,8 +76,8 @@ def _check_doc(doc: PaymentDoc) -> str:
     return ""
 
 
-def load_docs(db: Session, doc_ids: list[int]) -> tuple[list[PaymentDoc], list[dict]]:
-    """按传入顺序取出单据，并把不能制单的挑出来。"""
+def load_docs(db: Session, doc_ids: list[int], books: set[int] | None = None) -> tuple[list[PaymentDoc], list[dict]]:
+    """按传入顺序取出单据，并把不能制单的挑出来。books 为空集表示无权制单。"""
     wanted = list(dict.fromkeys(int(i) for i in doc_ids))
     if not wanted:
         raise DraftError("请先选择要制单的单据")
@@ -89,6 +89,9 @@ def load_docs(db: Session, doc_ids: list[int]) -> tuple[list[PaymentDoc], list[d
         doc = by_id.get(doc_id)
         if doc is None:
             problems.append({"id": doc_id, "apply_no": "", "reason": "单据不存在"})
+            continue
+        if books is not None and doc.book_set_id not in books:
+            problems.append({"id": doc.id, "apply_no": doc.apply_no, "reason": "不在你负责的账套范围内"})
             continue
         reason = _check_doc(doc)
         if reason:
@@ -106,8 +109,8 @@ def _group(docs: list[PaymentDoc]) -> dict[tuple[int, str], list[PaymentDoc]]:
     return groups
 
 
-def preview(db: Session, doc_ids: list[int]) -> dict:
-    docs, problems = load_docs(db, doc_ids)
+def preview(db: Session, doc_ids: list[int], books: set[int] | None = None) -> dict:
+    docs, problems = load_docs(db, doc_ids, books)
     groups = _group(docs)
     accounts = {
         account.id: account
@@ -180,9 +183,9 @@ def _write_file(task_dir: Path, task: PaymentDraftTask, docs: list[PaymentDoc]) 
     return path
 
 
-def create_batch(db: Session, doc_ids: list[int], operator: str = "") -> PaymentDraftBatch:
+def create_batch(db: Session, doc_ids: list[int], operator: str = "", books: set[int] | None = None) -> PaymentDraftBatch:
     """按付款账户拆分并落库，单据进入制单中，同一批不会重复发起。"""
-    docs, problems = load_docs(db, doc_ids)
+    docs, problems = load_docs(db, doc_ids, books)
     if problems:
         names = "、".join(item["apply_no"] or f"#{item['id']}" for item in problems[:5])
         raise DraftError(f"{len(problems)} 条单据不能制单：{names}", problems)

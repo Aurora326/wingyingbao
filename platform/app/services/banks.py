@@ -39,3 +39,19 @@ def list_banks(registry: dict | None = None) -> list[dict]:
         for code, name in BANK_NAMES.items()
         if settings.enable_mock_bank or code != "mock"
     ]
+
+
+# 历史数据和供应商接口里上海银行写过 bosc，统一按 bosh 处理。
+_BANK_ALIASES = {"bosc": "bosh"}
+
+
+def bank_key(code: str | None) -> str:
+    """比较银行是否同一家时用，把历史别名归一到现行代码。"""
+    value = (code or "").strip().lower()
+    return _BANK_ALIASES.get(value, value)
+
+
+def bank_label(code: str | None) -> str:
+    """银行代码转中文名，未知代码原样大写显示。"""
+    key = bank_key(code)
+    return BANK_NAMES.get(key, (code or "").upper())

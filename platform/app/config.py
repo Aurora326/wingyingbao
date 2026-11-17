@@ -76,7 +76,12 @@ class Settings:
 
     def __post_init__(self) -> None:
         if not self.db_url:
-            object.__setattr__(self, "db_url", os.getenv("PLATFORM_DB_URL") or f"sqlite:///{self.data_dir / 'app.db'}")
+            object.__setattr__(
+                self,
+                "db_url",
+                os.getenv("PLATFORM_DB_URL")
+                or "postgresql+psycopg://platform:platform@127.0.0.1:5432/platform",
+            )
 
     @property
     def artifacts_dir(self) -> Path:

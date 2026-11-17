@@ -39,7 +39,7 @@ services:
       PLATFORM_ADMIN_USER: ${PLATFORM_ADMIN_USER:-admin}
       PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-admin123}
       PLATFORM_TIMEZONE: ${PLATFORM_TIMEZONE:-Asia/Shanghai}
-      # 留空则回退到 SQLite（data/app.db），本地无 PG 时可用
+      # 仅支持 PostgreSQL；默认连接编排里的 postgres 服务
       PLATFORM_DB_URL: ${PLATFORM_DB_URL:-postgresql+psycopg://platform:platform@postgres:5432/platform}
       PLATFORM_ENABLE_WORKER: "0"
       PLATFORM_ENABLE_SCHEDULER: ${PLATFORM_ENABLE_SCHEDULER:-1}

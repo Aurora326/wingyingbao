@@ -1,10 +1,10 @@
-{% from "_ui.html" import bank_name, bank_mark, task_status, task_type_text, trigger_text, error_text %}
+{% from "_ui.html" import bank_name, bank_mark, task_status, task_type_text, trigger_text, error_text, pagination_bar %}
 <div class="panel">
   {% if tasks %}
   <div class="table-wrap">
   <table>
     <thead>
-      <tr><th>时间</th><th>账户</th><th>采集内容</th><th>覆盖日期</th><th>结果</th><th></th></tr>
+      <tr><th>时间</th><th>完成时间</th><th>账户</th><th>采集内容</th><th>覆盖日期</th><th>结果</th><th></th></tr>
     </thead>
     <tbody>
       {% for t in tasks %}
@@ -13,6 +13,7 @@
           <b>{% if t.created_at %}{{ t.created_at.strftime('%m-%d %H:%M') }}{% else %}—{% endif %}</b>
           <div class="cell-sub">{{ trigger_text(t.trigger) }}{% if t.daily_seq %} · 当日第 {{ t.daily_seq }} 次{% endif %} · {{ '本机' if t.agent_code in ('', 'local') else t.agent_code }}</div>
         </td>
+        <td class="muted nowrap">{% if t.finished_at %}{{ t.finished_at.strftime('%m-%d %H:%M') }}{% else %}—{% endif %}</td>
         <td>
           <div class="acct-cell">
             {{ bank_mark(t.bank_code) }}
@@ -56,42 +57,5 @@
       </div>
     </div>
   {% endif %}
-  {% set qs = ('status=' ~ (status|urlencode) ~ '&') if status else '' %}
-  {% set start = 1 if page_no <= 3 else page_no - 2 %}
-  {% set end = pages if page_no >= pages - 2 else page_no + 2 %}
-  {% if pages > 1 %}
-  <div class="pagination">
-    {% if page_no > 1 %}
-    <a class="page-btn" href="/tasks?{{ qs }}page={{ page_no - 1 }}">上一页</a>
-    {% else %}
-    <span class="page-btn disabled">上一页</span>
-    {% endif %}
-    {% if start > 1 %}
-    <a class="page-btn" href="/tasks?{{ qs }}page=1">1</a>
-    {% if start > 2 %}<span class="page-gap">…</span>{% endif %}
-    {% endif %}
-    {% for p in range(start, end + 1) %}
-      {% if p == page_no %}
-      <span class="page-btn active">{{ p }}</span>
-      {% else %}
-      <a class="page-btn" href="/tasks?{{ qs }}page={{ p }}">{{ p }}</a>
-      {% endif %}
-    {% endfor %}
-    {% if end < pages %}
-      {% if end < pages - 1 %}<span class="page-gap">…</span>{% endif %}
-      <a class="page-btn" href="/tasks?{{ qs }}page={{ pages }}">{{ pages }}</a>
-    {% endif %}
-    {% if page_no < pages %}
-    <a class="page-btn" href="/tasks?{{ qs }}page={{ page_no + 1 }}">下一页</a>
-    {% else %}
-    <span class="page-btn disabled">下一页</span>
-    {% endif %}
-    <span class="page-info">第 {{ page_no }} / {{ pages }} 页 · 共 {{ total }} 条</span>
-    <form class="page-jump" method="get" action="/tasks">
-      <input type="hidden" name="status" value="{{ status }}">
-      <label>跳至 <input type="number" name="page" min="1" max="{{ pages }}" value="{{ page_no }}"> 页</label>
-      <button class="small" type="submit">跳转</button>
-    </form>
-  </div>
-  {% endif %}
+  {{ pagination_bar('/tasks', 'task-region', page_no, pages, total, size, unit='条', params={'status': status, 'size': size}) }}
 </div>

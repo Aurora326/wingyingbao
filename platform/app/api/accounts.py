@@ -15,6 +15,7 @@ from app.models import Agent, AuditLog, BankAccount, BalanceSnapshot, Collection
 from app.schemas import AccountCreate, AccountDeviceUpdate, AccountUpdate, AgentCreate, CredentialUpdate, DeviceCreate
 from app.services import account_admin, device_sync, permissions, security
 from app.services.agents import resolve_agent_code
+from app.services.banks import bank_key
 from app.services.scheduler import enqueue_task, task_range, task_types_for
 from app.services.usb_robot import UsbRobotError
 
@@ -126,7 +127,7 @@ def _apply_device_binding(db: Session, account: BankAccount, device_id: int | No
         device = db.get(UkeyDevice, device_id)
         if device is None:
             raise HTTPException(status_code=404, detail="UKey 设备不存在")
-        if device.bank_code and account.bank_code and device.bank_code != account.bank_code:
+        if device.bank_code and account.bank_code and bank_key(device.bank_code) != bank_key(account.bank_code):
             raise HTTPException(status_code=400, detail="UKey 所属银行与账户不一致")
         other = db.execute(
             select(BankAccount).where(
@@ -207,6 +208,9 @@ def update_account(
     if payload.account_name is not None:
         account.account_name = payload.account_name
         changed.append("account_name")
+    if payload.collect_enabled is not None:
+        account.collect_enabled = payload.collect_enabled
+        changed.append("collect_enabled")
     if payload.collect_cron is not None:
         account.collect_cron = payload.collect_cron.strip()
         changed.append("collect_cron")

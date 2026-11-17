@@ -27,31 +27,56 @@ def _doc(**overrides) -> PaymentDoc:
     return PaymentDoc(**values)
 
 
-def test_sync_builds_payee_and_payer_master(db):
-    db.add(Enterprise(name="测试付款单位甲"))
+def test_sync_builds_payee_and_links_existing_payer(db):
+    enterprise = Enterprise(name="测试付款单位甲")
+    db.add(enterprise)
+    db.flush()
+    payer = BankAccount(
+        enterprise_id=enterprise.id,
+        bank_code="ccb",
+        account_no="3105016100009999",
+        account_name="测试付款单位甲",
+    )
+    db.add(payer)
     db.add(_doc())
     db.commit()
 
     result = sync_payment_master(db)
     assert result["payees"]["created"] >= 1
-    assert result["payers"]["created"] >= 1
+    # 付款账户由账户管理维护，同步不再自动创建
+    assert result["payers"]["created"] == 0
+    assert result["payers"]["linked"] >= 1
 
     doc = db.execute(select(PaymentDoc).where(PaymentDoc.apply_no == "SYNC-TEST-0001")).scalars().one()
     payee = db.execute(
         select(PayeeAccount).where(PayeeAccount.account_no == "6222000000001234")
     ).scalars().one()
-    payer = db.execute(
-        select(BankAccount).where(BankAccount.account_no == "3105016100009999")
-    ).scalars().one()
     assert doc.payee_account_id == payee.id
     assert doc.payer_account_id == payer.id
-    assert payer.bank_code == "ccb"
-    assert payer.collect_enabled is False
     assert payee.branch_name == "徐汇支行"
 
     again = sync_payment_master(db)
     assert again["payees"]["created"] == 0
-    assert again["payers"]["created"] == 0
+    assert again["payers"]["linked"] == 0
+
+
+def test_sync_never_creates_payer_accounts(db):
+    db.add(Enterprise(name="测试付款单位丙"))
+    db.add(
+        _doc(
+            apply_no="SYNC-TEST-0003",
+            payer_name="测试付款单位丙",
+            payer_account_no="3105016100008888",
+        )
+    )
+    db.commit()
+
+    result = sync_payment_master(db)
+    assert result["payers"]["created"] == 0
+    assert result["payers"]["unmatched"] >= 1
+    assert db.execute(
+        select(BankAccount).where(BankAccount.account_no == "3105016100008888")
+    ).scalars().first() is None
 
 
 def test_sync_leaves_invalid_accounts_unmatched(db):

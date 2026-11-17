@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>{% block title %}银行财务平台{% endblock %}</title>
+  <title>{% block title %}上海浦东地产司库系统{% endblock %}</title>
   <link rel="stylesheet" href="/static/app.css?v={{ asset_v }}">
   <script>
     try {
@@ -64,8 +64,8 @@
       </svg>
     </span>
     <span class="wordmark">
-      <span class="name">银行财务平台</span>
-      <span class="cap">Treasury Console</span>
+      <span class="name">上海浦东地产司库系统</span>
+      <span class="cap">Pudong Treasury</span>
     </span>
   </a>
 
@@ -121,6 +121,11 @@
       <svg class="ico"><use href="#i-wallet"/></svg><span>基础资料</span>
     </a>
     {% endif %}
+    {% if can_menu(nav_role, 'payment_settings') %}
+    <a href="/payment-settings" class="{{ 'active' if page == 'payment_settings' }}" {% if page == 'payment_settings' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-card"/></svg><span>付款设置</span>
+    </a>
+    {% endif %}
     {% if can_menu(nav_role, 'devices') %}
     <a href="/devices" class="{{ 'active' if page == 'devices' }}" {% if page == 'devices' %}aria-current="page"{% endif %}>
       <svg class="ico"><use href="#i-device"/></svg><span>UKey 设备</span>
@@ -140,16 +145,21 @@
   </nav>
 
   <div class="side-foot">
-    <a class="side-help" href="#" onclick="openModal('help-modal'); return false;">
-      <svg class="ico"><use href="#i-help"/></svg><span>使用指南</span>
-    </a>
     <button class="side-toggle" type="button" onclick="toggleSidebar()"
             aria-controls="app-sidebar" aria-expanded="true" title="收起侧栏">
       <svg class="ico"><use href="#i-chevron"/></svg><span>收起侧栏</span>
     </button>
     <div class="user">
-      <span class="avatar">财</span>
-      <span class="meta"><b>{{ role_label(nav_role) }}</b><span>已安全登录</span></span>
+      {% set nav_user = request.state.user if request.state.user is defined and request.state.user else none %}
+      {% set nav_name = (nav_user.display_name or nav_user.username) if nav_user else role_label(nav_role) %}
+      {% set nav_sub = nav_user.username if nav_user and nav_name == role_label(nav_role) else role_label(nav_role) %}
+      <a class="user-link" href="/profile" title="个人设置">
+        <span class="avatar">{{ nav_name[:1] }}</span>
+        <span class="meta">
+          <b>{{ nav_name }}</b>
+          <span>{{ nav_sub }}</span>
+        </span>
+      </a>
       <a class="logout" href="/logout" title="退出登录" aria-label="退出登录">
         <svg class="ico"><use href="#i-logout"/></svg>
       </a>
@@ -164,37 +174,6 @@
 </main>
 
 <div id="toast"></div>
-
-<div class="modal" id="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title">
-  <div class="box form-box">
-    <div class="head">
-      <div>
-        <strong id="help-title">三步开始使用</strong>
-        <div class="modal-sub">新用户从这里了解平台的日常工作方式</div>
-      </div>
-      <button class="icon-btn" onclick="closeModal('help-modal')" aria-label="关闭">
-        <svg class="ico"><use href="#i-close"/></svg>
-      </button>
-    </div>
-    <div class="guide">
-      <div class="guide-step">
-        <span class="step-no">1</span>
-        <div><b>添加银行账户</b><p>在「账户管理」里添加账号，填好网银登录信息，并绑定对应的 UKey。</p></div>
-      </div>
-      <div class="guide-step">
-        <span class="step-no">2</span>
-        <div><b>让系统自动采集</b><p>系统会按设定时间自动登录每家银行，把流水和回单取回来，无需守在电脑前。</p></div>
-      </div>
-      <div class="guide-step">
-        <span class="step-no">3</span>
-        <div><b>在首页看结果</b><p>首页会汇总余额、今日收支和需要处理的事项；数据有问题时，系统会主动提示。</p></div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="primary" onclick="closeModal('help-modal')">知道了</button>
-    </div>
-  </div>
-</div>
 
 <div class="modal" id="log-modal" onclick="if(event.target === this) closeLog()">
   <div class="box log-viewer" role="dialog" aria-modal="true" aria-labelledby="log-title">

@@ -1,0 +1,34 @@
+{% from "_ui.html" import pagination_bar %}
+<div id="devices-agents-region">
+  {% if agent_rows %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>名称</th><th>状态</th><th>最近心跳</th><th>设备数</th><th>支持能力</th><th>接入</th></tr></thead>
+    <tbody>
+      {% for ag in agent_rows %}
+      <tr>
+        <td>
+          <b>{{ ag.name }}</b>
+          <div class="cell-sub mono">{{ ag.code }} · {{ ag.hostname or '未上报主机名' }} · {{ ag.ip or '未上报 IP' }}</div>
+        </td>
+        <td>{% if ag.status == 'online' %}<span class="tag green">在线</span>{% else %}<span class="tag red">离线</span>{% endif %}</td>
+        <td class="muted nowrap">{{ ag.last_heartbeat | dt }}</td>
+        <td>{{ ag.device_count }}</td>
+        <td class="muted">{{ ag.capabilities.backends | join(' / ') if ag.capabilities and ag.capabilities.backends else '—' }}</td>
+        <td>
+          {% if agent_tokens.get(ag.code) %}
+          <button class="small" type="button" onclick="openAgentAccess('{{ ag.code }}')">接入信息</button>
+          {% else %}
+          <span class="faint">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {{ pagination_bar('/devices', 'devices-agents-region', agent_pager.page, agent_pager.pages, agent_pager.total, agent_pager.size, unit='台电脑', params=agent_params, page_param='apage', size_param='asize') }}
+  {% else %}
+    <div class="empty">还没有登记采集电脑</div>
+  {% endif %}
+</div>

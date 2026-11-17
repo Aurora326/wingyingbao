@@ -332,6 +332,7 @@ class AppUser(Base, TimestampMixin, TenantMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    display_name: Mapped[str] = mapped_column(String(64), default="", server_default="")
     password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
     role: Mapped[str] = mapped_column(String(16), default="admin")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -354,11 +355,12 @@ class BookSet(Base, TimestampMixin, TenantMixin):
 
 
 class CashierScope(Base, TimestampMixin, TenantMixin):
-    """出纳/复核人与账套的授权关系。"""
+    """出纳与账套的授权关系。一个账套只挂一个出纳。"""
 
     __tablename__ = "cashier_scope"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "user_id", "book_set_id", "role", name="uq_cashier_scope"),
+        UniqueConstraint("tenant_id", "book_set_id", "role", name="uq_cashier_scope"),
+        Index("ix_cashier_scope_user", "user_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -366,6 +368,21 @@ class CashierScope(Base, TimestampMixin, TenantMixin):
     book_set_id: Mapped[int] = mapped_column(ForeignKey("book_set.id"), nullable=False)
     role: Mapped[str] = mapped_column(String(16), default="cashier")
     status: Mapped[str] = mapped_column(String(16), default="active")
+
+
+class CashierDelegation(Base, TimestampMixin, TenantMixin):
+    """出纳请假时的整人委托：委托方的账套在有效期内对受托方可见。"""
+
+    __tablename__ = "cashier_delegation"
+    __table_args__ = (Index("ix_cashier_delegation_to", "to_user_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    from_user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id"), nullable=False)
+    to_user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id"), nullable=False)
+    start_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="active")
+    remark: Mapped[str] = mapped_column(String(256), default="")
 
 
 class PayeeAccount(Base, TimestampMixin, TenantMixin):
@@ -380,7 +397,6 @@ class PayeeAccount(Base, TimestampMixin, TenantMixin):
             "account_no",
             unique=True,
             postgresql_where=text("account_no <> ''"),
-            sqlite_where=text("account_no <> ''"),
         ),
     )
 

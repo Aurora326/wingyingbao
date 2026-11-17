@@ -6,11 +6,12 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.db import SessionLocal
 from app.models import PaymentDraftBatch, PaymentDraftTask
 from app.services import permissions
+from app.services.payment_scope import allowed_book_sets
 from app.services.banks import BANK_NAMES
 from app.services.payment_draft import (
     BATCH_FAILED,
@@ -25,6 +26,7 @@ from app.services.payment_draft import (
     mark_task_done,
     preview,
 )
+from app.web.pagination import is_hx, normalize_size
 from app.web.routes import templates
 
 router = APIRouter()
@@ -68,17 +70,39 @@ def _back(msg: str = "", next_url: str = "/payment-drafts") -> RedirectResponse:
 
 
 @router.get("/payment-drafts")
-def drafts_page(request: Request, msg: str = "", status: str = ""):
+def drafts_page(request: Request, msg: str = "", status: str = "", page: int = 1, size: int = 20):
+    resolved_size = normalize_size(size, 20)
+    user = getattr(request.state, "user", None)
+    own_only = permissions.effective_role(getattr(user, "role", None)) == "cashier"
     with SessionLocal() as db:
         query = (
             select(PaymentDraftTask, PaymentDraftBatch)
             .join(PaymentDraftBatch, PaymentDraftTask.batch_id == PaymentDraftBatch.id)
-            .order_by(PaymentDraftTask.id.desc())
-            .limit(200)
         )
+        if own_only:
+            query = query.where(PaymentDraftBatch.created_by == getattr(user, "username", ""))
         if status:
             query = query.where(PaymentDraftTask.status == status)
-        rows = db.execute(query).all()
+        total = int(
+            db.execute(
+                select(func.count()).select_from(query.subquery())
+            ).scalar_one() or 0
+        )
+        pages = max(1, (total + resolved_size - 1) // resolved_size)
+        page_no = min(max(1, page), pages)
+        rows = db.execute(
+            query.order_by(PaymentDraftTask.id.desc())
+            .offset((page_no - 1) * resolved_size)
+            .limit(resolved_size)
+        ).all()
+        pending_query = select(func.count(PaymentDraftTask.id)).join(
+            PaymentDraftBatch, PaymentDraftTask.batch_id == PaymentDraftBatch.id
+        ).where(PaymentDraftTask.status.not_in((TASK_SUCCEEDED, TASK_FAILED)))
+        if own_only:
+            pending_query = pending_query.where(
+                PaymentDraftBatch.created_by == getattr(user, "username", "")
+            )
+        pending = int(db.execute(pending_query).scalar_one() or 0)
 
     tasks = []
     for task, batch in rows:
@@ -102,21 +126,22 @@ def drafts_page(request: Request, msg: str = "", status: str = ""):
                 "done_at": task.done_at,
             }
         )
-    pending = sum(1 for item in tasks if item["status"] not in (TASK_SUCCEEDED, TASK_FAILED))
-    return templates.TemplateResponse(
-        request=request,
-        name="payment_drafts.html",
-        context={
-            "page": "payment_drafts",
-            "tasks": tasks,
-            "pending": pending,
-            "status": status,
-            "status_labels": TASK_LABELS,
-            "can_draft": _can_draft(request),
-            "bank_names": BANK_NAMES,
-            "msg": msg,
-        },
-    )
+    ctx = {
+        "page": "payment_drafts",
+        "tasks": tasks,
+        "pending": pending,
+        "status": status,
+        "status_labels": TASK_LABELS,
+        "can_draft": _can_draft(request),
+        "bank_names": BANK_NAMES,
+        "msg": msg,
+        "page_no": page_no,
+        "pages": pages,
+        "total": total,
+        "size": resolved_size,
+    }
+    tpl = "_payment_drafts_region.html" if is_hx(request, "payment-drafts-region") else "payment_drafts.html"
+    return templates.TemplateResponse(request=request, name=tpl, context=ctx)
 
 
 @router.get("/payment-drafts/{task_id}/log")
@@ -145,7 +170,7 @@ def drafts_preview(request: Request, doc_ids: list[int] = Form(default=[])):
         return JSONResponse({"detail": "没有制单权限"}, status_code=403)
     with SessionLocal() as db:
         try:
-            data = preview(db, doc_ids)
+            data = preview(db, doc_ids, allowed_book_sets(db, getattr(request.state, "user", None)))
         except DraftError as exc:
             return JSONResponse({"detail": exc.message}, status_code=400)
     return data
@@ -157,7 +182,12 @@ def drafts_create(request: Request, doc_ids: list[int] = Form(default=[])):
         return JSONResponse({"detail": "没有制单权限"}, status_code=403)
     with SessionLocal() as db:
         try:
-            batch = create_batch(db, doc_ids, operator=_operator(request))
+            batch = create_batch(
+                db,
+                doc_ids,
+                operator=_operator(request),
+                books=allowed_book_sets(db, getattr(request.state, "user", None)),
+            )
         except DraftError as exc:
             return JSONResponse(
                 {"detail": exc.message, "problems": exc.problems}, status_code=400

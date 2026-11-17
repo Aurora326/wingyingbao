@@ -1,13 +1,12 @@
 {# Shared presentation helpers: plain-language labels for finance users. #}
 
 {%- macro bank_name(code) -%}
-{%- set names = {'citic':'中信银行','cib':'兴业银行','icbc':'工商银行','nbcb':'宁波银行','njcb':'南京银行','cgb':'广发银行','mock':'模拟银行','ccb':'建设银行','bocom':'交通银行','cmb':'招商银行','cmbc':'民生银行','boc':'中国银行','abc':'农业银行','psbc':'邮储银行','shrcb':'上海农商银行','bosc':'上海银行','spdb':'浦发银行','bod':'大连银行','generic':'其他银行'} -%}
-{{- names.get(code, (code or '')|upper) -}}
+{{- bank_label(code) -}}
 {%- endmacro -%}
 
 {%- macro bank_mark(code) -%}
-{%- set initials = {'citic':'中','cib':'兴','icbc':'工','nbcb':'宁','njcb':'南','cgb':'广','mock':'演','ccb':'建','bocom':'交','cmb':'招','cmbc':'民','boc':'中','abc':'农','psbc':'邮','shrcb':'沪','bosc':'上','spdb':'浦','bod':'大','generic':'其'} -%}
-<span class="bank-mark {{ code }}">{{ initials.get(code, (code or '?')[:1]|upper) }}</span>
+{%- set label = bank_label(code) -%}
+<span class="bank-mark {{ code }}">{{ label[:1] if label else '?' }}</span>
 {%- endmacro -%}
 
 {%- macro task_status(status, cancel_requested=false) -%}
@@ -78,4 +77,66 @@
 
 {%- macro signed_money(direction, amount) -%}
 <span class="money {{ 'in' if direction == 'credit' else 'out' }}">{{ '+' if direction == 'credit' else '-' }}{{ amount | money }}</span>
+{%- endmacro -%}
+
+{%- macro pagination_bar(base, target, page_no, pages, total, size, unit='条', params=None, page_param='page', size_param='size', push_url=true) -%}
+{%- if total > 0 -%}
+{%- set p_dict = params or {} -%}
+{%- set start = 1 if page_no <= 3 else page_no - 2 -%}
+{%- set end = pages if page_no >= pages - 2 else page_no + 2 -%}
+{%- set push = 'true' if push_url else 'false' -%}
+<div class="pagination">
+  <span class="page-info">共 <b>{{ total }}</b> {{ unit }} · 第 {{ page_no }} / {{ pages }} 页</span>
+  <form class="page-size-form" method="get" action="{{ base }}"
+        hx-get="{{ base }}" hx-target="#{{ target }}" hx-swap="outerHTML" hx-push-url="{{ push }}">
+    {%- for k, v in p_dict.items() %}
+      {%- if k != page_param and k != size_param and v is not none and v != '' %}
+    <input type="hidden" name="{{ k }}" value="{{ v }}">
+      {%- endif %}
+    {%- endfor %}
+    <input type="hidden" name="{{ page_param }}" value="1">
+    <label class="page-size">每页
+      <select name="{{ size_param }}" aria-label="每页显示条数"
+              hx-get="{{ base }}" hx-target="#{{ target }}" hx-swap="outerHTML" hx-push-url="{{ push }}"
+              hx-include="closest form">
+        {%- for n in PAGE_SIZES %}
+        <option value="{{ n }}" {{ 'selected' if size == n }}>{{ n }} 条</option>
+        {%- endfor %}
+      </select>
+    </label>
+  </form>
+  <div class="page-list">
+    {%- if page_no > 1 %}
+    {%- set prev_url = page_url(base, p_dict, **{page_param: page_no - 1}) %}
+    <a class="page-btn" href="{{ prev_url }}" hx-get="{{ prev_url }}" hx-target="#{{ target }}" hx-swap="outerHTML" hx-push-url="{{ push }}" aria-label="上一页">‹</a>
+    {%- else %}
+    <span class="page-btn disabled" aria-hidden="true">‹</span>
+    {%- endif %}
+    {%- if start > 1 %}
+    {%- set first_url = page_url(base, p_dict, **{page_param: 1}) %}
+    <a class="page-btn" href="{{ first_url }}" hx-get="{{ first_url }}" hx-target="#{{ target }}" hx-swap="outerHTML" hx-push-url="{{ push }}">1</a>
+    {%- if start > 2 %}<span class="page-gap">…</span>{% endif %}
+    {%- endif %}
+    {%- for p in range(start, end + 1) %}
+    {%- if p == page_no %}
+    <span class="page-btn active" aria-current="page">{{ p }}</span>
+    {%- else %}
+    {%- set p_url = page_url(base, p_dict, **{page_param: p}) %}
+    <a class="page-btn" href="{{ p_url }}" hx-get="{{ p_url }}" hx-target="#{{ target }}" hx-swap="outerHTML" hx-push-url="{{ push }}">{{ p }}</a>
+    {%- endif %}
+    {%- endfor %}
+    {%- if end < pages %}
+    {%- if end < pages - 1 %}<span class="page-gap">…</span>{% endif %}
+    {%- set last_url = page_url(base, p_dict, **{page_param: pages}) %}
+    <a class="page-btn" href="{{ last_url }}" hx-get="{{ last_url }}" hx-target="#{{ target }}" hx-swap="outerHTML" hx-push-url="{{ push }}">{{ pages }}</a>
+    {%- endif %}
+    {%- if page_no < pages %}
+    {%- set next_url = page_url(base, p_dict, **{page_param: page_no + 1}) %}
+    <a class="page-btn" href="{{ next_url }}" hx-get="{{ next_url }}" hx-target="#{{ target }}" hx-swap="outerHTML" hx-push-url="{{ push }}" aria-label="下一页">›</a>
+    {%- else %}
+    <span class="page-btn disabled" aria-hidden="true">›</span>
+    {%- endif %}
+  </div>
+</div>
+{%- endif -%}
 {%- endmacro -%}

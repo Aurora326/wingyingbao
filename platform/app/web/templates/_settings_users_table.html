@@ -1,0 +1,61 @@
+{% from "_ui.html" import pagination_bar %}
+<div id="settings-users-region">
+  <div class="table-wrap">
+    <table class="user-table">
+      <colgroup>
+        <col>
+        <col class="col-account">
+        <col class="col-created">
+        <col class="col-role">
+        <col class="col-state">
+        <col class="col-actions">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>用户名</th>
+          <th>登录账户</th>
+          <th>创建时间</th>
+          <th>角色</th>
+          <th>状态</th>
+          <th class="ta-right">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in user_rows %}
+        <tr>
+          <td>
+            <div class="user-cell">
+              <span class="user-avatar">{{ (u.display_name or u.username)[:1] }}</span>
+              <div class="user-cell-main">
+                <div class="user-name">
+                  <b>{{ u.display_name or u.username }}</b>
+                  {% if u.id == current_user_id %}<span class="tag user-current">当前账号</span>{% endif %}
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="muted">{{ u.username }}</td>
+          <td class="muted nowrap">{{ u.created_at | dt if u.created_at else '—' }}</td>
+          <td><span class="tag">{{ role_labels.get(u.role, u.role) }}</span></td>
+          <td>
+            {% if u.is_active %}<span class="tag green">启用</span>{% else %}<span class="tag">停用</span>{% endif %}
+          </td>
+          <td class="user-actions">
+            <button class="link-btn" type="button" onclick="openUserEdit(this)"
+                    data-user-id="{{ u.id }}"
+                    data-display-name="{{ u.display_name or u.username }}"
+                    data-username="{{ u.username }}"
+                    data-role="{{ u.role }}"
+                    data-active="{{ 1 if u.is_active else 0 }}"
+                    data-self="{{ 1 if u.id == current_user_id else 0 }}">编辑</button>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not user_rows %}
+        <tr><td colspan="6" class="set-empty">还没有用户</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination_bar('/settings/users', 'settings-users-region', user_pager.page, user_pager.pages, user_pager.total, user_pager.size, unit='个用户', params={'size': user_pager.size}) }}
+</div>

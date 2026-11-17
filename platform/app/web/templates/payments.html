@@ -1,179 +1,14 @@
 {% extends "base.html" %}
-{% block title %}付款协同 · 银行财务平台{% endblock %}
+{% block title %}付款协同 · 上海浦东地产司库系统{% endblock %}
 {% block content %}
-{% set pages = ((total - 1) // size) + 1 if total else 1 %}
-
 <div class="page-head">
   <div>
     <div class="eyebrow">收付款</div>
     <h1>付款协同</h1>
-    <div class="sub">明源云与 OA 付款单据入库后，可直接修改单据信息；银行侧复核与授权不在平台内完成。</div>
   </div>
 </div>
 
-<div class="panel pay-panel">
-  {% if msg %}<div class="callout">{{ msg }}</div>{% endif %}
-  <form method="get" action="/payments" class="pay-filters">
-    <div class="search-box">
-      <svg class="ico"><use href="#i-search"/></svg>
-      <input type="search" name="q" value="{{ q }}" placeholder="申请编号 / 主题 / 收款单位 / 项目">
-    </div>
-    <select name="payer" class="pay-payer-select" aria-label="按付款单位筛选" onchange="this.form.submit()">
-      <option value="">全部付款单位</option>
-      {% for name in payer_options %}
-      <option value="{{ name }}" {{ 'selected' if payer == name }}>{{ name }}</option>
-      {% endfor %}
-    </select>
-    <input type="hidden" name="status" value="{{ status }}">
-    <button class="small" type="submit">搜索</button>
-    {% if q or payer %}
-    <a class="btn small" href="/payments?status={{ status }}&size={{ size }}">清除</a>
-    {% endif %}
-    <nav class="pay-tabs pay-tabs-inline" aria-label="按状态筛选">
-      <a class="pay-tab {{ 'active' if not status }}" href="/payments?q={{ q|urlencode }}&payer={{ payer|urlencode }}">全部 <span>{{ total_all }}</span></a>
-      {% for key in status_order %}
-      <a class="pay-tab {{ 'active' if status == key }}" href="/payments?status={{ key }}&q={{ q|urlencode }}&payer={{ payer|urlencode }}">
-        {{ status_labels.get(key, key) }} <span>{{ counts.get(key, 0) }}</span>
-      </a>
-      {% endfor %}
-    </nav>
-  </form>
-
-  {% if can_draft %}
-  <div class="pay-bulk">
-    <span class="muted" id="pay-picked-count">未选择单据</span>
-    <button class="small primary" type="button" id="pay-draft-btn" onclick="openDraftPreview()" disabled>发起制单</button>
-  </div>
-  {% endif %}
-
-  <div class="table-wrap">
-    <table class="pay-table">
-      <thead>
-        <tr>
-          <th class="pick"><input type="checkbox" id="pay-pick-all" aria-label="全选可制单单据" onchange="toggleAllDocs(this)"></th>
-          <th class="center" style="width:78px">数据来源</th>
-          <th style="width:250px">单据</th>
-          <th style="width:175px">收款方</th>
-          <th style="width:175px">付款方</th>
-          <th class="num" style="width:117px">金额</th>
-          <th style="width:190px">项目 / 合同</th>
-          <th style="width:130px">审批</th>
-          <th style="width:100px">状态</th>
-          <th style="width:110px">创建时间</th>
-          <th style="width:140px">操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for doc in docs %}
-        <tr>
-          <td class="pick">
-            {% if doc.status == 'ready' and doc.payer_account_id %}
-            <input type="checkbox" class="pay-pick" value="{{ doc.id }}" aria-label="选择 {{ doc.apply_no }}" onchange="updatePickCount()">
-            {% endif %}
-          </td>
-          <td class="center pay-source" style="text-align:center">{{ doc.source_system or '明源云' }}</td>
-          <td class="pay-main">
-            <b>{{ doc.apply_no }}</b>
-            {% if doc.doc_type == 'non_contract' %}<span class="tag plain">无合同</span>{% endif %}
-            {% if doc.doc_type == 'expense' %}<span class="tag plain">费用报销</span>{% endif %}
-            <div class="cell-sub" title="{{ doc.subject }}">{{ doc.subject }}</div>
-            <div class="cell-sub" title="{{ doc.applicant }} · {{ doc.department }} · {{ doc.apply_date | dt }}">{{ doc.applicant }} · {{ doc.department }} · {{ doc.apply_date | dt }}</div>
-          </td>
-          <td>
-            <div class="pay-party" title="{{ doc.payee_name }}">{{ doc.payee_name }}</div>
-            <div class="cell-sub mono" title="{{ doc.payee_account_no }}">{{ doc.payee_account_no or '—' }}</div>
-            <div class="cell-sub" title="{{ doc.payee_bank }}">{{ doc.payee_bank or '—' }}</div>
-          </td>
-          <td>
-            <div class="pay-party" title="{{ doc.payer_name }}">{{ doc.payer_name }}</div>
-            <div class="cell-sub mono" title="{{ doc.payer_account_no }}">{{ doc.payer_account_no or '—' }}</div>
-            {% if doc.payer_sub_account_id %}<div class="cell-sub">{{ sub_names.get(doc.payer_sub_account_id, '') }}</div>{% endif %}
-            <div class="cell-sub" title="{{ doc.payer_bank }}">{{ doc.payer_bank or '—' }}</div>
-          </td>
-          <td class="num pay-amount">{{ doc.amount | money }}<div class="cell-sub">{{ doc.currency }}</div></td>
-          <td>
-            <div class="pay-project" title="{{ doc.project_name }}">{{ doc.project_name or '—' }}</div>
-            <div class="cell-sub" title="{{ doc.contract_name }} {{ doc.contract_no }}">{{ doc.contract_name or '' }} {{ doc.contract_no or '' }}</div>
-          </td>
-          <td>
-            <div class="cell-sub" title="{{ doc.approval_status }}">{{ doc.approval_status or '—' }}</div>
-            {% if doc.approval_node and doc.approval_node != doc.approval_status %}
-            <div class="cell-sub" title="{{ doc.approval_node }}{{ ' · ' ~ doc.approval_handler if doc.approval_handler }}">当前节点：{{ doc.approval_node }}{% if doc.approval_handler %} · {{ doc.approval_handler }}{% endif %}</div>
-            {% endif %}
-            {% if doc.approval_steps %}
-            <details class="approval-detail">
-              <summary>审批过程 {{ doc.approval_steps | length }} 步</summary>
-              <table class="kv">
-                <thead><tr><th>节点</th><th>审批人</th><th>结果</th><th>意见</th><th>时间</th></tr></thead>
-                <tbody>
-                  {% for step in doc.approval_steps %}
-                  <tr>
-                    <td>{{ step.get('审批节点', '') }}</td>
-                    <td>{{ step.get('审批人', '') }}</td>
-                    <td>{{ step.get('审批结果', '') }}</td>
-                    <td>{{ step.get('审批意见', '') }}</td>
-                    <td class="nowrap">{{ step.get('审批时间', '') }}</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </details>
-            {% endif %}
-          </td>
-          <td>
-            <span class="pay-status status-{{ doc.status }}">{{ status_labels.get(doc.status, doc.status) }}</span>
-            {% if doc.reject_reason %}<div class="cell-sub danger">{{ doc.reject_reason }}</div>{% endif %}
-          </td>
-          <td class="muted nowrap">{{ doc.created_at.strftime('%Y-%m-%d') if doc.created_at else '—' }}</td>
-          <td>
-            <div class="pay-row-actions">
-            <button class="small" type="button" onclick="openPayEdit(this)" data-doc="{{ doc.id }}">编辑</button>
-            </div>
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="11" class="pay-empty">
-            暂无付款单据。
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  {% if total > 0 %}
-  <div class="pay-pager">
-    <form class="pay-size-form" method="get" action="/payments">
-      <input type="hidden" name="status" value="{{ status }}">
-      <input type="hidden" name="q" value="{{ q }}">
-      <input type="hidden" name="payer" value="{{ payer }}">
-      <label class="pay-size">每页
-        <select name="size" onchange="this.form.submit()">
-          {% for n in (10, 20, 50, 100) %}
-          <option value="{{ n }}" {{ 'selected' if size == n }}>{{ n }} 条</option>
-          {% endfor %}
-        </select>
-      </label>
-    </form>
-    {% if page_no > 1 %}
-    <a class="btn small" href="/payments?status={{ status }}&q={{ q }}&payer={{ payer|urlencode }}&size={{ size }}&page={{ page_no - 1 }}">上一页</a>
-    {% endif %}
-    <span class="muted">第 {{ page_no }} / {{ pages }} 页 · 共 {{ total }} 条</span>
-    {% if page_no < pages %}
-    <a class="btn small" href="/payments?status={{ status }}&q={{ q }}&payer={{ payer|urlencode }}&size={{ size }}&page={{ page_no + 1 }}">下一页</a>
-    {% endif %}
-    <form class="page-jump" method="get" action="/payments">
-      <input type="hidden" name="status" value="{{ status }}">
-      <input type="hidden" name="q" value="{{ q }}">
-      <input type="hidden" name="payer" value="{{ payer }}">
-      <input type="hidden" name="size" value="{{ size }}">
-      <label>跳至 <input type="number" name="page" min="1" max="{{ pages }}" value="{{ page_no }}"> 页</label>
-      <button class="small" type="submit">跳转</button>
-    </form>
-  </div>
-  {% endif %}
-</div>
+{% include "_payments_region.html" %}
 
 <div class="modal" id="pay-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="pay-confirm-title">
   <div class="box form-box pay-action-box">
@@ -260,7 +95,7 @@
     <form method="post" id="pay-edit-form">
       <div class="form-grid">
         <div class="field"><label for="pay-edit-apply-no">申请编号</label><input id="pay-edit-apply-no" name="apply_no" required></div>
-        <div class="field"><label for="pay-edit-date">申请日期</label><input id="pay-edit-date" type="date" name="apply_date"></div>
+        <div class="field"><label for="pay-edit-date">申请日期</label><input id="pay-edit-date" type="text" data-datepicker name="apply_date"></div>
         <div class="field full"><label for="pay-edit-subject">申请主题</label><input id="pay-edit-subject" name="subject"></div>
         <div class="field"><label for="pay-edit-applicant">申请人</label><input id="pay-edit-applicant" name="applicant"></div>
         <div class="field"><label for="pay-edit-department">申请部门</label><input id="pay-edit-department" name="department"></div>
@@ -798,9 +633,7 @@
     height:34px; max-width:220px; padding:0 8px; border:1px solid var(--line); border-radius:8px;
     background:var(--surface); font-size:12.5px; color:var(--text);
   }
-  .pay-size { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--muted); white-space:nowrap; }
-  .pay-size select { height:30px; padding:0 6px; }
-  .pay-size-form { margin-right:auto; display:flex; }
+  .pay-panel .pagination { padding:14px 18px; margin-top:0; }
   .pay-panel .table-wrap { margin:0; padding:0; }
   .pay-table { min-width:1280px; table-layout:fixed; }
   .pay-table th, .pay-table td { padding:12px 14px; vertical-align:top; }
@@ -841,7 +674,6 @@
   .approval-detail .kv { margin-top:6px; font-size:11px; }
   .approval-detail .kv th, .approval-detail .kv td { padding:5px 7px; }
   .pay-empty { padding:42px 16px !important; text-align:center; color:var(--muted); }
-  .pay-pager { display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:10px 18px; border-top:1px solid var(--line); }
 
   .task-log {
     max-height:240px; overflow:auto; margin:6px 0 0; padding:10px;

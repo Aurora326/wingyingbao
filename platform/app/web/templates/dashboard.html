@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_ui.html" import bank_name, task_type_text, trigger_text, error_text %}
-{% block title %}资金总览 · 银行财务平台{% endblock %}
+{% block title %}资金总览 · 上海浦东地产司库系统{% endblock %}
 {% block content %}
 {% set todo_count = (0 if s.accounts else 1) + s.failed_tasks + (1 if s.unmatched_count else 0) + (s.anomalies | length) %}
 <div class="page-head">

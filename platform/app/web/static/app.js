@@ -664,7 +664,11 @@ function openEditAccountModal(button) {
   document.getElementById("account-modal-title").textContent = "编辑银行账户";
   document.getElementById("account-submit").textContent = "保存修改";
   const enabledField = document.getElementById("account-enabled-field");
-  if (enabledField) enabledField.style.display = "none";
+  if (enabledField) enabledField.style.display = "";
+  const enabledLabel = document.getElementById("account-enabled-label");
+  if (enabledLabel) enabledLabel.textContent = "启用自动采集";
+  const enabledBox = document.getElementById("account-collect-enabled");
+  if (enabledBox) enabledBox.checked = button.dataset.collectEnabled === "1";
 
   const bank = document.getElementById("account-bank");
   bank.value = button.dataset.bank || "";
@@ -699,6 +703,7 @@ async function submitAccountForm(event) {
   const accountId = form.account_id.value;
   const payload = {
     account_name: form.account_name.value,
+    collect_enabled: Boolean(form.collect_enabled && form.collect_enabled.checked),
     collect_cron: form.collect_cron.value,
     collect_mode: form.collect_mode.value,
     days_back: parseInt(form.days_back.value || "30", 10),
@@ -716,7 +721,6 @@ async function submitAccountForm(event) {
     } else {
       payload.bank_code = form.bank_code.value;
       payload.account_no = form.account_no.value;
-      payload.collect_enabled = Boolean(form.collect_enabled && form.collect_enabled.checked);
       payload.username = form.username.value;
       payload.password = form.password.value;
       payload.pin = form.pin.value;
@@ -763,16 +767,25 @@ async function syncRobotDevices() {
   }
 }
 
+// 与后端 app/services/banks.py 的 _BANK_ALIASES 保持一致：上海银行历史代码写成 bosc
+const BANK_ALIAS = { bosc: "bosh" };
+
+function bankKey(value) {
+  const v = (value || "").toLowerCase();
+  return BANK_ALIAS[v] || v;
+}
+
 function filterAccountDevices(bank) {
   const select = document.getElementById("account-device");
   if (!select) return;
   let visible = 0;
+  const target = bankKey(bank);
   for (const option of select.options) {
     if (!option.value) {
       option.hidden = false;
       continue;
     }
-    const match = !bank || option.dataset.bank === bank;
+    const match = !target || bankKey(option.dataset.bank) === target;
     option.hidden = !match;
     if (match) visible += 1;
   }
@@ -848,10 +861,6 @@ function initTaskAutoRefresh() {
   const tableBox = document.getElementById("task-table");
   if (!statsBox || !tableBox) return;
 
-  const params = new URLSearchParams(window.location.search);
-  const status = params.get("status") || "";
-  const page = params.get("page") || "1";
-  const source = params.get("source") || "";
   const activeCount = () => Number(document.getElementById("task-stats")?.dataset.active || 0);
   let timer = null;
   let refreshing = false;
@@ -863,6 +872,7 @@ function initTaskAutoRefresh() {
 
   const refresh = async () => {
     if (refreshing || document.hidden) return;
+    if (!document.getElementById("task-stats") || !document.getElementById("task-table")) return;
     if (document.querySelector(".modal.open")) {
       schedule(activeCount() > 0 ? 5000 : 0);
       return;
@@ -870,10 +880,12 @@ function initTaskAutoRefresh() {
     refreshing = true;
     const scrollY = window.scrollY;
     try {
+      const params = new URLSearchParams(window.location.search);
       const query = new URLSearchParams();
-      if (status) query.set("status", status);
-      if (page && page !== "1") query.set("page", page);
-      if (source) query.set("source", source);
+      for (const key of ["status", "page", "size", "source"]) {
+        const val = params.get(key);
+        if (val) query.set(key, val);
+      }
       const suffix = query.toString() ? `?${query.toString()}` : "";
       const response = await fetch(`/tasks/partial${suffix}`, {
         cache: "no-store",
@@ -896,6 +908,7 @@ function initTaskAutoRefresh() {
     }
   };
 
+  window.syncTaskAutoRefresh = () => schedule(activeCount() > 0 ? 3000 : 0);
   schedule(activeCount() > 0 ? 3000 : 0);
   const wake = () => {
     if (document.hidden) return;
@@ -938,103 +951,6 @@ async function importDocs(event) {
   } catch (error) {
     toast("导入失败: " + error.message);
   }
-}
-
-function setupClientPager(container) {
-  if (container.dataset.pagerReady === "1") return;
-  container.dataset.pagerReady = "1";
-
-  const size = Math.max(1, parseInt(container.dataset.pageSize || "10", 10));
-  const selector = container.dataset.pageItems || ":scope > *";
-  const unit = container.dataset.pageUnit || "条";
-  const pager = document.createElement("div");
-  pager.className = "pagination client-pagination";
-  container.insertAdjacentElement("afterend", pager);
-  let page = 1;
-
-  const items = () =>
-    Array.from(container.querySelectorAll(selector)).filter((item) => !item.classList.contains("hidden"));
-
-  const addButton = (label, target, { active = false, disabled = false } = {}) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "page-btn" + (active ? " active" : "") + (disabled ? " disabled" : "");
-    button.textContent = label;
-    button.disabled = disabled;
-    if (active) button.setAttribute("aria-current", "page");
-    button.addEventListener("click", () => {
-      page = target;
-      render();
-    });
-    pager.appendChild(button);
-  };
-
-  const render = () => {
-    const rows = items();
-    const pages = Math.max(1, Math.ceil(rows.length / size));
-    page = Math.min(Math.max(1, page), pages);
-    rows.forEach((item, index) => {
-      item.classList.toggle("page-hidden", index < (page - 1) * size || index >= page * size);
-    });
-
-    pager.replaceChildren();
-    if (rows.length <= size) {
-      pager.classList.add("page-hidden");
-      rows.forEach((item) => item.classList.remove("page-hidden"));
-      return;
-    }
-    pager.classList.remove("page-hidden");
-
-    const info = document.createElement("span");
-    info.className = "page-info client-page-info";
-    info.textContent = `共 ${rows.length} ${unit} · 第 ${page} / ${pages} 页`;
-    pager.appendChild(info);
-
-    addButton("‹", page - 1, { disabled: page <= 1 });
-    const numbers = typeof logPageNumbers === "function" ? logPageNumbers(page, pages) : [1];
-    numbers.forEach((number) => {
-      if (number === "…") {
-        const gap = document.createElement("span");
-        gap.className = "page-gap";
-        gap.textContent = "…";
-        pager.appendChild(gap);
-      } else {
-        addButton(String(number), number, { active: number === page });
-      }
-    });
-    addButton("›", page + 1, { disabled: page >= pages });
-  };
-
-  container._pagerRefresh = (reset = false) => {
-    if (reset) page = 1;
-    render();
-  };
-  render();
-}
-
-function initClientPagers() {
-  document.querySelectorAll("[data-page-size]").forEach(setupClientPager);
-}
-
-// htmx 换掉一块 DOM 后，里面的客户端分页器要重新挂，并清掉旧的翻页条。
-function reinitPagers(root) {
-  const scope = root && root.querySelectorAll ? root : document;
-  const containers = Array.from(scope.querySelectorAll("[data-page-size]"));
-  if (scope.matches && scope.matches("[data-page-size]")) containers.push(scope);
-  containers.forEach((container) => {
-    if (container.dataset.pagerReady === "1") {
-      const next = container.nextElementSibling;
-      if (next && next.classList.contains("client-pagination")) next.remove();
-      delete container.dataset.pagerReady;
-    }
-    setupClientPager(container);
-  });
-}
-
-function refreshPagers(reset = false) {
-  document.querySelectorAll("[data-page-size]").forEach((container) => {
-    if (typeof container._pagerRefresh === "function") container._pagerRefresh(reset);
-  });
 }
 
 function agentAccessToken(code) {
@@ -1236,6 +1152,15 @@ document.body.addEventListener("htmx:afterRequest", (event) => {
   if (modal && modal.id) closeModal(modal.id);
 });
 
+// htmx GET 表单提交前自动去掉空字符串参数，保持地址栏 URL 简洁。
+document.body.addEventListener("htmx:configRequest", (event) => {
+  const detail = event.detail || {};
+  if (detail.verb !== "get" || !detail.parameters) return;
+  for (const key of Object.keys(detail.parameters)) {
+    if (detail.parameters[key] === "") delete detail.parameters[key];
+  }
+});
+
 // 局部替换时先记下滚动位置，换完再放回去，避免页面高度瞬间塌陷导致跳回顶部。
 document.body.addEventListener("htmx:beforeSwap", () => {
   window.__hxScroll = window.scrollY;
@@ -1246,15 +1171,10 @@ document.body.addEventListener("htmx:afterSettle", () => {
     window.scrollTo(0, window.__hxScroll);
     window.__hxScroll = null;
   }
+  if (typeof window.syncTaskAutoRefresh === "function") window.syncTaskAutoRefresh();
+  if (typeof window.updatePickCount === "function") window.updatePickCount();
 });
 
-// swap 完成后重新挂载受影响的客户端分页器。
-document.body.addEventListener("htmx:afterSwap", (event) => {
-  const target = event.detail && event.detail.target;
-  if (target) reinitPagers(target);
-});
-
-document.addEventListener("DOMContentLoaded", initClientPagers);
 document.addEventListener("DOMContentLoaded", syncSidebarToggle);
 
 
@@ -1321,3 +1241,181 @@ async function showDraftLog(taskId) {
     showLogMessage("读取失败: " + error.message);
   }
 }
+
+// ── 轻量日期选择器 ─────────────────────────────────────────
+// 原生 input[type=date] 的弹层由浏览器绘制，样式无法定制；这里换成可控的日历面板。
+(function () {
+  const WEEK = ["一", "二", "三", "四", "五", "六", "日"];
+  const pad = (n) => (n < 10 ? "0" + n : String(n));
+  const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  let panel = null;
+  let view = null;
+  let target = null;
+  let bound = false;
+
+  function parse(value) {
+    const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec((value || "").trim());
+    if (!m) return null;
+    const d = new Date(+m[1], +m[2] - 1, +m[3]);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function buildPanel() {
+    const el = document.createElement("div");
+    el.className = "dp-panel";
+    el.hidden = true;
+    el.innerHTML = [
+      '<div class="dp-head">',
+      '<button type="button" class="dp-nav" data-step="-1" aria-label="上个月">‹</button>',
+      '<span class="dp-title"></span>',
+      '<button type="button" class="dp-nav" data-step="1" aria-label="下个月">›</button>',
+      "</div>",
+      '<div class="dp-week"></div>',
+      '<div class="dp-grid"></div>',
+      '<div class="dp-foot">',
+      '<button type="button" class="dp-clear">清除</button>',
+      '<button type="button" class="dp-today">今天</button>',
+      "</div>",
+    ].join("");
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function render() {
+    if (!panel || !view) return;
+    panel.querySelector(".dp-title").textContent = `${view.y} 年 ${view.m + 1} 月`;
+    panel.querySelector(".dp-week").innerHTML = WEEK.map((w) => `<span>${w}</span>`).join("");
+
+    const grid = panel.querySelector(".dp-grid");
+    grid.innerHTML = "";
+    const first = new Date(view.y, view.m, 1);
+    const start = (first.getDay() + 6) % 7;
+    const days = new Date(view.y, view.m + 1, 0).getDate();
+    const prevDays = new Date(view.y, view.m, 0).getDate();
+    const selected = parse(target ? target.value : "");
+    const today = new Date();
+
+    const cells = [];
+    // offset 记录这一格属于上月(-1)、本月(0)还是下月(1)，点击时按真实月份算日期
+    for (let i = start; i > 0; i -= 1) cells.push({ day: prevDays - i + 1, out: true, offset: -1 });
+    for (let d = 1; d <= days; d += 1) cells.push({ day: d, out: false, offset: 0 });
+    let next = 1;
+    while (cells.length % 7 !== 0) cells.push({ day: next++, out: true, offset: 1 });
+
+    cells.forEach((cell) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "dp-day" + (cell.out ? " out" : "");
+      btn.textContent = String(cell.day);
+      const d = new Date(view.y, view.m + cell.offset, cell.day);
+      const sameDay = selected && d.getFullYear() === selected.getFullYear()
+        && d.getMonth() === selected.getMonth() && d.getDate() === selected.getDate();
+      if (!cell.out && sameDay) btn.classList.add("active");
+      if (!cell.out && d.getFullYear() === today.getFullYear()
+        && d.getMonth() === today.getMonth() && d.getDate() === today.getDate()) {
+        btn.classList.add("today");
+      }
+      btn.addEventListener("mousedown", (event) => {
+        event.preventDefault();
+        setValue(d);
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  function setValue(date) {
+    if (!target) return;
+    target.value = fmt(date);
+    target.dispatchEvent(new Event("input", { bubbles: true }));
+    target.dispatchEvent(new Event("change", { bubbles: true }));
+    close();
+  }
+
+  function position() {
+    if (!panel || !target) return;
+    const rect = target.getBoundingClientRect();
+    const width = panel.offsetWidth || 288;
+    const height = panel.offsetHeight || 340;
+    let left = rect.left;
+    let top = rect.bottom + 6;
+    if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
+    if (top + height > window.innerHeight - 8) top = rect.top - height - 6;
+    panel.style.left = `${Math.max(8, left)}px`;
+    panel.style.top = `${Math.max(8, top)}px`;
+  }
+
+  function open(input) {
+    target = input;
+    const current = parse(input.value) || new Date();
+    view = { y: current.getFullYear(), m: current.getMonth() };
+    if (!panel) {
+      panel = buildPanel();
+      bind();
+    }
+    render();
+    panel.hidden = false;
+    position();
+    input.classList.add("dp-open");
+  }
+
+  function close() {
+    if (panel) panel.hidden = true;
+    if (target) target.classList.remove("dp-open");
+    target = null;
+  }
+
+  function bind() {
+    if (bound) return;
+    bound = true;
+    panel.addEventListener("mousedown", (event) => {
+      const step = event.target.dataset ? event.target.dataset.step : "";
+      if (!step) return;
+      event.preventDefault();
+      const d = new Date(view.y, view.m + Number(step), 1);
+      view = { y: d.getFullYear(), m: d.getMonth() };
+      render();
+    });
+    panel.querySelector(".dp-clear").addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      if (!target) return;
+      target.value = "";
+      target.dispatchEvent(new Event("input", { bubbles: true }));
+      target.dispatchEvent(new Event("change", { bubbles: true }));
+      close();
+    });
+    panel.querySelector(".dp-today").addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      setValue(new Date());
+    });
+    document.addEventListener("mousedown", (event) => {
+      if (!panel || panel.hidden) return;
+      if (panel.contains(event.target)) return;
+      if (target && event.target === target) return;
+      close();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") close();
+    });
+    document.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+  }
+
+  function enhance(root) {
+    (root || document).querySelectorAll("input[data-datepicker]").forEach((input) => {
+      if (input.dataset.dpReady === "1") return;
+      input.dataset.dpReady = "1";
+      input.setAttribute("autocomplete", "off");
+      input.addEventListener("focus", () => open(input));
+      input.addEventListener("click", () => open(input));
+      input.addEventListener("blur", () => {
+        const d = parse(input.value);
+        if (d) input.value = fmt(d);
+      });
+    });
+  }
+
+  window.enhanceDatepickers = enhance;
+  document.addEventListener("DOMContentLoaded", () => enhance(document));
+  document.body.addEventListener("htmx:afterSettle", () => enhance(document));
+})();

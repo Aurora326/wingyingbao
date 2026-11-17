@@ -54,6 +54,7 @@ class AccountDeviceUpdate(BaseModel):
 
 class AccountUpdate(BaseModel):
     account_name: str | None = None
+    collect_enabled: bool | None = None
     collect_cron: str | None = None
     collect_mode: str | None = Field(default=None, pattern="^(statements|receipts|both)$")
     days_back: int | None = Field(default=None, ge=1, le=365)

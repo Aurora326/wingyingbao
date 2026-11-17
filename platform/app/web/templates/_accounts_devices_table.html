@@ -1,0 +1,64 @@
+{% from "_ui.html" import bank_name, device_status, pagination_bar %}
+<div id="accounts-devices-region">
+  {% if device_rows %}
+  <div class="table-scroll">
+    <table id="device-table">
+      <colgroup>
+        <col style="width: 24%">
+        <col style="width: 9%">
+        <col style="width: 15%">
+        <col style="width: 13%">
+        <col style="width: 20%">
+        <col style="width: 9%">
+        <col style="width: 10%">
+      </colgroup>
+      <thead><tr><th>设备名称</th><th>银行</th><th>位置 / 执行机</th><th>终端 / 设备编号</th><th>绑定账户</th><th>状态</th><th>证书到期</th></tr></thead>
+      <tbody>
+        {% for d in device_rows %}
+        {% set bound = device_bindings.get(d.id) %}
+        <tr>
+          <td>
+            <b>{{ d.name }}</b>
+            <div class="cell-sub">{{ d.backend or '—' }}</div>
+          </td>
+          <td>{{ bank_name(d.bank_code) }}</td>
+          <td class="muted">
+            {{ '本地机柜' if d.backend == 'gf3' else '远程机柜' }} · {{ d.gf3 }}
+            <div class="cell-sub">{{ d.agent_name }}</div>
+          </td>
+          <td class="muted">
+            <span class="mono">{{ d.ter_id or '—' }}</span>
+            <div class="cell-sub">{{ d.pid or '—' }}</div>
+          </td>
+          <td class="muted">
+            {% if bound %}
+              {% set parts = bound.split(' · ') %}
+              {{ bank_name(parts[0]) }} · {{ parts[1] if parts|length > 1 else '' }}
+            {% else %}<span class="faint">未绑定</span>{% endif %}
+          </td>
+          <td>
+            {{ device_status(d.status) }}
+            {% if d.last_heartbeat %}<div class="cell-sub">{{ d.last_heartbeat | dt }}</div>{% endif %}
+          </td>
+          <td class="muted nowrap">{% if d.cert_expires_at %}{{ d.cert_expires_at | dt }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination_bar('/accounts', 'accounts-devices-region', dev_pager.page, dev_pager.pages, dev_pager.total, dev_pager.size, unit='台设备', params=dev_params, page_param='dpage', size_param='dsize') }}
+  {% elif dq %}
+  <div class="empty">
+    没有找到匹配的 UKey 设备
+    <div class="empty-actions">
+      {% set clear_url = page_url('/accounts', {'tab': 'devices', 'dsize': dev_pager.size}) %}
+      <a class="btn small" href="{{ clear_url }}">清除搜索</a>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty">
+    还没有同步到 UKey 设备
+    {% if can_manage_devices %}<div class="empty-actions"><a class="btn small" href="/devices">去 UKey 设备页同步</a></div>{% endif %}
+  </div>
+  {% endif %}
+</div>

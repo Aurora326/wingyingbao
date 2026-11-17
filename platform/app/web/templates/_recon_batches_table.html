@@ -1,0 +1,36 @@
+{% from "_ui.html" import pagination_bar %}
+<div class="panel" id="recon-batches-region">
+  {% if batch_rows %}
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>批次</th><th>期间</th><th>结果</th><th>匹配情况</th><th class="num">差额</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for b in batch_rows %}
+      <tr>
+        <td>
+          <b>{{ b.name or ('对账批次 #' ~ b.id) }}</b>
+          <div class="cell-sub">编号 #{{ b.id }}</div>
+        </td>
+        <td class="muted nowrap">{{ b.period_start | dt }} 至 {{ b.period_end | dt }}</td>
+        <td><span class="tag {{ 'green' if b.status == 'done' else 'amber' }}">{{ '已完成' if b.status == 'done' else '进行中' }}</span></td>
+        <td>
+          已匹配 <b>{{ b.matched_count }}</b> 笔
+          <span class="muted">· 未匹配 <b class="{{ 'text-danger' if b.unmatched_count else '' }}">{{ b.unmatched_count }}</b> 笔</span>
+        </td>
+        <td class="num">{{ b.diff_amount | money }}</td>
+        <td class="right nowrap">
+          <a class="btn small" href="/recon?batch_id={{ b.id }}">查看明细</a>
+          <a class="btn small" href="/api/recon/batches/{{ b.id }}/export">导出</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {{ pagination_bar('/recon', 'recon-batches-region', batch_pager.page, batch_pager.pages, batch_pager.total, batch_pager.size, unit='个批次', params=batch_params) }}
+  {% else %}
+    <div class="empty">还没有对账记录。先导入内部单据，再选择期间开始对账</div>
+  {% endif %}
+</div>

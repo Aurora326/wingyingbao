@@ -80,6 +80,7 @@ def seed(db: Session) -> None:
         db.add(
             AppUser(
                 username=settings.admin_user,
+                display_name="管理员",
                 password_hash=security.hash_password(settings.admin_password),
                 role="admin",
             )

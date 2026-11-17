@@ -12,14 +12,11 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# settings.db_url 已处理 PLATFORM_DB_URL 与默认 SQLite，
+# settings.db_url 来自 PLATFORM_DB_URL，只支持 PostgreSQL；
 # configparser 会把 % 当插值符，这里转义一下
 config.set_main_option("sqlalchemy.url", settings.db_url.replace("%", "%%"))
 
 target_metadata = Base.metadata
-
-# SQLite 不支持 ALTER COLUMN，后续变更需借助 batch 模式重建表
-is_sqlite = settings.db_url.startswith("sqlite")
 
 
 def run_migrations_offline() -> None:
@@ -28,7 +25,6 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        render_as_batch=is_sqlite,
         compare_type=True,
     )
     with context.begin_transaction():
@@ -47,7 +43,6 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            render_as_batch=is_sqlite,
             compare_type=True,
         )
         with context.begin_transaction():

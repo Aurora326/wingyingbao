@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
-from app.models import CashierScope, PayeeAccount, PaymentCollectTask, PaymentDoc, PaymentSourceAccount, SubAccount
+from app.models import PayeeAccount, PaymentCollectTask, PaymentDoc, PaymentSourceAccount, SubAccount
+from app.services.payment_scope import allowed_book_sets
 from app.services.payment import (
     PaymentError,
     confirm_accounts,
@@ -58,16 +59,7 @@ def _operator(request: Request) -> str:
 
 
 def _allowed_book_sets(db: Session, request: Request) -> set[int] | None:
-    user = getattr(request.state, "user", None)
-    if user is None or getattr(user, "role", "") == "admin":
-        return None
-    book_sets = db.execute(
-        select(CashierScope.book_set_id).where(
-            CashierScope.user_id == user.id,
-            CashierScope.status == "active",
-        )
-    ).scalars().all()
-    return set(book_sets) if book_sets else None
+    return allowed_book_sets(db, getattr(request.state, "user", None))
 
 
 def _doc_dict(doc: PaymentDoc) -> dict:

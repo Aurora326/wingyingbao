@@ -1,4 +1,4 @@
-{% from "_ui.html" import task_status %}
+{% from "_ui.html" import task_status, pagination_bar %}
 {% set is_oa = source == 'oa' %}
 {% set source_key = 'oa' if is_oa else 'payment' %}
 <div class="panel">
@@ -54,43 +54,5 @@
     </div>
   </div>
   {% endif %}
-  {% set qs = 'source=' ~ source_key ~ '&' ~ ('status=' ~ (status|urlencode) ~ '&' if status else '') %}
-  {% set start = 1 if page_no <= 3 else page_no - 2 %}
-  {% set end = pages if page_no >= pages - 2 else page_no + 2 %}
-  {% if pages > 1 %}
-  <div class="pagination">
-    {% if page_no > 1 %}
-    <a class="page-btn" href="/tasks?{{ qs }}page={{ page_no - 1 }}">上一页</a>
-    {% else %}
-    <span class="page-btn disabled">上一页</span>
-    {% endif %}
-    {% if start > 1 %}
-    <a class="page-btn" href="/tasks?{{ qs }}page=1">1</a>
-    {% if start > 2 %}<span class="page-gap">…</span>{% endif %}
-    {% endif %}
-    {% for p in range(start, end + 1) %}
-      {% if p == page_no %}
-      <span class="page-btn active">{{ p }}</span>
-      {% else %}
-      <a class="page-btn" href="/tasks?{{ qs }}page={{ p }}">{{ p }}</a>
-      {% endif %}
-    {% endfor %}
-    {% if end < pages %}
-      {% if end < pages - 1 %}<span class="page-gap">…</span>{% endif %}
-      <a class="page-btn" href="/tasks?{{ qs }}page={{ pages }}">{{ pages }}</a>
-    {% endif %}
-    {% if page_no < pages %}
-    <a class="page-btn" href="/tasks?{{ qs }}page={{ page_no + 1 }}">下一页</a>
-    {% else %}
-    <span class="page-btn disabled">下一页</span>
-    {% endif %}
-    <span class="page-info">第 {{ page_no }} / {{ pages }} 页 · 共 {{ total }} 条</span>
-    <form class="page-jump" method="get" action="/tasks">
-      <input type="hidden" name="source" value="{{ source_key }}">
-      <input type="hidden" name="status" value="{{ status }}">
-      <label>跳至 <input type="number" name="page" min="1" max="{{ pages }}" value="{{ page_no }}"> 页</label>
-      <button class="small" type="submit">跳转</button>
-    </form>
-  </div>
-  {% endif %}
+  {{ pagination_bar('/tasks', 'task-region', page_no, pages, total, size, unit='条', params={'source': source_key, 'status': status, 'size': size}) }}
 </div>

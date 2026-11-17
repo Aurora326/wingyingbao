@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}个人设置 · 上海浦东地产司库系统{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">账号</div>
+    <h1>个人设置</h1>
+  </div>
+</div>
+
+{% if msg %}<div class="callout">{{ msg }}</div>{% endif %}
+
+<div class="panel set-panel">
+  <div class="profile-head">
+    <span class="avatar">{{ profile.display_name[:1] }}</span>
+    <div>
+      <b>{{ profile.display_name }}</b>
+      <div class="cell-sub">登录账户 {{ profile.username }} · {{ profile.role_label }}{% if profile.created_at %} · 创建于 {{ profile.created_at | dt }}{% endif %}</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel set-panel">
+  <div class="panel-head">
+    <div>
+      <h2>修改密码</h2>
+      <div class="panel-sub">修改后下次登录使用新密码，当前登录状态不受影响。</div>
+    </div>
+  </div>
+  <form method="post" action="/profile/password" class="set-form set-form-bar">
+    <label>原密码<input type="password" name="old_password" required autocomplete="current-password"></label>
+    <label>新密码<input type="password" name="new_password" required minlength="8" autocomplete="new-password"></label>
+    <button class="primary small" type="submit">保存新密码</button>
+  </form>
+</div>
+
+{% if role == 'cashier' %}
+<div class="panel set-panel">
+  <div class="panel-head">
+    <div>
+      <h2>我负责的账套</h2>
+      <div class="panel-sub">这些账套下的付款单据由你处理。</div>
+    </div>
+  </div>
+  {% if books %}
+  <div class="scope-tags">
+    {% for name in books %}<span class="tag">{{ name }}</span>{% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">还没有分配账套，请联系管理员。</div>
+  {% endif %}
+</div>
+
+<div class="panel set-panel">
+  <div class="panel-head">
+    <div>
+      <h2>委托给同事</h2>
+      <div class="panel-sub">请假时把名下账套临时交给另一名出纳，立即生效，到期自动收回；单次最长 {{ max_days }} 天。</div>
+    </div>
+  </div>
+  {% if peers %}
+  <form method="post" action="/profile/delegations" class="set-form set-form-bar">
+    <label>受托人
+      <select name="to_user_id" required>
+        <option value="">选择出纳</option>
+        {% for p in peers %}<option value="{{ p.id }}">{{ p.display_name or p.username }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>开始<input type="text" data-datepicker name="start_date" value="{{ today }}" required></label>
+    <label>截止<input type="text" data-datepicker name="end_date" value="{{ today }}" required></label>
+    <label>备注<input name="remark" maxlength="64" placeholder="选填"></label>
+    <button class="primary small" type="submit">发起委托</button>
+  </form>
+  {% else %}
+  <div class="empty">至少还需要另一名出纳才能建立委托。</div>
+  {% endif %}
+
+  {% if outgoing %}
+  <div class="table-wrap" style="margin-top:14px">
+    <table class="set-table">
+      <thead><tr><th>受托人</th><th>起止日期</th><th>状态</th><th>备注</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for d in outgoing %}
+        <tr>
+          <td>{{ d.peer }}</td>
+          <td class="nowrap">{{ d.start }} ~ {{ d.end }}</td>
+          <td>
+            {% if d.status == 'closed' %}<span class="tag">已结束</span>
+            {% elif d.start > today %}<span class="tag blue">未开始</span>
+            {% elif d.end < today %}<span class="tag">已到期</span>
+            {% else %}<span class="tag green">生效中</span>{% endif %}
+          </td>
+          <td class="muted">{{ d.remark or '—' }}</td>
+          <td>
+            {% if d.status == 'active' %}
+            <form method="post" action="/profile/delegations/{{ d.id }}/close">
+              <button class="small" type="submit">结束</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+{% if incoming %}
+<div class="panel set-panel">
+  <div class="panel-head">
+    <div>
+      <h2>别人委托给我的账套</h2>
+      <div class="panel-sub">到期自动收回，不需要确认；委托期间对方的单据你也能看到并制单。</div>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="set-table">
+      <thead><tr><th>委托方</th><th>起止日期</th><th>状态</th><th>备注</th></tr></thead>
+      <tbody>
+        {% for d in incoming %}
+        <tr>
+          <td>{{ d.peer }}</td>
+          <td class="nowrap">{{ d.start }} ~ {{ d.end }}</td>
+          <td>
+            {% if d.status == 'closed' %}<span class="tag">已结束</span>
+            {% elif d.start > today %}<span class="tag blue">未开始</span>
+            {% elif d.end < today %}<span class="tag">已到期</span>
+            {% else %}<span class="tag green">生效中</span>{% endif %}
+          </td>
+          <td class="muted">{{ d.remark or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+
+<style>
+  .profile-head { display: flex; align-items: center; gap: 14px; }
+  .profile-head .avatar { width: 44px; height: 44px; border-radius: 10px; font-size: 16px; }
+  .profile-head b { font-size: 15px; }
+  .scope-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+</style>
+{% endblock %}

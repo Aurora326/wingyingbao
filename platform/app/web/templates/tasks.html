@@ -1,15 +1,10 @@
 {% extends "base.html" %}
-{% block title %}采集任务 · 银行财务平台{% endblock %}
+{% block title %}采集任务 · 上海浦东地产司库系统{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
     <div class="eyebrow">设置</div>
     <h1>采集任务</h1>
-    <div class="sub">
-      {% if task_source == 'payment' %}明源云付款单据的采集记录，支持定时调度和客户机 Agent 执行。
-      {% elif task_source == 'oa' %}OA 请款与财务报销单据的采集记录，按截止天数采集最近数据。
-      {% else %}系统会按计划自动登录每家银行，把流水和回单取回来。这里能看到每次采集的结果。{% endif %}
-    </div>
   </div>
   <div class="head-meta">
     {% include "_tasks_chip.html" %}
@@ -28,30 +23,7 @@
 {% include "_payment_collect_config.html" %}
 {% endif %}
 
-<div id="task-stats" data-active="{{ stats.running }}">
-  {% if task_source == 'payment' or task_source == 'oa' %}{% include "_payment_tasks_stats.html" %}{% else %}{% include "_tasks_stats.html" %}{% endif %}
-</div>
-
-<div class="tabs">
-  {% if task_source == 'payment' or task_source == 'oa' %}
-  <a class="{{ 'active' if not status }}" href="/tasks?source={{ source }}">全部</a>
-  <a class="{{ 'active' if status == 'queued' }}" href="/tasks?source={{ source }}&status=queued">等待中</a>
-  <a class="{{ 'active' if status == 'running' }}" href="/tasks?source={{ source }}&status=running">进行中</a>
-  <a class="{{ 'active' if status == 'succeeded' }}" href="/tasks?source={{ source }}&status=succeeded">已完成</a>
-  <a class="{{ 'active' if status == 'failed' }}" href="/tasks?source={{ source }}&status=failed">需处理</a>
-  {% else %}
-  <a class="{{ 'active' if not status }}" href="/tasks">全部</a>
-  <a class="{{ 'active' if status == 'queued' }}" href="/tasks?status=queued">等待中</a>
-  <a class="{{ 'active' if status == 'leased' }}" href="/tasks?status=leased">进行中</a>
-  <a class="{{ 'active' if status == 'succeeded' }}" href="/tasks?status=succeeded">已完成</a>
-  <a class="{{ 'active' if status == 'cancelled' }}" href="/tasks?status=cancelled">已停止</a>
-  <a class="{{ 'active' if status == 'failed' }}" href="/tasks?status=failed">需处理</a>
-  {% endif %}
-</div>
-
-<div id="task-table">
-  {% if task_source == 'payment' or task_source == 'oa' %}{% include "_payment_tasks_table.html" %}{% else %}{% include "_tasks_table.html" %}{% endif %}
-</div>
+{% include "_tasks_region.html" %}
 
 <div class="modal" id="retry-task-modal" role="dialog" aria-modal="true" aria-labelledby="retry-task-title">
   <div class="box form-box">

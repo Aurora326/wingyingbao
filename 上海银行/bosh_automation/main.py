@@ -154,7 +154,11 @@ class BOSCAutomation:
 
                 if collect_payments:
                     logger.info("开始制单...")
-                    creator = PaymentCreator(self.browser.page, self.config.collection.payments)
+                    creator = PaymentCreator(
+                        self.browser.page,
+                        self.config.collection.payments,
+                        cabinet_controller=getattr(self.browser, "cabinet_controller", None),
+                    )
                     results["payments"] = creator.create()
 
                 results["success"] = True

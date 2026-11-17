@@ -1,0 +1,32 @@
+{% from "_ui.html" import pagination_bar %}
+<div id="ps-accounts-region">
+  <div class="table-wrap">
+    <table class="set-table">
+      <thead>
+        <tr><th>公司 / 账套</th><th>银行</th><th>账号</th><th>账户性质</th><th>付款权限</th><th>UKey</th><th>子账簿</th><th>状态</th></tr>
+      </thead>
+      <tbody>
+        {% for a in account_rows %}
+        {% set book = books.get(a.enterprise_id) %}
+        <tr>
+          <td>
+            <b>{{ enterprises.get(a.enterprise_id, a.account_name) }}</b>
+            <div class="cell-sub">账套：{{ book.name if book else '—' }}</div>
+          </td>
+          <td>{{ bank_names.get(a.bank_code, a.bank_code) }}</td>
+          <td class="mono">{{ a.account_no }}</td>
+          <td><span class="set-pill">{{ a.account_type or '未分类' }}</span>{% if a.usage_tag %}<div class="cell-sub">{{ a.usage_tag }}</div>{% endif %}</td>
+          <td>{% if a.payment_enabled %}<span class="set-pill ok">可付款</span>{% else %}<span class="set-pill off">不可付款</span>{% endif %}</td>
+          <td>{{ '有' if a.has_ukey else '无盾' }}</td>
+          <td>{% if a.has_sub_accounts %}{{ sub_count.get(a.id, 0) }} 个{% else %}—{% endif %}</td>
+          <td>{{ a.account_status }}</td>
+        </tr>
+        {% endfor %}
+        {% if not account_rows %}
+        <tr><td colspan="8" class="set-empty">还没有账户主数据，请先导入《银行账户信息表.xlsx》。</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination_bar('/payment-settings', 'ps-accounts-region', acct_pager.page, acct_pager.pages, acct_pager.total, acct_pager.size, unit='个账户', params=acct_params) }}
+</div>

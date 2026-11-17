@@ -6,8 +6,6 @@ from sqlalchemy.orm import Session
 
 from app.models import AppSetting
 
-ABC_LEDGER_AUTO_MATCH = "payment.abc_ledger_auto_match"
-
 
 def get_value(db: Session, key: str, default: str = "") -> str:
     row = db.execute(select(AppSetting).where(AppSetting.key == key)).scalars().first()

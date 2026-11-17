@@ -2,26 +2,20 @@ from __future__ import annotations
 
 ROLE_LABELS = {
     "admin": "管理员",
-    "manager": "资金经理",
+    "manager": "财务总监",
     "cashier": "出纳",
-    "accountant": "会计",
-    "user": "普通用户",
 }
-
-# 普通用户是旧角色，按资金经理的业务范围兼容。
-_ROLE_ALIASES = {"user": "manager"}
 
 MENU_ACCESS = {
     "admin": {"dashboard", "accounts", "statements", "receipts", "payments", "recon", "devices", "payment_settings", "tasks", "settings", "master_data"},
     "manager": {"dashboard", "accounts", "statements", "receipts", "payments", "recon"},
     "cashier": {"dashboard", "accounts", "statements", "receipts", "payments"},
-    "accountant": {"dashboard", "accounts", "statements", "receipts", "recon"},
 }
 
 _EDIT_ACCOUNT_ROLES = {"admin", "manager"}
 _COLLECT_ACCOUNT_ROLES = {"admin", "manager", "cashier"}
 _PAYMENT_ROLES = {"manager", "cashier"}
-_RECON_ROLES = {"manager", "accountant"}
+_RECON_ROLES = {"manager"}
 _ADMIN_PREFIXES = ("/settings", "/payment-settings", "/master-data", "/devices", "/tasks", "/tenant/switch", "/api/settings", "/api/payment-settings", "/api/devices", "/api/tasks")
 
 _PAGE_MENUS = {
@@ -41,12 +35,11 @@ _PAGE_MENUS = {
 
 
 def effective_role(role: str | None) -> str:
-    value = role or "user"
-    return _ROLE_ALIASES.get(value, value)
+    return role or ""
 
 
 def role_label(role: str | None) -> str:
-    return ROLE_LABELS.get(role or "", role or "普通用户")
+    return ROLE_LABELS.get(role or "", role or "—")
 
 
 def can_menu(role: str | None, key: str) -> bool:

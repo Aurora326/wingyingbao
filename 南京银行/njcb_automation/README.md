@@ -1,117 +1,42 @@
-# 南京银行企业网银自动采集工具
+# 南京银行企业网银采集
 
-## 功能说明
+Playwright 驱动南京银行企业网银，采集银行流水、电子回单和电子对账单，并附带一个把流水转换成宁波银行离线导入模板的工具。目前没有平台 `run_task.py` 入口，按本机脚本使用。
 
-- 自动登录南京银行企业网银
-- 自动采集银行流水
-- 自动采集电子对账单
-- 自动采集电子回单
-- 支持 UKey 自动 PIN 码输入
-- 支持机柜自动插拔 U 盾（MB/GF3）
-- 支持按年月归档下载文件
-
-## 目录结构
-
-```
-njcb_automation/
-├── main.py                     # 主程序入口
-├── browser.py                  # 浏览器管理
-├── login_manager.py            # 登录逻辑
-├── popup_handler.py            # 弹窗处理
-├── pin_inputter.py             # PIN 自动输入
-├── statement_collector.py      # 流水采集
-├── receipt_collector.py        # 电子回单采集
-├── reconciliation_collector.py # 电子对账单采集
-├── config_loader.py            # 配置加载（引用 common）
-├── logger.py                   # 日志配置（引用 common）
-├── cabinet_controller.py       # 机柜控制（引用 common）
-├── run_recorder.py             # 运行记录（引用 common）
-└── config.ini                  # 配置文件
-```
-
-## 使用方法
-
-### 1. 安装依赖
-
-运行 `安装依赖.bat` 或手动执行：
+## 运行
 
 ```bash
-pip install playwright loguru pyyaml pyautogui
-python -m playwright install chromium
+cd c:\wangyingbao\南京银行\njcb_automation
+python main.py          # 流水 + 回单
+python main.py -s       # 仅流水
+python main.py -r       # 仅回单
+python main.py -rec     # 仅电子对账单
+python main.py -c custom.ini
 ```
 
-### 2. 配置参数
-
-编辑 `njcb_automation/config.ini`：
-
-```ini
-[credentials]
-username = 你的用户名
-password = 你的登录密码
-pin = 你的UKey PIN码
-
-[browser]
-login_url = https://corpauth.njcb.com.cn/ccsp-sso-web/#/login?client_id=ctms-client
-
-[cabinet]
-type = mock       ; mock=手动模式, mb=MB机柜, gf3=GF3机柜
-manual_mode = true
-
-[collection.statements]
-enabled = true
-days_back = 7
-start_date = 2026-07-06
-end_date = 2026-07-06
-accounts = 
-file_format = excel
-download_path = ./downloads/statements
-
-[collection.reconciliation]
-enabled = true
-days_back = 7
-start_date = 2026-07-06
-end_date = 2026-07-06
-accounts = 
-file_format = csv
-download_path = ./downloads/reconciliation
-
-[collection.receipts]
-enabled = true
-days_back = 30
-accounts = 
-file_format = pdf
-download_path = ./downloads/receipts
-```
-
-### 3. 启动程序
+流水转换离线模板：
 
 ```bash
-cd njcb_automation
-python main.py
+python convert_statement_to_template.py --input 南京银行_银行流水_20260703.xlsx --output 离线账户明细导入_已填_20260703.xls
 ```
 
-或双击 `启动采集程序.bat`
+## 配置
 
-命令行参数：
+`config.ini`：
 
-```bash
-python main.py              # 采集流水、电子对账单、电子回单
-python main.py -s           # 仅采集流水
-python main.py -rec         # 仅采集电子对账单
-python main.py -r           # 仅采集电子回单
-```
+- `[credentials]`：用户名、密码、UKey PIN。
+- `[collection.statements]` / `[collection.receipts]` / `[collection.reconciliation]`：各类采集开关与下载目录。
+- `[browser]`：登录地址 `https://corpauth.njcb.com.cn/ccsp-sso-web/#/login?client_id=ctms-client`。
+- `[captcha]`：验证码相关配置。
+- `[cabinet]`：机柜类型与端口。
 
-## 注意事项
+## 页面与坑
 
-1. 首次运行建议设置 `headless = false` 以观察浏览器操作
-2. 如果页面元素选择器与实际不符，请根据实际情况修改代码中的选择器
-3. 流水查询页面 URL 为：`https://ntms.njcb.com.cn/account/bankAccountManage/query/bankAccFlowQuery`
-4. 电子对账单查询页面 URL 为：`https://ntms.njcb.com.cn/pay/bankReconciliation`
-5. 日志文件保存在 `logs/` 目录下
+- 流水查询页：`https://ntms.njcb.com.cn/account/bankAccountManage/query/bankAccFlowQuery`
+- 电子对账单页：`https://ntms.njcb.com.cn/pay/bankReconciliation`
+- UKey PIN 由 `pin_inputter.py` 处理，安全控件场景走 AiKeyboard。
+- 日志在 `logs/`，下载文件在 `downloads/`。
 
-## 常见问题
+## 已知限制
 
-- **登录失败**：检查用户名、密码、PIN 码是否正确
-- **元素找不到**：页面可能有更新，需要调整 CSS/XPath 选择器
-- **下载失败**：检查下载目录权限和磁盘空间
-- **电子对账单无数据**：确认所选账号在指定日期范围内是否有对账单
+- 没有 `run_task.py`，平台采集任务暂时调不到本程序；需要接入时按契约补一个入口。
+- 页面选择器随银行改版需要重取。

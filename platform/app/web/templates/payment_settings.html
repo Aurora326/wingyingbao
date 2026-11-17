@@ -1,11 +1,10 @@
 {% extends "base.html" %}
-{% block title %}付款配置 · 银行财务平台{% endblock %}
+{% block title %}付款配置 · 上海浦东地产司库系统{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
     <div class="eyebrow">设置</div>
     <h1>付款配置</h1>
-    <div class="sub">维护银行账户主数据、出纳与账套分配、收款账户库。付款方名称即账套名称。</div>
   </div>
   <div class="head-meta">
     <a class="btn small" href="/payments">返回付款协同</a>
@@ -77,58 +76,7 @@
     </form>
   </div>
 
-  <div class="table-wrap" data-page-size="10" data-page-items=":scope > table > tbody > tr">
-    <table class="set-table">
-      <thead>
-        <tr><th>公司 / 账套</th><th>银行</th><th>账号</th><th>账户性质</th><th>付款权限</th><th>UKey</th><th>子账簿</th><th>状态</th></tr>
-      </thead>
-      <tbody>
-        {% for a in accounts %}
-        {% set book = books.get(a.enterprise_id) %}
-        <tr>
-          <td>
-            <b>{{ enterprises.get(a.enterprise_id, a.account_name) }}</b>
-            <div class="cell-sub">账套：{{ book.name if book else '—' }}</div>
-          </td>
-          <td>{{ bank_names.get(a.bank_code, a.bank_code) }}</td>
-          <td class="mono">{{ a.account_no }}</td>
-          <td><span class="set-pill">{{ a.account_type or '未分类' }}</span>{% if a.usage_tag %}<div class="cell-sub">{{ a.usage_tag }}</div>{% endif %}</td>
-          <td>{% if a.payment_enabled %}<span class="set-pill ok">可付款</span>{% else %}<span class="set-pill off">不可付款</span>{% endif %}</td>
-          <td>{{ '有' if a.has_ukey else '无盾' }}</td>
-          <td>{% if a.has_sub_accounts %}{{ sub_count.get(a.id, 0) }} 个{% else %}—{% endif %}</td>
-          <td>{{ a.account_status }}</td>
-        </tr>
-        {% endfor %}
-        {% if not accounts %}
-        <tr><td colspan="8" class="set-empty">还没有账户主数据，请先导入《银行账户信息表.xlsx》。</td></tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
-
-  {% if sub_accounts %}
-  <details class="set-details">
-    <summary>查看项目子账簿（{{ sub_accounts | length }} 条）</summary>
-    <div class="table-wrap" data-page-size="10" data-page-items=":scope > table > tbody > tr">
-      <table class="set-table">
-        <thead><tr><th>父账户</th><th>子账簿号</th><th>账簿名称</th><th>对应项目</th><th>币种</th><th>状态</th></tr></thead>
-        <tbody>
-          {% for s in sub_accounts %}
-          {% set parent = account_map.get(s.parent_account_id) %}
-          <tr>
-            <td class="mono">{{ parent.account_no if parent else '—' }}</td>
-            <td class="mono">{{ s.sub_no }}</td>
-            <td>{{ s.ledger_name }}</td>
-            <td>{{ s.project_name }}</td>
-            <td>{{ s.currency }}</td>
-            <td>{{ s.status }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </details>
-  {% endif %}
+  {% include "_ps_accounts_table.html" %}
 </div>
 {% endif %}
 
@@ -137,53 +85,145 @@
   <div class="panel-head">
     <div>
       <h2>出纳与账套分配</h2>
-      <div class="panel-sub">一个用户可分配多个账套；分配后只能看到对应账套的付款单据。</div>
+      <div class="panel-sub">一个账套只挂一个出纳。选择出纳、勾选账套后保存；已属于别人的账套会转移过来。</div>
     </div>
   </div>
-  <form method="post" action="/payment-settings/cashiers?tab=cashiers" class="set-form set-form-bar">
-    <label>用户
-      <select name="user_id" required>
-        <option value="">选择用户</option>
-        {% for u in users %}<option value="{{ u.id }}">{{ u.username }}</option>{% endfor %}
-      </select>
-    </label>
-    <label>账套
-      <select name="book_set_id" required>
-        <option value="">选择账套</option>
-        {% for b in book_sets %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
-      </select>
-    </label>
-    <label>角色
-      <select name="role">
-        <option value="cashier">出纳</option>
-        <option value="reviewer">复核</option>
-      </select>
-    </label>
-    <button class="primary small" type="submit">新增分配</button>
+  <form method="post" action="/payment-settings/cashiers?tab=cashiers" class="scope-form">
+    <div class="scope-toolbar">
+      <label>出纳
+        <select name="user_id" id="scope-user" required>
+          <option value="">选择出纳</option>
+          {% for u in cashier_users %}
+          <option value="{{ u.id }}">{{ u.display_name or u.username }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="search-box">
+        <svg class="ico"><use href="#i-search"/></svg>
+        <input type="search" id="scope-search" placeholder="搜索付款单位">
+      </div>
+      <button class="primary small" type="submit">保存分配</button>
+    </div>
+    {% if cashier_users %}
+    {% macro scope_row(b) %}
+    {% set owner = scope_owner.get(b.id) %}
+    <tr class="scope-row" data-name="{{ b.name }}" data-owner="{{ owner.id if owner else '' }}">
+      <td class="scope-check"><input type="checkbox" name="book_set_ids" value="{{ b.id }}"></td>
+      <td>{{ b.name }}</td>
+      <td class="scope-docs">{{ book_usage.get(b.id, 0) or '—' }}</td>
+      <td class="scope-owner-col">
+        {% if owner %}<span class="tag">{{ owner.display_name or owner.username }}</span>{% else %}<span class="faint">未分配</span>{% endif %}
+      </td>
+    </tr>
+    {% endmacro %}
+    <div class="table-wrap">
+      <table class="scope-table">
+        <thead>
+          <tr>
+            <th class="scope-check"><input type="checkbox" id="scope-all" aria-label="全选"></th>
+            <th>付款单位</th>
+            <th class="scope-docs">单据</th>
+            <th class="scope-owner-col">当前负责人</th>
+          </tr>
+        </thead>
+        <tbody id="scope-list">
+          {% for b in used_books %}{{ scope_row(b) }}{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if idle_books %}
+    <details class="scope-detail">
+      <summary>其它账套（{{ idle_books | length }} 个，暂无付款单据）</summary>
+      <div class="table-wrap">
+        <table class="scope-table">
+          <tbody>
+            {% for b in idle_books %}{{ scope_row(b) }}{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
+    {% else %}
+    <div class="empty">
+      还没有出纳账号
+      <div class="empty-actions"><a class="btn small" href="/settings/users">去新建出纳</a></div>
+    </div>
+    {% endif %}
   </form>
-  <div class="table-wrap" data-page-size="10" data-page-items=":scope > table > tbody > tr">
+</div>
+
+<div class="panel set-panel" style="margin-top:16px">
+  <div class="panel-head">
+    <div>
+      <h2>出纳委托</h2>
+      <div class="panel-sub">出纳请假时把名下账套临时交给另一名出纳；到期自动收回，也可以提前结束。委托期间双方都能看到单据并制单。</div>
+    </div>
+  </div>
+  {% if cashier_users | length > 1 %}
+  <form method="post" action="/payment-settings/delegations?tab=cashiers" class="scope-toolbar">
+    <label>委托方
+      <select name="from_user_id" required>
+        <option value="">选择出纳</option>
+        {% for u in cashier_users %}<option value="{{ u.id }}">{{ u.display_name or u.username }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>受托方
+      <select name="to_user_id" required>
+        <option value="">选择出纳</option>
+        {% for u in cashier_users %}<option value="{{ u.id }}">{{ u.display_name or u.username }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>开始
+      <input type="text" data-datepicker name="start_date" value="{{ today }}" required>
+    </label>
+    <label>截止
+      <input type="text" data-datepicker name="end_date" value="{{ today }}" required>
+    </label>
+    <label>备注
+      <input name="remark" maxlength="64" placeholder="选填">
+    </label>
+    <button class="primary small" type="submit">添加委托</button>
+  </form>
+  {% else %}
+  <div class="empty">至少需要两名出纳才能建立委托。</div>
+  {% endif %}
+  {% if delegations %}
+  <div class="table-wrap">
     <table class="set-table">
-      <thead><tr><th>用户</th><th>账套</th><th>角色</th><th>状态</th><th>操作</th></tr></thead>
+      <thead><tr><th>委托方</th><th>受托方</th><th>起止日期</th><th>状态</th><th>备注</th><th>操作</th></tr></thead>
       <tbody>
-        {% for s in scopes %}
+        {% for d in delegations %}
+        {% set src = user_map.get(d.from_user_id) %}
+        {% set dst = user_map.get(d.to_user_id) %}
         <tr>
-          <td>{{ user_map.get(s.user_id).username if user_map.get(s.user_id) else s.user_id }}</td>
-          <td>{{ book_map.get(s.book_set_id).name if book_map.get(s.book_set_id) else s.book_set_id }}</td>
-          <td>{{ '出纳' if s.role == 'cashier' else '复核' }}</td>
-          <td>{{ s.status }}</td>
+          <td>{{ (src.display_name or src.username) if src else '—' }}</td>
+          <td>{{ (dst.display_name or dst.username) if dst else '—' }}</td>
+          <td class="nowrap">{{ d.start_date }} ~ {{ d.end_date }}</td>
           <td>
-            <form method="post" action="/payment-settings/cashiers/{{ s.id }}/delete?tab=cashiers">
-              <button class="small" type="submit">删除</button>
+            {% if d.status == 'closed' %}
+            <span class="tag">已结束</span>
+            {% elif d.start_date > today %}
+            <span class="tag blue">未开始</span>
+            {% elif d.end_date < today %}
+            <span class="tag">已到期</span>
+            {% else %}
+            <span class="tag green">生效中</span>
+            {% endif %}
+          </td>
+          <td class="muted">{{ d.remark or '—' }}</td>
+          <td>
+            {% if d.status == 'active' %}
+            <form method="post" action="/payment-settings/delegations/{{ d.id }}/close?tab=cashiers">
+              <button class="small" type="submit">结束</button>
             </form>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}
-        {% if not scopes %}
-        <tr><td colspan="5" class="set-empty">还没有出纳分配。</td></tr>
-        {% endif %}
       </tbody>
     </table>
   </div>
+  {% endif %}
 </div>
 {% endif %}
 
@@ -199,9 +239,67 @@
       });
     }
   })();
+
+  (function () {
+    const select = document.getElementById('scope-user');
+    const search = document.getElementById('scope-search');
+    const all = document.getElementById('scope-all');
+    if (!select) return;
+    const items = Array.from(document.querySelectorAll('.scope-row'));
+    const boxOf = (row) => row.querySelector('input');
+
+    function syncAllState() {
+      if (!all) return;
+      const visible = items.filter((row) => !row.hidden);
+      const checked = visible.filter((row) => boxOf(row).checked);
+      all.checked = visible.length > 0 && checked.length === visible.length;
+      all.indeterminate = checked.length > 0 && checked.length < visible.length;
+    }
+
+    function syncChecks() {
+      const uid = select.value;
+      items.forEach(function (row) {
+        boxOf(row).checked = !!uid && row.dataset.owner === uid;
+      });
+      syncAllState();
+    }
+
+    function filter() {
+      const q = (search && search.value.trim()) || '';
+      items.forEach(function (row) {
+        row.hidden = !!q && !row.dataset.name.includes(q);
+      });
+      syncAllState();
+    }
+
+    if (all) {
+      all.addEventListener('change', function () {
+        items.filter((row) => !row.hidden).forEach(function (row) {
+          boxOf(row).checked = all.checked;
+        });
+        syncAllState();
+      });
+    }
+    items.forEach((row) => boxOf(row).addEventListener('change', syncAllState));
+
+    select.addEventListener('change', syncChecks);
+    if (search) search.addEventListener('input', filter);
+    syncChecks();
+  })();
 </script>
 
 <style>
+  .scope-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .scope-table { width: 100%; }
+  .scope-table th { padding: 8px 10px; font-size: 12px; font-weight: 500; color: var(--muted); text-align: left; }
+  .scope-table td { padding: 9px 10px; border-top: 1px solid var(--line); font-size: 12.5px; }
+  .scope-table tbody tr:hover td { background: var(--surface-2); }
+  .scope-table .scope-check { width: 34px; padding-left: 12px; }
+  .scope-table .scope-check input { min-width: 0; width: 15px; height: 15px; padding: 0; }
+  .scope-table .scope-docs { width: 70px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .scope-table .scope-owner-col { width: 150px; }
+  .scope-detail { margin-top: 14px; }
+  .scope-detail > summary { cursor: pointer; font-size: 12.5px; color: var(--muted); }
   .head-meta { display:flex; align-items:center; gap:8px; }
   .callout { margin:0 0 16px; padding:10px 12px; border-left:3px solid var(--brass); border-radius:0 8px 8px 0; background:var(--surface-2); font-size:12.5px; }
   .settings-tabs { display:flex; flex-wrap:wrap; gap:2px; margin:0 0 18px; border-bottom:1px solid var(--line); }

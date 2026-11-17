@@ -110,3 +110,52 @@ def backfill_docs(db: Session) -> dict:
         matched += 1
     db.commit()
     return {"matched": matched, "unmatched": unmatched}
+
+
+def sub_region(db: Session) -> dict:
+    """子账簿区块的数据：账簿清单和可选主账户。
+
+    基础资料页和账户管理页共用这一份，避免两处各查一遍。
+    """
+    from sqlalchemy import func
+
+    subs = (
+        db.execute(select(SubAccount).order_by(SubAccount.parent_account_id, SubAccount.sub_no))
+        .scalars()
+        .all()
+    )
+    sub_docs = dict(
+        db.execute(
+            select(PaymentDoc.payer_sub_account_id, func.count())
+            .where(PaymentDoc.payer_sub_account_id.isnot(None))
+            .group_by(PaymentDoc.payer_sub_account_id)
+        ).all()
+    )
+    account_map = {a.id: a for a in db.execute(select(BankAccount)).scalars().all()}
+    sub_rows = [
+        {
+            "id": sub.id,
+            "parent_id": sub.parent_account_id,
+            "parent_no": account_map[sub.parent_account_id].account_no
+            if sub.parent_account_id in account_map
+            else "",
+            "parent_name": account_map[sub.parent_account_id].account_name
+            if sub.parent_account_id in account_map
+            else "",
+            "sub_no": sub.sub_no,
+            "ledger_name": sub.ledger_name or sub.project_name or sub.sub_no,
+            "project_name": sub.project_name or "",
+            "status": sub.status or "正常",
+            "docs": sub_docs.get(sub.id, 0),
+        }
+        for sub in subs
+    ]
+    parent_options = [
+        {"id": a.id, "name": a.account_name, "account_no": a.account_no}
+        for a in account_map.values()
+        if a.has_sub_accounts or any(sub.parent_account_id == a.id for sub in subs)
+    ]
+    return {
+        "sub_rows": sub_rows,
+        "parent_options": parent_options,
+    }

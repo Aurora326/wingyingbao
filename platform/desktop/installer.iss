@@ -6,7 +6,7 @@
 AppId={{8C2B0C1E-6B3A-4E2E-9C1B-7A5D4F2A9E10}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppPublisher=银行财务平台项目组
+AppPublisher=上海浦东地产司库系统项目组
 DefaultDirName={autopf}\UKeyAgent
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes

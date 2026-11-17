@@ -23,10 +23,10 @@ from app.models import (
     SubAccount,
 )
 from app.services import permissions
-from app.services.abc_ledger import backfill_docs
-from app.services.app_settings import ABC_LEDGER_AUTO_MATCH, get_bool, set_bool
+from app.services.abc_ledger import sub_region
 from app.services.banks import BANK_NAMES
 from app.services.payment_master import sync_payment_master
+from app.web.pagination import is_hx, normalize_size, paginate_items
 from app.web.routes import templates
 
 router = APIRouter()
@@ -54,35 +54,73 @@ def _is_hx(request: Request) -> bool:
     return request.headers.get("HX-Request") == "true"
 
 
-def _fragment(request: Request, msg: str = "", q: str = "", type_: str = "", page: int = 1):
+def _fragment(
+    request: Request,
+    msg: str = "",
+    q: str = "",
+    type_: str = "",
+    page: int = 1,
+    size: int = PAGE_SIZE,
+    spage: int = 1,
+    ssize: int = PAGE_SIZE,
+):
     """htmx 请求：只回渲染后的内容区域，提示走 HX-Trigger 交给 toast。"""
     with SessionLocal() as db:
-        ctx = _region_context(db, q, type_, page, msg)
-    response = templates.TemplateResponse(
-        request=request, name="_master_data_region.html", context=ctx
-    )
+        if request.headers.get("HX-Target") == "sub-region":
+            sub_data = sub_region(db)
+            sub_paged = paginate_items(sub_data["sub_rows"], spage, ssize, default_size=10)
+            ctx = {
+                **sub_data,
+                "sub_page_rows": sub_paged["items"],
+                "sub_pager": sub_paged,
+                "sub_params": {
+                    "tab": "sub",
+                    "ssize": sub_paged["size"],
+                    "page": request.query_params.get("page", ""),
+                    "size": request.query_params.get("size", ""),
+                    "dpage": request.query_params.get("dpage", ""),
+                    "dsize": request.query_params.get("dsize", ""),
+                    "dq": request.query_params.get("dq", ""),
+                },
+                "msg": msg,
+            }
+            name = "_sub_accounts_panel.html"
+        else:
+            ctx = _region_context(db, q, type_, page, size, msg)
+            name = "_master_data_region.html"
+    response = templates.TemplateResponse(request=request, name=name, context=ctx)
     if msg:
         # HTTP 头只能用 ASCII，中文由 json 转义，前端解析后仍是原文。
         response.headers["HX-Trigger"] = json.dumps({"showMessage": {"value": msg}})
     return response
 
 
-def _query_parts(request: Request) -> tuple[str, str, int]:
-    """筛选条件跟着 hx-post 的 URL 走，片段渲染后不会跳回默认列表。"""
-    params = request.query_params
+def _int_param(params, key: str, default: int) -> int:
     try:
-        page = int(params.get("page", "1") or 1)
+        return int(params.get(key, default) or default)
     except ValueError:
-        page = 1
-    return params.get("q", ""), params.get("type", ""), page
+        return default
+
+
+def _query_parts(request: Request) -> tuple[str, str, int, int, int, int]:
+    """筛选条件跟着 hx 请求走，片段渲染后不会跳回默认列表。"""
+    params = request.query_params
+    return (
+        params.get("q", ""),
+        params.get("type", ""),
+        _int_param(params, "page", 1),
+        normalize_size(_int_param(params, "size", PAGE_SIZE), PAGE_SIZE),
+        _int_param(params, "spage", 1),
+        normalize_size(_int_param(params, "ssize", PAGE_SIZE), PAGE_SIZE),
+    )
 
 
 def _done(request: Request, msg: str = ""):
     """写操作统一出口：局部请求回片段，普通请求维持原来的整页跳转。"""
     if not _is_hx(request):
         return _redirect(msg)
-    q, type_, page = _query_parts(request)
-    return _fragment(request, msg, q, type_, page)
+    q, type_, page, size, spage, ssize = _query_parts(request)
+    return _fragment(request, msg, q, type_, page, size, spage, ssize)
 
 
 def _build_rows(db) -> list[dict]:
@@ -133,7 +171,7 @@ def _build_rows(db) -> list[dict]:
     return rows
 
 
-def _region_context(db, q: str, type_: str, page: int, msg: str) -> dict:
+def _region_context(db, q: str, type_: str, page: int, size: int, msg: str) -> dict:
     """整页和局部片段共用的一份页面数据。"""
     rows = _build_rows(db)
     unlinked = db.execute(
@@ -141,41 +179,7 @@ def _region_context(db, q: str, type_: str, page: int, msg: str) -> dict:
             or_(PaymentDoc.payer_account_id.is_(None), PaymentDoc.payee_account_id.is_(None))
         )
     ).scalar()
-    abc_auto_match = get_bool(db, ABC_LEDGER_AUTO_MATCH, True)
-    subs = db.execute(
-        select(SubAccount).order_by(SubAccount.parent_account_id, SubAccount.sub_no)
-    ).scalars().all()
-    sub_docs = dict(
-        db.execute(
-            select(PaymentDoc.payer_sub_account_id, func.count())
-            .where(PaymentDoc.payer_sub_account_id.isnot(None))
-            .group_by(PaymentDoc.payer_sub_account_id)
-        ).all()
-    )
-    account_map = {a.id: a for a in db.execute(select(BankAccount)).scalars().all()}
-    sub_rows = [
-        {
-            "id": sub.id,
-            "parent_id": sub.parent_account_id,
-            "parent_no": account_map[sub.parent_account_id].account_no
-            if sub.parent_account_id in account_map
-            else "",
-            "parent_name": account_map[sub.parent_account_id].account_name
-            if sub.parent_account_id in account_map
-            else "",
-            "sub_no": sub.sub_no,
-            "ledger_name": sub.ledger_name or sub.project_name or sub.sub_no,
-            "project_name": sub.project_name or "",
-            "status": sub.status or "正常",
-            "docs": sub_docs.get(sub.id, 0),
-        }
-        for sub in subs
-    ]
-    parent_options = [
-        {"id": a.id, "name": a.account_name, "account_no": a.account_no}
-        for a in account_map.values()
-        if a.has_sub_accounts or any(sub.parent_account_id == a.id for sub in subs)
-    ]
+    sub_region_data = sub_region(db)
     payer_total = sum(1 for row in rows if row["type"] == "payer")
     payee_total = len(rows) - payer_total
     keyword = q.strip()
@@ -190,24 +194,20 @@ def _region_context(db, q: str, type_: str, page: int, msg: str) -> dict:
         ]
     if type_ in ("payer", "payee"):
         rows = [row for row in rows if row["type"] == type_]
-    total = len(rows)
-    pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
-    page = min(max(1, page), pages)
-    start = (page - 1) * PAGE_SIZE
+    paged = paginate_items(rows, page, size, default_size=PAGE_SIZE)
     return {
-        "rows": rows[start : start + PAGE_SIZE],
+        "rows": paged["items"],
         "q": keyword,
         "type": type_,
-        "page_no": page,
-        "pages": pages,
-        "total": total,
+        "page_no": paged["page"],
+        "pages": paged["pages"],
+        "total": paged["total"],
+        "size": paged["size"],
         "msg": msg,
         "payer_total": payer_total,
         "payee_total": payee_total,
         "unlinked_docs": unlinked,
-        "abc_auto_match": abc_auto_match,
-        "sub_rows": sub_rows,
-        "parent_options": parent_options,
+        **sub_region_data,
     }
 
 
@@ -217,17 +217,19 @@ def master_data_page(
     q: str = "",
     type: str = "",
     page: int = 1,
+    size: int = PAGE_SIZE,
     msg: str = "",
 ):
     denied = _denied(request)
     if denied:
         return denied
     with SessionLocal() as db:
-        context = _region_context(db, q, type, page, msg)
+        context = _region_context(db, q, type, page, size, msg)
     context["page"] = "master_data"
+    tpl = "_master_data_region.html" if is_hx(request, "master-region") else "master_data.html"
     return templates.TemplateResponse(
         request=request,
-        name="master_data.html",
+        name=tpl,
         context=context,
     )
 
@@ -241,7 +243,7 @@ def sync_master_data(request: Request):
     return _done(
         request,
         f"同步完成：收款账户 新增 {payees['created']}、关联 {payees['linked']}、补全 {payees['enriched']}；"
-        f"付款账户 新增 {payers['created']}、关联 {payers['linked']}，待补充 {payers['unmatched']} 条",
+        f"付款账户 关联 {payers['linked']} 条，未匹配 {payers['unmatched']} 条（付款账户在账户管理中维护）",
     )
 
 
@@ -373,20 +375,6 @@ def delete_master_account(request: Request, type: str = Form(...), id: int = For
             db.commit()
             return _done(request, "收款账户已删除")
     return _done(request, "账户类型不正确")
-
-
-@router.post("/master-data/abc-ledger")
-def save_abc_ledger_setting(request: Request, enabled: str = Form("")):
-    with SessionLocal() as db:
-        set_bool(db, ABC_LEDGER_AUTO_MATCH, enabled == "1")
-    return _done(request, "农行子账簿自动匹配设置已保存")
-
-
-@router.post("/master-data/abc-ledger/backfill")
-def run_abc_ledger_backfill(request: Request):
-    with SessionLocal() as db:
-        result = backfill_docs(db)
-    return _done(request, f"重新匹配完成：匹配 {result['matched']} 条，未匹配 {result['unmatched']} 条")
 
 
 @router.post("/master-data/sub-account")

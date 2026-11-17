@@ -22,7 +22,6 @@ from app.models import (
 )
 from app.services.parsers.statement import _to_date, _to_decimal, _to_text
 from app.services.abc_ledger import match_sub_account, sub_account_no
-from app.services.app_settings import ABC_LEDGER_AUTO_MATCH, get_bool
 
 MAIN_SHEET = "付款申请"
 STEP_SHEET = "审批过程"
@@ -198,9 +197,7 @@ def import_payment_excel(db: Session, path: Path, force: bool = False) -> dict:
 
         project_name = _clean_project(_cell(row, "项目信息"))
         payer_account_no = _cell(row, "付款账户", "付款单位账户")
-        ledger = None
-        if get_bool(db, ABC_LEDGER_AUTO_MATCH, True):
-            ledger = match_sub_account(db, payer_account_no, project_name)
+        ledger = match_sub_account(db, payer_account_no, project_name)
         payer_sub_account_id = None
         if ledger is not None:
             parent, sub = ledger
