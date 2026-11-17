@@ -37,6 +37,9 @@ config.ini
 config.json
 config.yaml
 
+# 含真实单位与账户信息的台账，不入库
+地产项目资料/银行账户信息表.xlsx
+
 # 媒体与归档
 *.mp4
 *.zip
