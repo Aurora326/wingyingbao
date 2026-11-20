@@ -169,80 +169,30 @@ class LoginManagerMixin:
             return False
 
     def _find_login_button_in_context(self, context):
-        """查找中间登录页的登录按钮。"""
-        button_selectors = [
-            '#LOGIN_BOX_BTN',
-            'input#LOGIN_BOX_BTN',
-            'input[name="next"]',
-            'input.pbd_btn_login',
-            'input.btn_js_link',
-            'input[type="button"][value="登 录"]',
-            'input[type="button"][value="登录"]',
-            'input[type="submit"][value="登录"]',
-            'input[type="submit"][value="登 录"]',
-            'button:has-text("登录")',
-            'button:has-text("登 录")',
-            'a:has-text("登录")',
-            'a:has-text("登 录")',
-            '.login_btn',
-            '#loginBtn',
-            '.btn-login',
-        ]
-
-        for selector in button_selectors:
-            try:
-                loc = context.locator(selector).first
-                if loc.count() == 0:
-                    continue
-                logger.info(f"找到登录按钮选择器: {selector}")
-                return loc, selector
-            except Exception as e:
-                logger.debug(f"检查登录按钮选择器失败 {selector}: {e}")
-
+        """查找登录按钮（确切元素 #LOGIN_BOX_BTN）。"""
+        try:
+            loc = context.locator('#LOGIN_BOX_BTN').first
+            if loc.count() > 0:
+                logger.info("找到登录按钮选择器: #LOGIN_BOX_BTN")
+                return loc, '#LOGIN_BOX_BTN'
+            logger.warning("未找到 #LOGIN_BOX_BTN")
+        except Exception as e:
+            logger.debug(f"查找 #LOGIN_BOX_BTN 失败: {e}")
         return None, None
 
     def _click_login_button(self, context) -> bool:
-        """点击中间登录页的登录按钮，失败时回退到 JS click。"""
+        """点击登录按钮 #LOGIN_BOX_BTN。"""
         login_btn, selector = self._find_login_button_in_context(context)
         if not login_btn or not selector:
-            logger.warning("未找到登录按钮")
             return False
-
         try:
             login_btn.wait_for(state="visible", timeout=3000)
-        except Exception:
-            pass
-
-        try:
-            login_btn.scroll_into_view_if_needed(timeout=2000)
-        except Exception:
-            pass
-
-        try:
             login_btn.click(timeout=5000)
             logger.info(f"已点击登录按钮: {selector}")
             return True
         except Exception as e:
-            logger.warning(f"Playwright 点击登录按钮失败，尝试 JS 回退: {e}")
-
-        try:
-            success = context.evaluate(
-                """(selector) => {
-                    const el = document.querySelector(selector);
-                    if (!el) return false;
-                    el.focus();
-                    el.click();
-                    return true;
-                }""",
-                selector,
-            )
-            if success:
-                logger.info(f"JS 已点击登录按钮: {selector}")
-                return True
-        except Exception as e:
-            logger.warning(f"JS 点击登录按钮失败: {e}")
-
-        return False
+            logger.error(f"点击登录按钮失败: {e}")
+            return False
 
     def login(self) -> bool:
         """

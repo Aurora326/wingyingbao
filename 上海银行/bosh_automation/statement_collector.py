@@ -39,7 +39,9 @@ class StatementCollector:
             logger.info("查询结果为空")
             return ["当前查询结果为空"]
 
-        self.detail.select_all()
+        if not self.detail.select_all():
+            logger.info("查询结果为空")
+            return ["当前查询结果为空"]
         return [self._export(start, end)]
 
     def _export(self, start: str, end: str) -> str:

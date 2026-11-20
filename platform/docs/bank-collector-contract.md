@@ -83,3 +83,21 @@ Agent 以 `python run_draft.py --task <task.json>` 调用。任务文件比采�
 - 键盘输入统一走 `common/keyboard_helper.py`（AiKeyboard），不要用 `keyboard` 等注入库。
 - 机柜控制统一走 `common/cabinet_controller.py`，类型支持 `mb` / `gf3` / `mock` / `other`。MB 控制器插入后会校验端口是否真正共享；仍不成功会重启 `MbiCltSvr` 客户端服务再试一次（重启电脑后“插入成功但不识别”的常见故障）。
 - 配置加载统一走 `common/config_loader.py`，平台下发的区间、密钥、机柜参数由各银行 `run_task.py` 覆盖到老配置上。
+
+## 失败现场诊断（推荐接入）
+
+Agent 下发的 `task.json` 包含 `diagnostics_dir` 目录路径。银行程序报错时，调用 `common.diagnostics.capture_diagnostic(page, task["diagnostics_dir"], stage=..., error_code=...)` 自动落盘：
+
+- 压缩截图（`failure_*.jpg`）
+- 脱敏 DOM 快照（`dom_*.html`，保留 `id`/`class`/`name` 等定位属性，自动移除脚本并对账号与金额脱敏）
+- 步骤与上下文（`meta_*.json`）
+
+推荐使用标准 `error_code`：`PAGE_CHANGED`（疑似网银改版）、`AUTH_FAILED`（认证/密码/验证码）、`UKEY_ERROR`（UKey/机柜异常）、`BANK_TEMP_ERROR`（网银临时故障）。任务失败后 Agent 会通过 Multipart 自动上传至平台并在任务页展示，平台默认自动清理 14 天前的诊断文件。
+
+## 插件打包与远程热更新
+
+每个银行目录根放一份 `manifest.json`（含 `plugin_id`、`bank_code`、`version`、`capabilities`、`entry`），研发使用 `python platform/scripts/pack_plugin.py <目录> --private-key <离线私钥>` 一键打包签名并上传至平台「平台管理 → 采集插件」：
+
+1. 先点「推测试机」在 `channel=test` 的测试执行机静默热更并跑通；
+2. 验证无误后点「推正式机」全量下发；异常时对历史版本再点一次即可回退；
+3. 客户机收到心跳响应中的 `desired_plugins` 后，后台下载、校验 SHA256 与 Ed25519 签名、语法冒烟检查，再获取本地跨进程互斥锁原子更新 `current.json`。若本机未安装对应插件，自动回退读取 `collectors.yaml`。

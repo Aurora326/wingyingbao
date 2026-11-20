@@ -187,28 +187,63 @@ class MBCabinetController(CabinetController):
                 return item
         return None
 
-    def _port_attached(self):
-        """查机柜状态，确认本端口是否真的挂到了本机。
+    def _windows_device_present(self, item: dict):
+        """Windows 是否真的枚举到了这枚 U 盾（按机柜状态里的 VID/PID 匹配）。
 
-        返回 True/False；读不到状态时返回 None（不做判断，避免误判卡住流程）。
+        机柜显示共享成功、但系统没枚举到设备时，浏览器登录页会一直提示“未检测到E盾”。
+        返回 True/False；拿不到 VID/PID 或查询失败时返回 None（不做判断）。
         """
+        vid = str(item.get("usb_vid") or "").strip().upper()
+        pid = str(item.get("usb_pid") or "").strip().upper()
+        if not vid or not pid:
+            return None
+        needle = f"VID_{vid}&PID_{pid}"
+        script = (
+            "Get-PnpDevice -PresentOnly | "
+            f"Where-Object {{ $_.InstanceId -like '*{needle}*' }} | "
+            "Select-Object -First 1 -ExpandProperty InstanceId"
+        )
+        try:
+            out = subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                capture_output=True, text=True, timeout=20,
+            ).stdout or ""
+        except Exception:
+            return None
+        return needle.upper() in out.upper()
+
+    def _port_ready_once(self):
+        """一次完整校验：机柜共享 + Windows 设备枚举。True/False/None（无法判断）。"""
         item = self._port_share_state()
         if item is None:
             return None
-        return str(item.get("usb_share")) == "1" and bool(item.get("client_ip"))
+        shared = str(item.get("usb_share")) == "1" and bool(item.get("client_ip"))
+        if not shared:
+            return False
+        device = self._windows_device_present(item)
+        if device is False:
+            return False
+        return True
 
-    def _wait_port_attached(self, timeout: float = 20.0):
+    def _wait_port_ready(self, timeout: float = 20.0):
         deadline = time.time() + timeout
         while time.time() < deadline:
-            state = self._port_attached()
+            state = self._port_ready_once()
             if state is True:
-                logger.info(f"[MB] 端口 {self.port} 已挂载到本机")
+                logger.info(f"[MB] 端口 {self.port} 已挂载且系统已识别 U 盾")
                 return True
             if state is None:
                 logger.warning("[MB] 读不到机柜端口状态，跳过挂载校验")
                 return None
             time.sleep(2)
         return False
+
+    def _port_attached(self):
+        """查机柜状态，确认本端口是否共享到了本机（不看 Windows 枚举）。"""
+        item = self._port_share_state()
+        if item is None:
+            return None
+        return str(item.get("usb_share")) == "1" and bool(item.get("client_ip"))
 
     def _restart_client_service(self, timeout: float = 45.0) -> bool:
         """重启 MB 客户端服务，恢复“运行中但不建立共享”的状态。"""
@@ -256,12 +291,13 @@ class MBCabinetController(CabinetController):
     def connect(self) -> bool:
         """插入U盾到MB机柜端口。
 
-        load_port 有时返回成功但机械臂没到位，端口并没真正挂到本机，
-        浏览器就看不到证书、登录必然失败。这里插完校验一次，没挂上就强制重插；
-        重插仍不成功时重启 MB 客户端服务再试一次（重启电脑后的常见故障）。
+        load_port 返回成功不代表可用：机柜可能没共享给本机，或者共享了但
+        Windows 没枚举到设备（登录页会一直提示“未检测到E盾”）。
+        这里按“机柜共享 + 系统枚举”双重校验，失败时强制重插，
+        仍不行就重启 MB 客户端服务再插（重启电脑后的常见故障）。
         """
-        if self._port_attached() is True:
-            logger.info(f"[MB] 端口 {self.port} 已处于挂载状态，直接复用")
+        if self._wait_port_ready(timeout=5) is True:
+            logger.info(f"[MB] 端口 {self.port} 已就绪，直接复用")
             self._connected = True
             return True
 
@@ -272,21 +308,23 @@ class MBCabinetController(CabinetController):
                 if attempt < 2:
                     time.sleep(3)
                 continue
-            attached = self._wait_port_attached()
-            if attached is not False:
+            ready = self._wait_port_ready()
+            if ready is not False:
                 self._connected = True
                 return True
-            logger.warning(f"[MB] 第 {attempt} 次插入后端口未挂载，强制拔出重插")
+            logger.warning(f"[MB] 第 {attempt} 次插入后端口未就绪，强制拔出重插")
             self._execute_subcommand("force_shutdown_port")
             time.sleep(3)
 
-        logger.warning(f"[MB] 端口 {self.port} 仍未挂载，尝试重启客户端服务后重试")
+        logger.warning(f"[MB] 端口 {self.port} 仍未就绪，重启客户端服务后重试")
         if self._restart_client_service():
-            result = self._execute_subcommand("load_port")
-            if result.get("success", False) and self._wait_port_attached() is not False:
-                self._connected = True
-                logger.info(f"[MB] 端口 {self.port} 重启服务后挂载成功")
-                return True
+            for attempt in range(1, 3):
+                result = self._execute_subcommand("load_port")
+                if result.get("success", False) and self._wait_port_ready(25) is not False:
+                    self._connected = True
+                    logger.info(f"[MB] 端口 {self.port} 重启服务后就绪")
+                    return True
+                time.sleep(3)
 
         state = self._port_share_state() or {}
         logger.error(

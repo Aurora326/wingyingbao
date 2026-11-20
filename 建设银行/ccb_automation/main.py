@@ -41,6 +41,29 @@ class CCBAutomation:
             self.config.runtime.log_retention_days
         )
         self.browser: CCBBrowser = None
+        self.diagnostics_dir = None
+
+    def _capture_failure(self, error: Exception) -> list[str]:
+        """失败时抓取现场（截图 + 脱敏 DOM），写入平台下发的 diagnostics 目录。"""
+        page = getattr(self.browser, "page", None) if self.browser else None
+        if page is None or not self.diagnostics_dir:
+            return []
+        try:
+            from common.task_runner import capture_failure
+
+            files = capture_failure(
+                page,
+                self.diagnostics_dir,
+                stage="ccb_collect",
+                error_code="COLLECT_FAILED",
+                message=str(error),
+            )
+            if files:
+                logger.info(f"已保存失败诊断文件: {files}")
+            return files
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"保存失败诊断出错: {exc}")
+            return []
 
     def run(self, collect_statements: bool = True, collect_receipts: bool = True, collect_payments: bool = True) -> dict:
         """
@@ -162,10 +185,8 @@ class CCBAutomation:
                         try:
                             login_success = self.browser.login()
                             if login_success:
-                                time.sleep(3)
-                                if self.browser._check_login_success():
-                                    logger.info("✓ 登录成功！")
-                                    login_success = True
+                                # login() 内部已做登录成功判定，这里不再重复检查
+                                logger.info("✓ 登录成功！")
                         except Exception as e:
                             logger.error(f"登录异常: {e}")
                 
@@ -194,7 +215,13 @@ class CCBAutomation:
                     logger.info("开始执行制单...")
                     from dataclasses import asdict
                     payments_config = asdict(self.config.collection.payments)
-                    creator = PaymentCreator(self.browser.page, payments_config, pin=self.config.credentials.pin, cabinet_controller=getattr(self.browser, 'cabinet_controller', None))
+                    creator = PaymentCreator(
+                        self.browser.page,
+                        payments_config,
+                        pin=self.config.credentials.pin,
+                        cabinet_controller=getattr(self.browser, 'cabinet_controller', None),
+                        diagnostics_dir=getattr(self, 'diagnostics_dir', None),
+                    )
                     payment_results = creator.create_all()
                     results["payments"] = payment_results
                     logger.info(f"制单结果: {payment_results}")
@@ -242,6 +269,9 @@ class CCBAutomation:
             except Exception as e:
                 logger.error(f"采集任务出错: {e}")
                 results["error"] = str(e)
+                diagnostics = self._capture_failure(e)
+                if diagnostics:
+                    results["diagnostics"] = diagnostics
                 pin_error = "U盾PIN码错误" in str(e)
                 if pin_error:
                     logger.error("PIN 码错误，停止重试，避免把 U 盾锁住")

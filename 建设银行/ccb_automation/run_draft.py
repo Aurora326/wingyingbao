@@ -2,7 +2,7 @@
 """建设银行制单入口（平台调用）。
 
 平台下发批量 Excel（付款协同生成），这里转换成建行批量转账模板并执行制单。
-当前阶段固定 save 模式：上传完成后停在「下一步」前，不提交。
+平台制单固定 save 模式：上传完成后停在「下一步」前，不提交。
 """
 import argparse
 import json
@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from openpyxl import load_workbook
 
-CONTRACT_VERSION = 1
+from common import task_runner
 
 
 def _bank_type(branch: str) -> str:
@@ -67,37 +67,28 @@ def load_items(path: Path, task: dict) -> list[dict]:
     return items
 
 
-def write_result(path: Path, ok: bool, code: str, message: str, files: list[str] | None = None) -> None:
-    payload = {
-        "contract_version": CONTRACT_VERSION,
-        "ok": ok,
-        "error_code": "" if ok else code,
-        "message": message,
-        "bank_batch_no": "",
-        "files": files or [],
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="建设银行制单程序（平台入口）")
     parser.add_argument("--task", required=True, help="任务 JSON 文件路径")
     args = parser.parse_args()
 
     task_path = Path(args.task)
-    task = json.loads(task_path.read_text(encoding="utf-8"))
-    result_path = Path(task.get("result_path") or (task_path.parent / "result.json"))
+    task = task_runner.read_task(task_path)
+    result_path = task_runner.result_path(task, task_path)
     work_dir = Path(task.get("work_dir") or task_path.parent)
 
     source = Path(str(task.get("file_path") or ""))
     if not source.is_file():
-        write_result(result_path, False, "FILE_MISSING", f"平台制单文件不存在：{source}")
+        task_runner.write_draft_result(
+            result_path, ok=False, error_code="FILE_MISSING", message=f"平台制单文件不存在：{source}"
+        )
         return 1
 
     items = load_items(source, task)
     if not items:
-        write_result(result_path, False, "NO_ITEMS", "平台制单文件里没有可制单的单据")
+        task_runner.write_draft_result(
+            result_path, ok=False, error_code="NO_ITEMS", message="平台制单文件里没有可制单的单据"
+        )
         return 1
 
     batch_json = work_dir / "batch_payments.json"
@@ -105,16 +96,11 @@ def main() -> int:
 
     try:
         from main import CCBAutomation
-        from run_task import _apply_task
 
         automation = CCBAutomation()
-        config = automation.config
-        config.collection.payments.enabled = True
-        config.collection.payments.action = "save"
-        config.collection.payments.batch_file = str(batch_json)
-        # 配置加载时可能已预加载旧 items，这里必须用平台解析出的清单覆盖
-        config.collection.payments.items = items
-        _apply_task(automation, task)
+        task_runner.apply_task_overrides(automation.config, task)
+        task_runner.apply_draft_settings(automation.config, task, items, batch_json)
+        automation.diagnostics_dir = task_runner.diagnostics_dir(task, task_path)
 
         results = automation.run(
             collect_statements=False,
@@ -125,15 +111,21 @@ def main() -> int:
         failed = any(str(value).startswith("失败:") for value in payments.values())
         ok = bool(results.get("success")) and not failed and bool(payments)
         message = "; ".join(f"{key}: {value}" for key, value in payments.items()) or "制单未返回结果"
+
         files: list[str] = []
-        debug_dir = Path(__file__).resolve().parent / "debug"
-        shots = sorted(debug_dir.glob("*_制单提交前.png"), key=lambda p: p.stat().st_mtime, reverse=True)
-        if shots:
-            files.append(str(shots[0]))
-        write_result(result_path, ok, "DRAFT_FAILED", message, files)
+        shot = payments.get("截图")
+        if shot and Path(shot).is_file():
+            files.append(str(Path(shot).resolve()))
+        files.extend(str(path) for path in results.get("diagnostics") or [] if Path(path).is_file())
+
+        task_runner.write_draft_result(
+            result_path, ok=ok, error_code="DRAFT_FAILED", message=message, files=files
+        )
         return 0 if ok else 1
     except Exception as exc:  # noqa: BLE001
-        write_result(result_path, False, "DRAFT_EXCEPTION", f"{type(exc).__name__}: {exc}")
+        task_runner.write_draft_result(
+            result_path, ok=False, error_code="DRAFT_EXCEPTION", message=f"{type(exc).__name__}: {exc}"
+        )
         return 1
 
 

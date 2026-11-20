@@ -8,7 +8,7 @@ from common.keyboard_helper import input_with_aikeyboard, send_with_aikeyboard
 
 logger = setup_logger()
 
-PIN_TITLES = ("验证通用盾密码", "通用盾密码", "输入密码", "U盾密码", "校验U盾密码")
+PIN_TITLES = ("验证通用盾密码", "通用盾密码", "输入密码", "U盾密码", "校验U盾密码", "网银盾密码")
 _HANDLED_DIALOGS = set()
 
 
@@ -207,107 +207,115 @@ def _cancel_pin_dialog(hwnd):
         user32.PostMessageW(hwnd, 0x0010, 0, 0)  # WM_CLOSE
 
 
+def handle_pin_dialog(pin: str) -> bool:
+    """处理建行 PIN 验证弹窗（登录/交易签名共用）。
+
+    返回是否完成一次输入；未配置 PIN、未找到弹窗时返回 False；
+    中间件提示“密码错误”时抛 RuntimeError。
+    """
+    logger.info("检查 PIN 码验证弹窗...")
+
+    if not pin:
+        logger.info("未配置 PIN 码，等待手动输入...")
+        logger.info("请在网银盾弹窗中输入 PIN 码并点击确认")
+        time.sleep(20)
+        return False
+
+    import ctypes
+    user32 = ctypes.windll.user32
+
+    deadline = time.time() + 20
+    hwnd = _find_pin_dialog()
+    while not hwnd and time.time() < deadline:
+        time.sleep(0.3)
+        hwnd = _find_pin_dialog()
+    if not hwnd:
+        logger.info("未检测到 PIN 弹窗，跳过")
+        return False
+
+    if hwnd in _HANDLED_DIALOGS:
+        logger.warning("该 PIN 弹窗已经处理过，停止重复输入")
+        return False
+    _HANDLED_DIALOGS.add(hwnd)
+
+    edit, ok = _find_dialog_controls(hwnd)
+    if not edit:
+        logger.warning("PIN 弹窗里没找到密码输入框")
+        return False
+
+    # 把焦点强制放进密码框，否则 AiKeyboard 会把密码打到开始菜单等窗口
+    if not _focus_edit(hwnd, edit):
+        class RECT(ctypes.Structure):
+            _fields_ = [
+                ("left", ctypes.c_long),
+                ("top", ctypes.c_long),
+                ("right", ctypes.c_long),
+                ("bottom", ctypes.c_long),
+            ]
+
+        rect = RECT()
+        user32.GetWindowRect(edit, ctypes.byref(rect))
+        x = (rect.left + rect.right) // 2
+        y = (rect.top + rect.bottom) // 2
+        user32.SetForegroundWindow(hwnd)
+        time.sleep(0.3)
+        user32.SetCursorPos(x, y)
+        time.sleep(0.2)
+        user32.mouse_event(0x0002, 0, 0, 0, 0)
+        user32.mouse_event(0x0004, 0, 0, 0, 0)
+        time.sleep(0.4)
+        if not _focus_edit(hwnd, edit):
+            logger.error("键盘焦点没能进入 PIN 输入框，放弃本次输入（避免密码打到别处）")
+            _cancel_pin_dialog(hwnd)
+            return False
+
+    # 关掉输入法，避免字母被中文输入法拦截
+    try:
+        ctypes.windll.imm32.ImmAssociateContext(edit, 0)
+    except Exception:
+        pass
+
+    # CapsLock 开着会让大写字母输入变形，先关掉
+    try:
+        if user32.GetKeyState(0x14) & 1:
+            send_with_aikeyboard("capslock")
+            logger.info("检测到 CapsLock 开启，已关闭后输入 PIN")
+    except Exception:
+        pass
+
+    # 清空可能残留的内容（密码控件长度不可靠，固定多按几次退格）
+    for _ in range(12):
+        send_with_aikeyboard("backspace")
+
+    logger.info(f"使用 AiKeyboard 输入 PIN 码（共 {len(pin)} 位）...")
+    if not input_with_aikeyboard(pin):
+        logger.error("AiKeyboard 输入 PIN 失败")
+        return False
+
+    time.sleep(0.8)
+    user32.SendMessageW(ok, 0x00F5, 0, 0)  # BM_CLICK
+    logger.info("已点击 PIN 弹窗的「确定」")
+
+    time.sleep(2)
+    err_hwnd, err_text = _find_pin_error_dialog()
+    if err_hwnd:
+        logger.error(f"U盾提示: {err_text.strip()[:80]}")
+        _click_dialog_ok(err_hwnd)
+        raise RuntimeError("U盾PIN码错误：请先在账户管理里更正该账户的 U盾 PIN，再重新采集")
+
+    deadline = time.time() + 10
+    while time.time() < deadline and _find_pin_dialog():
+        time.sleep(0.2)
+    if _find_pin_dialog():
+        logger.warning("PIN 弹窗未关闭")
+    else:
+        logger.info("PIN 码输入流程完成")
+    return True
+
+
 class PinInputterMixin:
     """PIN 自动输入 Mixin"""
 
     def _handle_pin_dialog(self):
-        """处理建设银行 PIN 码验证弹窗（Windows系统弹窗）。"""
-        logger.info("检查 PIN 码验证弹窗...")
-
         pin = self.credentials.pin if self.credentials else None
-
-        if not pin:
-            logger.info("未配置 PIN 码，等待手动输入...")
-            logger.info("请在网银盾弹窗中输入 PIN 码并点击确认")
-            time.sleep(20)
-            return
-
-        import ctypes
-        user32 = ctypes.windll.user32
-
-        deadline = time.time() + 20
-        hwnd = _find_pin_dialog()
-        while not hwnd and time.time() < deadline:
-            time.sleep(0.3)
-            hwnd = _find_pin_dialog()
-        if not hwnd:
-            logger.info("未检测到 PIN 弹窗，跳过")
-            return
-
-        if hwnd in _HANDLED_DIALOGS:
-            logger.warning("该 PIN 弹窗已经处理过，停止重复输入")
-            return
-        _HANDLED_DIALOGS.add(hwnd)
-
-        edit, ok = _find_dialog_controls(hwnd)
-        if not edit:
-            logger.warning("PIN 弹窗里没找到密码输入框")
-            return
-
-        # 把焦点强制放进密码框，否则 AiKeyboard 会把密码打到开始菜单等窗口
-        if not _focus_edit(hwnd, edit):
-            class RECT(ctypes.Structure):
-                _fields_ = [
-                    ("left", ctypes.c_long),
-                    ("top", ctypes.c_long),
-                    ("right", ctypes.c_long),
-                    ("bottom", ctypes.c_long),
-                ]
-
-            rect = RECT()
-            user32.GetWindowRect(edit, ctypes.byref(rect))
-            x = (rect.left + rect.right) // 2
-            y = (rect.top + rect.bottom) // 2
-            user32.SetForegroundWindow(hwnd)
-            time.sleep(0.3)
-            user32.SetCursorPos(x, y)
-            time.sleep(0.2)
-            user32.mouse_event(0x0002, 0, 0, 0, 0)
-            user32.mouse_event(0x0004, 0, 0, 0, 0)
-            time.sleep(0.4)
-            if not _focus_edit(hwnd, edit):
-                logger.error("键盘焦点没能进入 PIN 输入框，放弃本次输入（避免密码打到别处）")
-                _cancel_pin_dialog(hwnd)
-                return
-
-        # 关掉输入法，避免字母被中文输入法拦截
-        try:
-            ctypes.windll.imm32.ImmAssociateContext(edit, 0)
-        except Exception:
-            pass
-
-        # CapsLock 开着会让大写字母输入变形，先关掉
-        try:
-            if user32.GetKeyState(0x14) & 1:
-                send_with_aikeyboard("capslock")
-                logger.info("检测到 CapsLock 开启，已关闭后输入 PIN")
-        except Exception:
-            pass
-
-        # 清空可能残留的内容（密码控件长度不可靠，固定多按几次退格）
-        for _ in range(12):
-            send_with_aikeyboard("backspace")
-
-        logger.info(f"使用 AiKeyboard 输入 PIN 码（共 {len(pin)} 位）...")
-        if not input_with_aikeyboard(pin):
-            logger.error("AiKeyboard 输入 PIN 失败")
-            return
-
-        time.sleep(0.8)
-        user32.SendMessageW(ok, 0x00F5, 0, 0)  # BM_CLICK
-        logger.info("已点击 PIN 弹窗的「确定」")
-
-        time.sleep(2)
-        err_hwnd, err_text = _find_pin_error_dialog()
-        if err_hwnd:
-            logger.error(f"U盾提示: {err_text.strip()[:80]}")
-            _click_dialog_ok(err_hwnd)
-            raise RuntimeError("U盾PIN码错误：请先在账户管理里更正该账户的 U盾 PIN，再重新采集")
-
-        deadline = time.time() + 10
-        while time.time() < deadline and _find_pin_dialog():
-            time.sleep(0.2)
-        if _find_pin_dialog():
-            logger.warning("PIN 弹窗未关闭")
-        else:
-            logger.info("PIN 码输入流程完成")
+        return handle_pin_dialog(pin)

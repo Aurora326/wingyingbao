@@ -11,144 +11,38 @@ logger = setup_logger()
 class PopupHandlerMixin:
     """弹窗处理 Mixin"""
 
-    def _ccb_close_image_selectors(self):
-        """建行营销弹层关闭按钮候选选择器。"""
-        return [
-            '#befADV1 img[onclick*="hide"]',
-            '#befADV1 img[src*="mob_drain_close"]',
-            '#befADV1 > img[onclick*="hide"]',
-            '#befADV1 > img[src*="mob_drain_close"]',
-            '.mob_drain #befADV1 img[style*="cursor: pointer"]',
-            '.mob_drain img[onclick*="hide"]',
-            '.mob_drain img[src*="mob_drain_close"]',
-            'img[onclick*="hide"]',
-            'img[src*="mob_drain_close"]',
-            'img[onclick*="mob_drain"][src*="close"]',
-        ]
-
     def _close_ccb_marketing_popup(self, page) -> bool:
-        """关闭建行首页营销弹层。"""
+        """关闭建行首页营销弹层（确切元素：#befADV1 > img:nth-child(2)）。"""
         try:
-            popup_info = page.evaluate("""
-                (selectors) => {
-                    let closeImg = null;
-                    let matchedSelector = null;
-                    for (const selector of selectors) {
-                        const el = document.querySelector(selector);
-                        if (el) {
-                            closeImg = el;
-                            matchedSelector = selector;
-                            break;
-                        }
-                    }
-
-                    if (!closeImg) {
-                        const fallbackCandidates = Array.from(document.querySelectorAll('#befADV1 img, .mob_drain img'));
-                        closeImg = fallbackCandidates.find((el) => {
-                            const onclick = (el.getAttribute('onclick') || '').toLowerCase();
-                            const src = (el.getAttribute('src') || '').toLowerCase();
-                            return onclick.includes('hide') || src.includes('close');
-                        }) || null;
-                        if (closeImg) {
-                            matchedSelector = 'fallback_candidate_scan';
-                        }
-                    }
-
-                    const panels = Array.from(document.querySelectorAll('.mob_drain'));
-                    return {
-                        hasCloseImg: !!closeImg,
-                        matchedSelector,
-                        panelCount: panels.length,
-                        closeRect: closeImg ? (() => {
-                            const r = closeImg.getBoundingClientRect();
-                            return {
-                                left: r.left,
-                                top: r.top,
-                                width: r.width,
-                                height: r.height
-                            };
-                        })() : null
-                    };
-                }
-            """, self._ccb_close_image_selectors())
-            logger.info(f"【弹窗处理】建行营销弹层探测: {popup_info}")
-
-            rect = popup_info.get("closeRect") if popup_info else None
-            if rect and rect["width"] > 0 and rect["height"] > 0:
-                x = round(rect["left"] + rect["width"] / 2)
-                y = round(rect["top"] + rect["height"] / 2)
-                page.mouse.click(x, y)
-                logger.info(f"【弹窗处理】已点击建行营销弹层关闭坐标: ({x}, {y})")
-                time.sleep(0.5)
-
-                still_exists = page.evaluate("() => document.querySelectorAll('.mob_drain').length")
-                if not still_exists:
-                    return True
-
-            force_closed = page.evaluate("""
-                (selectors) => {
-                    let clickedSelector = null;
-                    for (const selector of selectors) {
-                        const closeImg = document.querySelector(selector);
-                        if (!closeImg) continue;
-                        try {
-                            closeImg.click();
-                            clickedSelector = selector;
-                            break;
-                        } catch (e) {}
-                    }
-
-                    const panels = Array.from(document.querySelectorAll('.mob_drain'));
-                    if (!clickedSelector) {
-                        panels.forEach((el) => el.remove());
-                        return panels.length;
-                    }
-                    return `clicked:${clickedSelector}`;
-                }
-            """, self._ccb_close_image_selectors())
-            if force_closed:
-                logger.info(f"【弹窗处理】已强制移除建行营销弹层，数量: {force_closed}")
+            closed = page.evaluate(
+                """() => {
+                    const el = document.querySelector('#befADV1 > img:nth-child(2)');
+                    if (!el) return false;
+                    el.click();
+                    return true;
+                }"""
+            )
+            if closed:
+                logger.info("已关闭建行营销弹层 (#befADV1 > img:nth-child(2))")
                 time.sleep(0.5)
                 return True
         except Exception as e:
             logger.debug(f"关闭建行营销弹层失败: {e}")
         return False
 
-    def _dismiss_browser_ui_panels(self):
-        """关闭 Chrome 地址栏站点权限等浏览器原生面板。"""
-        try:
-            import pyautogui
-            pyautogui.FAILSAFE = False
-
-            try:
-                self.page.bring_to_front()
-            except Exception:
-                pass
-
-            time.sleep(0.2)
-            pyautogui.press('esc')
-            time.sleep(0.2)
-            pyautogui.press('esc')
-            
-            # 如果 esc 无效，尝试点击弹窗右上角的 × 关闭按钮
-            # Chrome 站点信息弹窗出现在地址栏左下方，关闭按钮在弹窗右上角
-            screen_width, screen_height = pyautogui.size()
-            # 根据截图，弹窗左上角约在 (110, 60)，宽度约 220px，关闭按钮约在 (320, 65)
-            close_positions = [
-                (320, 65),   # 精确位置（1920x1080）
-                (310, 70),
-                (330, 60),
-                (int(screen_width * 0.17), int(screen_height * 0.06)),  # 按比例
-                (int(screen_width * 0.16), int(screen_height * 0.065)),
-            ]
-            for x, y in close_positions:
-                logger.info(f"【弹窗处理】尝试点击关闭按钮位置: ({x}, {y})")
-                pyautogui.click(x, y)
-                time.sleep(0.3)
-            
-            logger.info("【弹窗处理】已尝试关闭浏览器原生面板")
-        except Exception as e:
-            logger.debug(f"关闭浏览器原生面板失败: {e}")
+    def _dismiss_marketing_overlays(self, timeout: float = 0.0, poll: float = 0.5) -> bool:
+        """逐页面/iframe 关闭建行营销遮罩；timeout>0 时轮询等待迟到的弹层。"""
+        deadline = time.time() + max(0.0, timeout)
+        while True:
+            for context in [self.page] + list(self.page.frames):
+                try:
+                    if self._close_ccb_marketing_popup(context):
+                        return True
+                except Exception as e:
+                    logger.debug(f"关闭营销遮罩失败: {e}")
+            if time.time() >= deadline:
+                return False
+            time.sleep(poll)
 
     def _is_auxiliary_popup_url(self, url: str) -> bool:
         """判断是否为应关闭的辅助弹窗页。"""
@@ -326,50 +220,6 @@ class PopupHandlerMixin:
                     popup_closed = True
             except Exception:
                 continue
-
-        # 建行首页营销弹层：直接执行页面内关闭脚本
-        try:
-            closed = page.evaluate("""
-                (selectors) => {
-                    let closeImg = null;
-                    for (const selector of selectors) {
-                        const el = document.querySelector(selector);
-                        if (el) {
-                            closeImg = el;
-                            break;
-                        }
-                    }
-
-                    if (!closeImg) {
-                        const fallbackCandidates = Array.from(document.querySelectorAll('#befADV1 img, .mob_drain img'));
-                        closeImg = fallbackCandidates.find((el) => {
-                            const onclick = (el.getAttribute('onclick') || '').toLowerCase();
-                            const src = (el.getAttribute('src') || '').toLowerCase();
-                            return onclick.includes('hide') || src.includes('close');
-                        }) || null;
-                    }
-
-                    if (closeImg) {
-                        closeImg.click();
-                        return 'clicked_close_img';
-                    }
-
-                    const panels = Array.from(document.querySelectorAll('.mob_drain'));
-                    if (panels.length > 0) {
-                        panels.forEach((el) => {
-                            el.style.display = 'none';
-                        });
-                        return 'hidden_mob_drain';
-                    }
-                    return null;
-                }
-            """, self._ccb_close_image_selectors())
-            if closed:
-                logger.info(f"【弹窗处理】已关闭建行营销弹层: {closed}")
-                time.sleep(0.5)
-                popup_closed = True
-        except Exception:
-            pass
 
         # ===== 通用弹窗暴力扫描 =====
         try:
@@ -579,17 +429,7 @@ class PopupHandlerMixin:
             except Exception:
                 pass
 
-            # 5. 处理Windows系统提示弹窗（如右下角"通用盾可正常使用"提示）
-            logger.info("【弹窗处理】检查Windows系统提示...")
-            try:
-                pyautogui.press('esc')
-                time.sleep(0.3)
-            except Exception:
-                pass
-
-            # 6. 关闭 Chrome 地址栏权限面板等浏览器原生 UI
-            self._dismiss_browser_ui_panels()
-             
+            # 5. 以上都是探测命中才操作；不再盲按 Esc 或按固定坐标点击浏览器界面
             if not popup_closed:
                 logger.info("【弹窗处理】未发现需要处理的弹窗，或弹窗已自动关闭")
             

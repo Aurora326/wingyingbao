@@ -3,7 +3,9 @@
 下载监控辅助模块
 供各银行自动化项目共享
 """
+import datetime as dt
 import re
+import sys
 import time
 from pathlib import Path
 from typing import Dict, Optional, Set
@@ -180,3 +182,108 @@ def wait_and_find_new_file(before_files: Dict[Path, Set[str]], timeout: int = 60
 
     logger.warning("下载超时，且未找到任何候选流水文件")
     return None
+
+
+# ==================== 下载目录与归档 ====================
+
+
+def resolve_browser_download_dir(base_dir: Path) -> Path:
+    """解析浏览器实际下载目录。
+
+    PyInstaller 打包环境用 exe 所在目录，开发环境用调用方（银行程序）目录；
+    base_dir 必须由调用方传自己的 __file__.parent，不能用 common 的路径。
+    """
+    base = Path(base_dir)
+    if getattr(sys, "frozen", False):
+        target = Path(sys.executable).parent / "downloads"
+    else:
+        target = base / "downloads"
+    target.mkdir(parents=True, exist_ok=True)
+    return target
+
+
+def ensure_archive_dir(download_root: Path, archive_by_month: bool, now: Optional[dt.datetime] = None) -> Path:
+    """返回归档目录：按月归档时为 download_root/YYYY/MM，否则为 download_root。"""
+    root = Path(download_root)
+    if not archive_by_month:
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+    current = now or dt.datetime.now()
+    target = root / f"{current.year}" / f"{current.month:02d}"
+    target.mkdir(parents=True, exist_ok=True)
+    return target
+
+
+def _months_before(day: dt.datetime, months: int) -> dt.datetime:
+    """把某月 1 日往前推 N 个月（逐月相减，不按 31 天近似）。"""
+    cutoff = day.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    for _ in range(max(0, months)):
+        if cutoff.month == 1:
+            cutoff = cutoff.replace(year=cutoff.year - 1, month=12)
+        else:
+            cutoff = cutoff.replace(month=cutoff.month - 1)
+    return cutoff
+
+
+def cleanup_old_archives(
+    download_root: Path,
+    retention_months: int,
+    label: str = "采集",
+    now: Optional[dt.datetime] = None,
+) -> int:
+    """删除超过保留期的 YYYY/MM 归档目录，返回删除的目录数。
+
+    保留期按“逐月相减”计算，与各银行原有实现保持一致；
+    label 只用于日志（如“流水”“回单”）。
+    """
+    root = Path(download_root)
+    if retention_months <= 0 or not root.exists():
+        return 0
+
+    current = now or dt.datetime.now()
+    cutoff_date = _months_before(current, retention_months)
+    logger.info(
+        f"清理 {retention_months} 个月前的{label}归档数据，"
+        f"截止日期: {cutoff_date.strftime('%Y-%m')}"
+    )
+
+    deleted_count = 0
+    for year_dir in root.iterdir():
+        if not year_dir.is_dir():
+            continue
+        try:
+            year = int(year_dir.name)
+            if year < 2000 or year > 2100:
+                continue
+        except ValueError:
+            continue
+
+        for month_dir in year_dir.iterdir():
+            if not month_dir.is_dir():
+                continue
+            try:
+                month = int(month_dir.name)
+                if month < 1 or month > 12:
+                    continue
+                dir_date = dt.datetime(year, month, 1)
+                if dir_date < cutoff_date:
+                    import shutil
+
+                    shutil.rmtree(month_dir)
+                    deleted_count += 1
+                    logger.info(f"已删除旧归档目录: {year}/{month:02d}")
+            except (ValueError, OSError) as e:
+                logger.debug(f"处理目录 {month_dir} 时出错: {e}")
+                continue
+
+    for year_dir in root.iterdir():
+        if year_dir.is_dir() and not any(year_dir.iterdir()):
+            year_dir.rmdir()
+            logger.info(f"已删除空年份目录: {year_dir.name}")
+
+    if deleted_count > 0:
+        logger.info(f"共清理 {deleted_count} 个旧归档目录")
+    else:
+        logger.info("没有需要清理的旧归档数据")
+    return deleted_count
+

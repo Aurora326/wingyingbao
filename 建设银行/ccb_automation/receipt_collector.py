@@ -5,7 +5,6 @@
 注意：建设银行页面结构可能因版本更新而变化，
 如果采集失败，请检查页面元素选择器是否需要更新。
 """
-import os
 import time
 import shutil
 from datetime import datetime, timedelta
@@ -13,17 +12,27 @@ from pathlib import Path
 from typing import List, Optional, Dict
 from playwright.sync_api import Page
 from logger import setup_logger
-from common.download_helper import get_downloaded_files_before, wait_and_find_new_file
+from common.download_helper import (
+    cleanup_old_archives,
+    ensure_archive_dir,
+    get_downloaded_files_before,
+    resolve_browser_download_dir,
+    wait_and_find_new_file,
+)
+from common.frame_helper import find_frame_containing
+from popup_handler import PopupHandlerMixin
+from account_detail import CCBAccountDetailPage
 
 logger = setup_logger()
 
 
-class ReceiptCollector:
+class ReceiptCollector(PopupHandlerMixin):
     """电子回单采集器 - 建设银行适配版"""
     
     def __init__(self, page: Page, config: Dict, statement_dates: Optional[Dict] = None):
         self.page = page
         self.config = config
+        self.detail = CCBAccountDetailPage(page)
         self.download_path = Path(config.get('download_path', './downloads/receipts'))
         self.download_path.mkdir(parents=True, exist_ok=True)
         
@@ -43,132 +52,32 @@ class ReceiptCollector:
             self.start_date = start_date.strftime("%Y-%m-%d")
             self.end_date = end_date.strftime("%Y-%m-%d")
         
-        # 设置归档路径（按年月）
+        # 设置归档路径（按年月）并清理过期归档
         self.current_date = datetime.now()
-        if config.get('archive_by_month', True):
-            self.archive_path = self.download_path / f"{self.current_date.year}" / f"{self.current_date.month:02d}"
-            self.archive_path.mkdir(parents=True, exist_ok=True)
+        archive_by_month = bool(config.get('archive_by_month', True))
+        self.archive_path = ensure_archive_dir(
+            self.download_path, archive_by_month, self.current_date
+        )
+        if archive_by_month:
             logger.info(f"回单归档路径: {self.archive_path}")
-            # 清理旧数据
-            self._cleanup_old_archives()
-        else:
-            self.archive_path = self.download_path
-        
-        # 支持打包环境：检测是否在 PyInstaller 环境中运行
-        import sys
-        if getattr(sys, 'frozen', False):
-            # 打包后的 exe 环境，使用 exe 所在目录
-            self.browser_download_path = Path(sys.executable).parent / "downloads"
-        else:
-            # 开发环境，使用脚本所在目录
-            self.browser_download_path = Path(__file__).parent / "downloads"
+            cleanup_old_archives(
+                self.download_path,
+                config.get('retention_months', 2),
+                "回单",
+                self.current_date,
+            )
+
+        # 支持打包环境：frozen 用 exe 所在目录，开发环境用脚本目录
+        self.browser_download_path = resolve_browser_download_dir(Path(__file__).resolve().parent)
         self.debug_dir = Path(__file__).parent / "debug"
         self.debug_dir.mkdir(exist_ok=True)
     
     def _find_frame_containing(self, selectors: list, timeout: int = 10):
         """在所有 frame（包括 iframe）中查找包含任一选择器的 frame"""
-        start = time.time()
-        while time.time() - start < timeout:
-            for frame in self.page.frames:
-                try:
-                    for selector in selectors:
-                        if frame.locator(selector).count() > 0:
-                            return frame
-                except Exception:
-                    continue
-            time.sleep(0.5)
-        return None
-    
-    def _to_ccb_date(self, date_str: str) -> str:
-        """将 YYYY-MM-DD 转换为 CCB 需要的 YYYYMMDD"""
-        return date_str.replace('-', '')
-    
-    def _set_date_field_ccb(self, frame, selector: str, value: str):
-        """在 iframe 中设置日期输入框"""
-        input_field = frame.locator(selector).first
-        input_field.wait_for(state="visible", timeout=5000)
-        
-        frame.evaluate("""
-            (args) => {
-                var input = document.querySelector(args.selector);
-                if (input) {
-                    input.value = args.value;
-                    input.removeAttribute('readonly');
-                    input.removeAttribute('disabled');
-                    ['focus', 'input', 'change', 'blur'].forEach(function(type) {
-                        var evt = new Event(type, { bubbles: true });
-                        input.dispatchEvent(evt);
-                    });
-                }
-            }
-        """, {"selector": selector, "value": value})
-        time.sleep(0.3)
-    
-    def _cleanup_old_archives(self):
-        """清理超过保留期限的归档目录"""
-        retention_months = self.config.get('retention_months', 2)
-        if retention_months <= 0:
-            return
-        
-        # 计算截止日期（当前日期往前推 retention_months 个月）
-        cutoff_date = self.current_date.replace(day=1)
-        for _ in range(retention_months):
-            # 往前推一个月
-            if cutoff_date.month == 1:
-                cutoff_date = cutoff_date.replace(year=cutoff_date.year - 1, month=12)
-            else:
-                cutoff_date = cutoff_date.replace(month=cutoff_date.month - 1)
-        
-        logger.info(f"清理 {retention_months} 个月前的回单归档数据，截止日期: {cutoff_date.strftime('%Y-%m')}")
-        
-        deleted_count = 0
-        
-        # 遍历所有年份目录
-        for year_dir in self.download_path.iterdir():
-            if not year_dir.is_dir():
-                continue
-            
-            try:
-                year = int(year_dir.name)
-                if year < 2000 or year > 2100:  # 简单的有效性检查
-                    continue
-            except ValueError:
-                continue
-            
-            # 遍历该年份下的所有月份目录
-            for month_dir in year_dir.iterdir():
-                if not month_dir.is_dir():
-                    continue
-                
-                try:
-                    month = int(month_dir.name)
-                    if month < 1 or month > 12:
-                        continue
-                    
-                    # 构建目录日期
-                    dir_date = datetime(year, month, 1)
-                    
-                    # 如果目录日期早于截止日期，删除整个目录
-                    if dir_date < cutoff_date:
-                        import shutil
-                        shutil.rmtree(month_dir)
-                        deleted_count += 1
-                        logger.info(f"已删除旧归档目录: {year}/{month:02d}")
-                except (ValueError, OSError) as e:
-                    logger.debug(f"处理目录 {month_dir} 时出错: {e}")
-                    continue
-        
-        # 删除空的年份目录
-        for year_dir in self.download_path.iterdir():
-            if year_dir.is_dir() and not any(year_dir.iterdir()):
-                year_dir.rmdir()
-                logger.info(f"已删除空年份目录: {year_dir.name}")
-        
-        if deleted_count > 0:
-            logger.info(f"共清理 {deleted_count} 个旧归档目录")
-        else:
-            logger.info("没有需要清理的旧归档数据")
-    
+        return find_frame_containing(self.page, selectors, timeout=timeout, prefer_visible=False)
+
+
+
     def _close_auxiliary_pages(self):
         """关闭所有非主页面的辅助标签页"""
         try:
@@ -201,7 +110,11 @@ class ReceiptCollector:
         try:
             # 确保在交易明细结果页
             self._ensure_on_result_page()
-            
+
+            if self.detail.is_empty_result():
+                logger.info("查询结果为空，无电子回单")
+                return ["当前查询结果为空"]
+
             # 下载回单（勾选 → 预览 → 保存PDF）
             file_path = self._download_receipts()
             if file_path:
@@ -215,73 +128,14 @@ class ReceiptCollector:
         return downloaded_files
     
     def _ensure_on_result_page(self):
-        """确保当前在交易明细结果页，如果不在则执行查询"""
-        if self._is_statement_result_page():
-            logger.info("已在交易明细结果页")
-            return
-        
-        logger.info("当前不在交易明细结果页，执行查询...")
-        
-        # Step 1: 点击账户查询
-        frame = self._find_frame_containing(['#toAccQuery'], timeout=10)
-        if not frame:
-            raise Exception("未找到账户查询链接")
-        frame.locator('#toAccQuery').first.click()
-        time.sleep(3)
-        
-        # Step 2: 全选账户
-        frame = self._find_frame_containing(['#all_0'], timeout=10)
-        if not frame:
-            raise Exception("未进入账户列表页")
-        all_cb = frame.locator('#all_0').first
-        if all_cb.count() > 0:
-            try:
-                if not all_cb.is_checked():
-                    all_cb.check()
-            except Exception:
-                all_cb.click()
-        time.sleep(1)
-        
-        # Step 3: 点击交易明细
-        detail_btn = frame.locator('input[name="Submit3"]').first
-        if detail_btn.count() == 0:
-            detail_btn = frame.locator('input[value="交易明细"]').first
-        if detail_btn.count() == 0:
-            raise Exception("未找到交易明细按钮")
-        detail_btn.click()
-        time.sleep(3)
-        
-        # Step 4: 设置日期并查询
-        frame = self._find_frame_containing(['#StDt', '#EdDt'], timeout=10)
-        if not frame:
-            raise Exception("未进入交易明细查询页")
-        
-        start_ccb = self._to_ccb_date(self.start_date)
-        end_ccb = self._to_ccb_date(self.end_date)
-        self._set_date_field_ccb(frame, '#StDt', start_ccb)
-        self._set_date_field_ccb(frame, '#EdDt', end_ccb)
-        time.sleep(0.5)
-        
-        # 点击确定
-        confirm_btn = frame.locator('input[type="submit"][name="Submit1"]').first
-        if confirm_btn.count() == 0:
-            confirm_btn = frame.locator('input[value="确定"]').first
-        if confirm_btn.count() == 0:
-            raise Exception("未找到确定按钮")
-        confirm_btn.click()
-        time.sleep(5)
-        
-        # 等待结果页
-        result_frame = self._find_frame_containing(['#dlAll', 'input[name="all"]'], timeout=15)
+        """确保当前在交易明细结果页；导航与查询统一走 CCBAccountDetailPage。"""
+        result_frame = self.detail.open_and_query(self.start_date, self.end_date)
         if not result_frame:
             raise Exception("查询结果页加载失败")
-        
-        logger.info("已进入交易明细结果页")
-    
+
     def _is_statement_result_page(self) -> bool:
         """检查当前是否在交易明细结果页"""
-        frame = self._find_frame_containing(['#dlAll', 'input[name="all"]'], timeout=3)
-        return frame is not None
+        return self.detail.is_result_page()
     
     def _select_account(self):
         """选择账号"""

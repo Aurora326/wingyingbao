@@ -13,244 +13,57 @@ from pathlib import Path
 from typing import List, Optional
 from playwright.sync_api import Page
 from logger import setup_logger
-from common.download_helper import get_downloaded_files_before, wait_and_find_new_file
+from common.download_helper import (
+    cleanup_old_archives,
+    ensure_archive_dir,
+    get_downloaded_files_before,
+    resolve_browser_download_dir,
+    wait_and_find_new_file,
+)
+from common.frame_helper import find_frame_containing
 from config_loader import StatementsConfig
+from popup_handler import PopupHandlerMixin
+from account_detail import CCBAccountDetailPage
 
 logger = setup_logger()
 
 
-class StatementCollector:
+class StatementCollector(PopupHandlerMixin):
     """银行流水采集器 - 建设银行适配版"""
     
     def __init__(self, page: Page, config: StatementsConfig):
         self.page = page
         self.config = config
+        self.detail = CCBAccountDetailPage(page)
         self.download_path = Path(config.download_path)
         self.download_path.mkdir(parents=True, exist_ok=True)
         
         # 调试：输出配置值
         logger.info(f"[DEBUG] StatementsConfig file_format: {getattr(config, 'file_format', 'NOT_SET')}")
         
-        # 设置归档路径（按年月）
+        # 设置归档路径（按年月）并清理过期归档
         self.current_date = datetime.now()
+        self.archive_path = ensure_archive_dir(
+            self.download_path, bool(config.archive_by_month), self.current_date
+        )
         if config.archive_by_month:
-            self.archive_path = self.download_path / f"{self.current_date.year}" / f"{self.current_date.month:02d}"
-            self.archive_path.mkdir(parents=True, exist_ok=True)
             logger.info(f"流水归档路径: {self.archive_path}")
-            # 清理旧数据
-            self._cleanup_old_archives()
-        else:
-            self.archive_path = self.download_path
-        
-        # 支持打包环境：检测是否在 PyInstaller 环境中运行
-        if getattr(sys, 'frozen', False):
-            # 打包后的 exe 环境，使用 exe 所在目录
-            self.browser_download_path = Path(sys.executable).parent / "downloads"
-            logger.info(f"[打包环境] 浏览器下载路径: {self.browser_download_path}")
-        else:
-            # 开发环境，使用脚本所在目录
-            self.browser_download_path = Path(__file__).parent / "downloads"
-            logger.info(f"[开发环境] 浏览器下载路径: {self.browser_download_path}")
-        
-        # 确保下载目录存在
-        self.browser_download_path.mkdir(parents=True, exist_ok=True)
+            cleanup_old_archives(self.download_path, config.retention_months, "流水", self.current_date)
+
+        # 支持打包环境：frozen 用 exe 所在目录，开发环境用脚本目录
+        env_label = "打包环境" if getattr(sys, "frozen", False) else "开发环境"
+        self.browser_download_path = resolve_browser_download_dir(Path(__file__).resolve().parent)
+        logger.info(f"[{env_label}] 浏览器下载路径: {self.browser_download_path}")
     
     def _find_frame_containing(self, selectors: list, timeout: int = 10, match_all: bool = False):
         """在所有 frame（包括 iframe）中查找包含目标选择器的 frame，优先返回元素可见的。"""
-        start = time.time()
-        while time.time() - start < timeout:
-            fallback = None
-            for frame in self.page.frames:
-                try:
-                    if match_all:
-                        if all(frame.locator(selector).count() > 0 for selector in selectors):
-                            return frame
-                    else:
-                        for selector in selectors:
-                            loc = frame.locator(selector).first
-                            if loc.count() == 0:
-                                continue
-                            if fallback is None:
-                                fallback = frame
-                            try:
-                                if loc.is_visible(timeout=200):
-                                    return frame
-                            except Exception:
-                                pass
-                except Exception:
-                    continue
-            if fallback is not None:
-                return fallback
-            time.sleep(0.5)
-        return None
+        return find_frame_containing(
+            self.page, selectors, timeout=timeout, match_all=match_all, prefer_visible=True
+        )
     
-    def _to_ccb_date(self, date_str: str) -> str:
-        """将 YYYY-MM-DD 转换为 CCB 需要的 YYYYMMDD"""
-        return date_str.replace('-', '')
 
-    def _log_frame_diagnostics(self, tag: str = "frame诊断"):
-        """输出各 frame 中关键元素的探测结果。"""
-        try:
-            contexts = [("page", self.page)] + [
-                (f"frame[{idx}]", frame) for idx, frame in enumerate(self.page.frames)
-            ]
-            for label, context in contexts:
-                try:
-                    info = context.evaluate("""
-                        () => ({
-                            url: location.href,
-                            hasStDt: !!document.querySelector('#StDt'),
-                            hasEdDt: !!document.querySelector('#EdDt'),
-                            hasSubmit4: !!document.querySelector('input[name="Submit4"]'),
-                            hasSubmit4Confirm: !!document.querySelector('input[type="submit"][name="Submit4"][value="确定"]'),
-                            hasConfirmText: !!document.querySelector('input[value="确定"]')
-                        })
-                    """)
-                    logger.info(f"{tag} {label}: {info}")
-                except Exception as e:
-                    logger.debug(f"{tag} {label} 失败: {e}")
-        except Exception as e:
-            logger.debug(f"{tag} 失败: {e}")
-
-    def _click_query_confirm_button(self) -> str:
-        """点击交易明细查询页“确定”按钮。"""
-        self._log_frame_diagnostics("确定按钮前")
-
-        contexts = []
-        if getattr(self, "_work_frame", None):
-            contexts.append(("work_frame", self._work_frame))
-
-        for idx, frame in enumerate(self.page.frames):
-            if frame == getattr(self, "_work_frame", None):
-                continue
-            contexts.append((f"frame[{idx}]", frame))
-        contexts.append(("page", self.page))
-
-        confirm_selectors = [
-            'input[type="submit"][name="Submit4"][value="确定"]',
-            'input[name="Submit4"]',
-            'input[type="submit"][value="确定"]',
-            'input[value="确定"]',
-        ]
-
-        for label, context in contexts:
-            for selector in confirm_selectors:
-                try:
-                    result = context.evaluate(
-                        """(selector) => {
-                            const btn = document.querySelector(selector);
-                            if (!btn) return null;
-                            const style = window.getComputedStyle(btn);
-                            const visible = style.display !== 'none' &&
-                                style.visibility !== 'hidden' &&
-                                btn.offsetWidth > 0 &&
-                                btn.offsetHeight > 0;
-                            if (!visible) return `found_not_visible:${selector}`;
-                            btn.scrollIntoView({block: 'center'});
-                            btn.click();
-                            if (btn.form) {
-                                try { btn.form.submit(); } catch (e) {}
-                            }
-                            return `clicked:${selector}`;
-                        }""",
-                        selector,
-                    )
-                    if result and result.startswith("clicked:"):
-                        logger.info(f"确定按钮点击结果: {label}:{result}")
-                        return f"{label}:{result}"
-                    if result:
-                        logger.info(f"确定按钮探测结果: {label}:{result}")
-                except Exception as e:
-                    logger.debug(f"点击确定按钮失败 {label} {selector}: {e}")
-
-        raise Exception("未找到确定按钮")
     
-    def _set_date_field_ccb(self, frame, selector: str, value: str):
-        """在 iframe 中设置日期输入框"""
-        input_field = frame.locator(selector).first
-        input_field.wait_for(state="visible", timeout=5000)
-        
-        frame.evaluate("""
-            (args) => {
-                var input = document.querySelector(args.selector);
-                if (input) {
-                    input.value = args.value;
-                    input.removeAttribute('readonly');
-                    input.removeAttribute('disabled');
-                    ['focus', 'input', 'change', 'blur'].forEach(function(type) {
-                        var evt = new Event(type, { bubbles: true });
-                        input.dispatchEvent(evt);
-                    });
-                }
-            }
-        """, {"selector": selector, "value": value})
-        time.sleep(0.3)
-    
-    def _cleanup_old_archives(self):
-        """清理超过保留期限的归档目录"""
-        retention_months = self.config.retention_months
-        if retention_months <= 0:
-            return
-        
-        # 计算截止日期（当前日期往前推 retention_months 个月）
-        cutoff_date = self.current_date.replace(day=1)
-        for _ in range(retention_months):
-            # 往前推一个月
-            if cutoff_date.month == 1:
-                cutoff_date = cutoff_date.replace(year=cutoff_date.year - 1, month=12)
-            else:
-                cutoff_date = cutoff_date.replace(month=cutoff_date.month - 1)
-        
-        logger.info(f"清理 {retention_months} 个月前的流水归档数据，截止日期: {cutoff_date.strftime('%Y-%m')}")
-        
-        deleted_count = 0
-        
-        # 遍历所有年份目录
-        for year_dir in self.download_path.iterdir():
-            if not year_dir.is_dir():
-                continue
-            
-            try:
-                year = int(year_dir.name)
-                if year < 2000 or year > 2100:  # 简单的有效性检查
-                    continue
-            except ValueError:
-                continue
-            
-            # 遍历该年份下的所有月份目录
-            for month_dir in year_dir.iterdir():
-                if not month_dir.is_dir():
-                    continue
-                
-                try:
-                    month = int(month_dir.name)
-                    if month < 1 or month > 12:
-                        continue
-                    
-                    # 构建目录日期
-                    dir_date = datetime(year, month, 1)
-                    
-                    # 如果目录日期早于截止日期，删除整个目录
-                    if dir_date < cutoff_date:
-                        import shutil
-                        shutil.rmtree(month_dir)
-                        deleted_count += 1
-                        logger.info(f"已删除旧归档目录: {year}/{month:02d}")
-                except (ValueError, OSError) as e:
-                    logger.debug(f"处理目录 {month_dir} 时出错: {e}")
-                    continue
-        
-        # 删除空的年份目录
-        for year_dir in self.download_path.iterdir():
-            if year_dir.is_dir() and not any(year_dir.iterdir()):
-                year_dir.rmdir()
-                logger.info(f"已删除空年份目录: {year_dir.name}")
-        
-        if deleted_count > 0:
-            logger.info(f"共清理 {deleted_count} 个旧归档目录")
-        else:
-            logger.info("没有需要清理的旧归档数据")
-    
+
     def collect(self, accounts: Optional[List[str]] = None) -> List[str]:
         """采集银行流水 - CCB全选账户后一次性下载"""
         downloaded_files = []
@@ -267,10 +80,12 @@ class StatementCollector:
         logger.info(f"开始采集流水，日期范围: {start_date_str} 至 {end_date_str}")
 
         try:
-            self._navigate_to_statement_page()
             logger.info(f"查询流水 {start_date_str} 至 {end_date_str}")
             file_path = self._download_statement("", start_date_str, end_date_str)
-            if file_path and Path(file_path).exists() and "无数据" not in Path(file_path).name:
+            if file_path and "无数据" in Path(file_path).name:
+                # 无数据标记交给 run_task 转成 no_data=true
+                downloaded_files.append(file_path)
+            elif file_path and Path(file_path).exists():
                 downloaded_files.append(file_path)
             else:
                 logger.info(f"{start_date_str} 至 {end_date_str} 无流水数据")
@@ -281,103 +96,6 @@ class StatementCollector:
         logger.info(f"流水采集完成，共下载 {len(downloaded_files)} 个文件")
         return downloaded_files
     
-    def _close_ad_popup(self, timeout: float = 15.0) -> bool:
-        """关闭登录后弹出的首页广告弹窗（#befADV1），轮询等待它出现。"""
-        selector = "#befADV1 > img:nth-child(2)"
-        script = """s => {
-            const el = document.querySelector(s);
-            if (!el) return false;
-            el.click();
-            return true;
-        }"""
-        deadline = time.time() + timeout
-        while time.time() < deadline:
-            for context in [self.page] + list(self.page.frames):
-                try:
-                    if context.evaluate(script, selector):
-                        logger.info("已关闭首页广告弹窗")
-                        time.sleep(1)
-                        return True
-                except Exception:
-                    continue
-            time.sleep(0.5)
-        return False
-
-    def _navigate_to_statement_page(self):
-        """导航到交易明细查询页面 - 按CCB实际页面结构"""
-        logger.info("导航到交易明细查询页面...")
-        time.sleep(2)
-
-        # 先关闭可能的弹窗
-        try:
-            self.page.keyboard.press("Escape")
-            time.sleep(0.5)
-        except Exception:
-            pass
-
-        if not self._close_ad_popup():
-            logger.info("未发现首页广告弹窗")
-        
-        # Step 1: 在首页点击"账户查询"链接（在iframe中）
-        frame = self._find_frame_containing(['#toAccQuery'], timeout=10)
-        if not frame:
-            raise Exception("未找到账户查询链接(#toAccQuery)")
-        
-        logger.info("点击账户查询...")
-        link = frame.locator('#toAccQuery').first
-        try:
-            link.click(timeout=5000)
-        except Exception as e:
-            logger.warning(f"常规点击账户查询失败（{e}），改用 JS 点击")
-            frame.evaluate(
-                "() => { const el = document.querySelector('#toAccQuery'); if (el) el.click(); }"
-            )
-        time.sleep(3)
-        
-        # Step 2: 等待账户列表页，勾选"全选"
-        frame = self._find_frame_containing(['#all_0'], timeout=10)
-        if not frame:
-            raise Exception("未进入账户列表页")
-        
-        logger.info("勾选全选账户...")
-        all_cb = frame.locator('#all_0').first
-        if all_cb.count() > 0:
-            try:
-                if not all_cb.is_checked():
-                    all_cb.check()
-            except Exception as e:
-                logger.warning(f"常规勾选全选失败（{e}），改用 JS 点击")
-                frame.evaluate(
-                    "() => { const el = document.querySelector('#all_0');"
-                    " if (el && !el.checked) el.click(); }"
-                )
-        time.sleep(1)
-        
-        # Step 3: 点击"交易明细"按钮
-        logger.info("点击交易明细...")
-        detail_btn = frame.locator('input[name="Submit3"]').first
-        if detail_btn.count() == 0:
-            detail_btn = frame.locator('input[onclick*="detailQuery"]').first
-        if detail_btn.count() == 0:
-            detail_btn = frame.locator('input[value="交易明细"]').first
-        
-        if detail_btn.count() == 0:
-            raise Exception("未找到交易明细按钮")
-        
-        detail_btn.click()
-        time.sleep(3)
-        
-        # Step 4: 等待进入交易明细查询条件页
-        frame = self._find_frame_containing(
-            ['#StDt', '#EdDt', 'input[name="Submit4"]'],
-            timeout=10,
-            match_all=True,
-        )
-        if not frame:
-            raise Exception("未进入交易明细查询页")
-        
-        self._work_frame = frame
-        logger.info("成功进入交易明细查询页面")
     
     def _is_statement_page(self) -> bool:
         """检查当前是否在交易明细相关页面 - 支持iframe"""
@@ -500,25 +218,8 @@ class StatementCollector:
             return "当前查询结果为空"
     
     def _check_has_data(self) -> bool:
-        """检查查询结果是否有数据 - 在iframe中查找"""
-        frame = getattr(self, '_work_frame', None)
-        if not frame:
-            frame = self._find_frame_containing(['#dlAll'], timeout=5)
-        
-        if not frame:
-            return True
-        
-        no_data_indicators = [
-            "text=无数据显示", "text=暂无数据", "text=未查询到",
-            "text=暂无符合条件的查询结果", "text=没有记录", "text=无数据",
-        ]
-        for indicator in no_data_indicators:
-            try:
-                if frame.locator(indicator).first.is_visible(timeout=2000):
-                    return False
-            except Exception:
-                continue
-        return True
+        """是否有交易：结果页分页总数 #HZDIV .curPageNum 为 0 即无数据。"""
+        return not self.detail.is_empty_result()
     
     def _get_downloaded_files_before(self):
         return get_downloaded_files_before(self.browser_download_path)
@@ -567,99 +268,21 @@ class StatementCollector:
         logger.info(f"流水文件已保存: {file_path}")
         return str(file_path)
     
-    def _set_date_range(self, start_date: str, end_date: str):
-        """设置日期范围 - CCB 使用 YYYYMMDD 格式"""
-        logger.info(f"设置日期范围: {start_date} 至 {end_date}")
-        
-        frame = getattr(self, '_work_frame', None)
-        if not frame:
-            frame = self._find_frame_containing(
-                ['#StDt', '#EdDt', 'input[name="Submit4"]'],
-                timeout=5,
-                match_all=True,
-            )
-            self._work_frame = frame
-        
-        if not frame:
-            raise Exception("未找到交易明细查询页")
-        
-        start_ccb = self._to_ccb_date(start_date)
-        end_ccb = self._to_ccb_date(end_date)
-        
-        self._set_date_field_ccb(frame, '#StDt', start_ccb)
-        self._set_date_field_ccb(frame, '#EdDt', end_ccb)
-        
-        # 关闭可能弹出的日历
-        self.page.keyboard.press("Escape")
-        time.sleep(0.3)
-        
-        logger.info(f"日期已设置: {start_ccb} 至 {end_ccb}")
     
-    def _set_date_field_by_playwright(self, field_id: str, date_value: str, page_or_frame=None):
-        """使用 Playwright 直接设置日期 - 针对建设银行日期选择器优化"""
-        try:
-            context = page_or_frame or self.page
-            input_field = context.locator(f"#{field_id}").first
-            
-            if input_field.count() == 0:
-                # 尝试其他选择器
-                input_field = context.locator(f"input[name='{field_id}']").first
-            
-            if input_field.count() == 0:
-                logger.warning(f"{field_id} 元素不存在")
-                return False
-            
-            input_field.wait_for(state="visible", timeout=5000)
-            input_field.scroll_into_view_if_needed()
-            time.sleep(0.3)
-            
-            # 使用 JS 移除 readonly 并设置值
-            context.evaluate("""
-                (function(args) {
-                    var input = document.getElementById(args.field_id);
-                    if (!input) {
-                        input = document.querySelector('input[name="' + args.field_id + '"]');
-                    }
-                    if (input) {
-                        input.removeAttribute('readonly');
-                        input.removeAttribute('disabled');
-                        input.value = args.date_value;
-                        ['focus', 'input', 'change'].forEach(function(eventType) {
-                            var event = new Event(eventType, { bubbles: true });
-                            input.dispatchEvent(event);
-                        });
-                    }
-                })()
-            """, {"field_id": field_id, "date_value": date_value})
-            time.sleep(0.3)
-            return True
-            
-        except Exception as e:
-            logger.error(f"设置 {field_id} 失败: {e}")
-            return False
     
     def _download_statement(self, account: str, start_date: str, end_date: str) -> Optional[str]:
         """下载流水 - CCB全选账户后一次性下载"""
         logger.info("开始下载交易明细...")
-        
-        # 设置日期
-        self._set_date_range(start_date, end_date)
 
-        # 点击确定按钮
-        logger.info("点击确定查询...")
-        click_result = self._click_query_confirm_button()
-        time.sleep(5)
-        
-        # 等待结果页
-        result_frame = self._find_frame_containing(['#dlAll'], timeout=15)
+        result_frame = self.detail.open_and_query(start_date, end_date)
         if not result_frame:
             # 检查是否无数据
             if not self._check_has_data():
                 logger.info("查询结果为空")
                 return self._create_no_data_marker(start_date, end_date)
             raise Exception("查询结果页加载失败")
-        
-        self._work_frame = result_frame
+
+        self._work_frame = self.detail.work_frame
         frame = result_frame
         logger.info("查询结果已加载")
         

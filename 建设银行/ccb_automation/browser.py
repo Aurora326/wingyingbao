@@ -53,16 +53,8 @@ class CCBBrowser(BaseBrowser, PopupHandlerMixin, PinInputterMixin, LoginManagerM
         except Exception as e:
             logger.warning(f"页面加载等待结束: {e}")
 
-        # 证书登录页出现后还要填登录密码，提交时会再弹一次 U盾 PIN
-        if self._find_password_input_context()[0] is not None:
-            logger.info("检测到证书登录表单，填写登录密码并提交...")
-            if self._submit_login_password_form():
-                self._handle_auth_popups(timeout=60)
-                self._adopt_portal_page(timeout=20)
-                try:
-                    self.page.wait_for_load_state("domcontentloaded", timeout=30000)
-                except Exception as e:
-                    logger.warning(f"登录后页面加载等待结束: {e}")
+        # 登录表单统一由 main.py → login() 提交一次；
+        # 这里不再重复查找/提交，避免连续触发 U盾 PIN。
 
     def _handle_auth_popups(self, timeout: float = 60.0) -> None:
         """导航期间处理证书选择和 U盾 PIN 弹窗。
@@ -148,19 +140,5 @@ class CCBBrowser(BaseBrowser, PopupHandlerMixin, PinInputterMixin, LoginManagerM
 
         import time
         time.sleep(2)
-
-        # 检查页面是否加载了登录表单
-        try:
-            # 等待"立即登录"按钮出现
-            self.page.locator('input.pbd_btn_login, input[value="立即登录"]').first.wait_for(state="visible", timeout=10000)
-            logger.info("登录页面加载完成，检测到'立即登录'按钮")
-        except Exception:
-            logger.warning("未检测到'立即登录'按钮，页面可能未完全加载")
-
-        # 注：弹窗处理统一在 main.py 登录成功后调用，避免重复执行
-        # 不要点击页面空白处，避免误触广告轮播图
-        # 仅按ESC关闭可能的弹层
-        try:
-            self.page.keyboard.press("Escape")
-        except Exception:
-            pass
+        # 弹窗处理统一在 main.py 登录成功后调用；这里不做旧版“立即登录”按钮探测，
+        # 也不盲按 Esc，避免抢走页面焦点或误关弹层。

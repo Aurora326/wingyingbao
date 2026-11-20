@@ -30,6 +30,8 @@ SELECT_ALL_SELECTOR = (
     f"{ROOT} > div.pagination.eib-row.is-justify-space-between.eib-row--flex "
     "> div.eib-col.eib-col-11 > button > span"
 )
+# 查询无数据时表格出现的空状态容器（F12 取自实际页面）
+EMPTY_SELECTOR = f"{ROOT} > div.eib-table > div.eib-table__body-wrapper.is-empty"
 
 
 def click_visible_text(page, text: str, timeout: float = 10.0) -> bool:
@@ -132,10 +134,18 @@ class AccountDetailPage:
             pass
         return not self._has_no_data()
 
-    def select_all(self) -> None:
+    def select_all(self) -> bool:
+        """选择全部明细；没有可全选的数据（查询为空）时返回 False。"""
         logger.info("选择全部明细...")
-        self.page.locator(SELECT_ALL_SELECTOR).first.click()
+        locator = self.page.locator(SELECT_ALL_SELECTOR).first
+        try:
+            locator.wait_for(state="visible", timeout=5000)
+        except Exception:
+            logger.info("页面上没有「选择全部」，按查询结果为空处理")
+            return False
+        locator.click()
         time.sleep(1)
+        return True
 
     def _root(self):
         return self.page.locator(ROOT).first
@@ -174,7 +184,12 @@ class AccountDetailPage:
 
     def _has_no_data(self) -> bool:
         try:
+            if self.page.locator(EMPTY_SELECTOR).first.is_visible(timeout=1000):
+                return True
+        except Exception:
+            pass
+        try:
             body = self.page.inner_text("body")
         except Exception:
             return False
-        return "共 0 笔" in body or "共0笔" in body
+        return any(marker in body for marker in ("共 0 笔", "共0笔", "暂无数据"))

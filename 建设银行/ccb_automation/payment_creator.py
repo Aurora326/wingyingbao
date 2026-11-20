@@ -13,71 +13,35 @@
 import time
 import json
 import csv
-import shutil
-import ctypes
-from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from playwright.sync_api import Page
 from loguru import logger
 
+import batch_template
+from common.frame_helper import (
+    click_button_texts,
+    click_text_in_context,
+    iter_contexts,
+)
 from popup_handler import PopupHandlerMixin
+from pin_inputter import handle_pin_dialog
 
-# 用于在模态弹窗阻塞 Playwright 时发送系统级键盘事件
-try:
-    import pyautogui
-except Exception:
-    pyautogui = None
-
-try:
-    import pygetwindow as gw
-except Exception:
-    gw = None
-
-# Excel 处理（建设银行模板为 .xls，需 xlrd/xlwt）
-try:
-    import xlrd
-    import xlwt
-    from xlutils.copy import copy as xlutils_copy
-    XL_UTILS_AVAILABLE = True
-except Exception:
-    XL_UTILS_AVAILABLE = False
-    logger.warning("xlrd/xlwt/xlutils 未安装，.xls 模板处理可能不可用")
 
 
 class PaymentCreator(PopupHandlerMixin):
     """建设银行批量模板导入制单"""
 
-    DEFAULT_TEMPLATE_MAPPING = {
-        "sheet": "Sheet1",
-        "start_row": 2,          # 数据从第 2 行开始（1-based，对应 xlwt row 1）
-        "clear_until_row": 3002, # 最多支持 3000 笔
-        "clear_columns": 15,
-        "columns": [
-            {"column": 1,  "field": "_seq",          "default": ""},          # 序号（自动生成）
-            {"column": 2,  "field": "payer_account",   "default_config": "payer_account"},
-            {"column": 3,  "field": "payer_name",      "default_config": "payer_name"},
-            {"column": 4,  "field": "payee_bank_type", "default_config": "payee_bank_type", "default": "02"},
-            {"column": 5,  "field": "payee_account"},
-            {"column": 6,  "field": "payee_name"},
-            {"column": 7,  "field": "payee_branch",    "default_config": "payee_branch"},
-            {"column": 8,  "field": "payee_bank_code", "default_config": "payee_bank_code"},
-            {"column": 9,  "field": "serial_no",       "default_config": "serial_no"},
-            {"column": 10, "field": "amount",          "transform": "amount"},
-            {"column": 11, "field": "purpose",         "default_config": "purpose"},
-            {"column": 12, "field": "remark",          "default_config": "remark"},
-            {"column": 13, "field": "notify",          "default_config": "notify", "default": "0"},
-            {"column": 14, "field": "payee_phone",     "default_config": "payee_phone"},
-            {"column": 15, "field": "notify_msg",      "default_config": "notify_msg"},
-        ],
-    }
+    DEFAULT_TEMPLATE_MAPPING = batch_template.DEFAULT_TEMPLATE_MAPPING
 
-    def __init__(self, page: Page, config: Dict, pin: str = "", cabinet_controller=None):
+    def __init__(self, page: Page, config: Dict, pin: str = "", cabinet_controller=None, diagnostics_dir=None):
         self.page = page
         self.config = config
         self.action = config.get('action', 'save')
         self.pin = pin
         self.cabinet_controller = cabinet_controller
+        self.diagnostics_dir = Path(diagnostics_dir) if diagnostics_dir else Path(__file__).resolve().parent / "debug"
+        self._snapshot_files: List[str] = []
         self.items = self._load_items()
 
     # ==================== 数据加载 ====================
@@ -130,133 +94,29 @@ class PaymentCreator(PopupHandlerMixin):
             return p
         return Path(__file__).resolve().parent / p
 
-    def _format_amount(self, value: str) -> str:
-        try:
-            return f"{Decimal(str(value).replace(',', '').strip()):.2f}"
-        except (InvalidOperation, ValueError):
-            return str(value or "").strip()
-
-    def _amount_decimal(self, value: str) -> Decimal:
-        try:
-            return Decimal(self._format_amount(value))
-        except (InvalidOperation, ValueError):
-            return Decimal("0")
-
     # ==================== 模板映射与文件生成 ====================
 
-    def _load_template_mapping(self) -> Dict[str, Any]:
+    def _mapping_path(self) -> Path:
         mapping_file = self.config.get("template_mapping_file") or "template/payments_batch_template.json"
-        mapping_path = self._resolve_path(mapping_file)
-        if not mapping_path.exists():
-            logger.warning(f"批量模板映射文件不存在，使用内置映射: {mapping_path}")
-            return dict(self.DEFAULT_TEMPLATE_MAPPING)
-        try:
-            with open(mapping_path, "r", encoding="utf-8-sig") as f:
-                mapping = json.load(f)
-            if not isinstance(mapping, dict) or not mapping.get("columns"):
-                raise ValueError("mapping must be an object with columns")
-            return mapping
-        except Exception as e:
-            logger.warning(f"加载批量模板映射失败，使用内置映射: {mapping_path}, {e}")
-            return dict(self.DEFAULT_TEMPLATE_MAPPING)
+        return self._resolve_path(mapping_file)
+
+    def _load_template_mapping(self) -> Dict[str, Any]:
+        return batch_template.load_mapping(self._mapping_path())
 
     def _mapped_value(self, item: Dict, column_cfg: Dict[str, Any], row_index: int) -> str:
-        fields = column_cfg.get("field", [])
-        if isinstance(fields, str):
-            fields = [fields]
-
-        value = ""
-        for field in fields:
-            if field == "_seq":
-                value = str(row_index + 1)
-                break
-            value = item.get(field, "")
-            if value not in ("", None):
-                break
-
-        default_config = column_cfg.get("default_config")
-        if value in ("", None) and default_config:
-            value = self.config.get(default_config, "")
-        if value in ("", None):
-            value = column_cfg.get("default", "")
-
-        transform = column_cfg.get("transform")
-        if transform == "amount":
-            return self._format_amount(value)
-        return str(value or "")
+        return batch_template.mapped_value(item, column_cfg, row_index, self.config)
 
     def _generate_batch_import_file(self) -> Path:
         """按建行批量转账模板生成导入文件。"""
         template_file = self.config.get("template_file") or "template/批量转账模板.xls"
         generated_file = self.config.get("generated_file") or "temp/payment_import.xls"
-        template_path = self._resolve_path(template_file)
-        output_path = self._resolve_path(generated_file)
-        if not template_path.exists():
-            raise Exception(f"批量转账模板不存在: {template_path}")
-
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        if not XL_UTILS_AVAILABLE:
-            raise Exception("缺少 xlrd/xlwt/xlutils，无法处理 .xls 模板。请执行: pip install xlrd xlwt xlutils")
-
-        # Windows 下 xlrd 打开文件后会保持句柄，导致 xlwt 无法覆写同一文件。
-        # 策略：复制模板到临时文件 → xlrd 读取临时文件 → xlutils.copy 修改 → 保存到目标文件
-        import tempfile
-        with tempfile.NamedTemporaryFile(suffix=".xls", delete=False) as tmp:
-            tmp_path = Path(tmp.name)
-        shutil.copy2(template_path, tmp_path)
-
-        try:
-            # 打开临时副本并修改
-            rb = xlrd.open_workbook(str(tmp_path), formatting_info=True)
-            wb = xlutils_copy(rb)
-            mapping = self._load_template_mapping()
-            sheet_name = mapping.get("sheet") or "Sheet1"
-
-            # 找到对应 sheet（xlutils copy 后按索引访问）
-            sheet_idx = rb.sheet_names().index(sheet_name) if sheet_name in rb.sheet_names() else 0
-            ws = wb.get_sheet(sheet_idx)
-
-            start_row = int(mapping.get("start_row") or 2)          # 1-based
-            clear_until_row = int(mapping.get("clear_until_row") or 3002)
-            clear_columns = int(mapping.get("clear_columns") or 15)
-            columns = mapping.get("columns") or self.DEFAULT_TEMPLATE_MAPPING["columns"]
-
-            # 清空旧数据（保留表头）
-            for row in range(start_row, clear_until_row + 1):
-                for col in range(1, clear_columns + 1):
-                    try:
-                        ws.write(row - 1, col - 1, "")
-                    except Exception:
-                        pass
-
-            total = Decimal("0")
-            for offset, item in enumerate(self.items):
-                row = start_row + offset  # 1-based Excel row
-                amount = self._format_amount(item.get("amount", ""))
-                try:
-                    total += Decimal(amount)
-                except (InvalidOperation, ValueError):
-                    pass
-                for column_cfg in columns:
-                    col = int(column_cfg["column"])  # 1-based
-                    val = self._mapped_value(item, column_cfg, offset)
-                    ws.write(row - 1, col - 1, val)
-
-            # 保存到目标路径（先关闭 rb 释放句柄）
-            rb.release_resources()
-            del rb
-            wb.save(str(output_path))
-        finally:
-            # 清理临时文件
-            try:
-                if tmp_path.exists():
-                    tmp_path.unlink()
-            except Exception:
-                pass
-
-        logger.info(f"已生成批量转账导入文件: {output_path}，笔数={len(self.items)}，总金额={total:.2f}")
-        return output_path
+        return batch_template.generate_import_file(
+            self._resolve_path(template_file),
+            self._resolve_path(generated_file),
+            self.items,
+            self._mapping_path(),
+            self.config,
+        )
 
     # ==================== 页面导航 ====================
 
@@ -264,7 +124,7 @@ class PaymentCreator(PopupHandlerMixin):
         """通过菜单导航到批量转账文件录入页面。"""
         logger.info("导航到批量转账制单页面...")
         try:
-            self._dismiss_popups()
+            self._dismiss_in_page_popups(self.page)
             # 策略1：尝试直接通过菜单文本定位并点击
             self._click_menu_by_text("转账业务")
             time.sleep(1)
@@ -274,7 +134,7 @@ class PaymentCreator(PopupHandlerMixin):
                 if not clicked:
                     logger.warning(f"未直接点击到菜单: {text}")
                 time.sleep(0.8)
-                self._dismiss_popups()
+                self._dismiss_in_page_popups(self.page)
             if not self._hover_element_by_text("批量转账"):
                 logger.warning("未 hover 到菜单: 批量转账")
             time.sleep(1.0)
@@ -482,76 +342,18 @@ class PaymentCreator(PopupHandlerMixin):
             logger.warning(f"坐标菜单链失败: {e}")
 
     def _iter_contexts(self):
-        """遍历主页面和 iframe，建行旧页面会在不同容器中切换内容。"""
-        yield "page", self.page
-        for i, frame in enumerate(self.page.frames):
-            yield f"frame[{i}]", frame
+        """遍历主页面和 iframe（公共实现见 common/frame_helper）。"""
+        return iter_contexts(self.page)
 
     @staticmethod
     def _click_text_in_context(context, text: str, exact: bool = True) -> Dict[str, Any]:
         """在一个页面上下文里点击最小的可见文本元素。"""
-        return PaymentCreator._interact_text_in_context(context, text, action="click", exact=exact)
+        return click_text_in_context(context, text, action="click", exact=exact)
 
     @staticmethod
     def _interact_text_in_context(context, text: str, action: str = "click", exact: bool = True) -> Dict[str, Any]:
         """在一个页面上下文里对最小的可见文本元素触发 hover/click。"""
-        return context.evaluate("""
-            (args) => {
-                const text = args.text;
-                const exact = args.exact;
-                const action = args.action;
-                const norm = (t) => (t || '').replace(/\\s+/g, '').trim();
-                const target = norm(text);
-                const isVisible = (el) => {
-                    const rect = el.getBoundingClientRect();
-                    const style = window.getComputedStyle(el);
-                    return rect.width > 0 && rect.height > 0
-                        && style.display !== 'none'
-                        && style.visibility !== 'hidden';
-                };
-                const candidates = [];
-                for (const el of document.querySelectorAll('a, button, input[type="button"], input[type="submit"], span, li, div')) {
-                    if (!isVisible(el)) continue;
-                    const raw = el.tagName === 'INPUT' ? el.value : el.textContent;
-                    const value = norm(raw);
-                    if (!value) continue;
-                    const matched = exact ? value === target : value.includes(target);
-                    if (!matched) continue;
-                    const rect = el.getBoundingClientRect();
-                    candidates.push({
-                        el,
-                        tag: el.tagName,
-                        text: (raw || '').replace(/\\s+/g, ' ').trim(),
-                        area: rect.width * rect.height
-                    });
-                }
-                candidates.sort((a, b) => a.area - b.area);
-                const hit = candidates[0];
-                if (!hit) return {clicked: false, hovered: false, reason: 'not found'};
-                const el = hit.el.closest('a, button, input[type="button"], input[type="submit"], li, [onclick], [ng-click], [data-ng-click]')
-                    || hit.el;
-                el.scrollIntoView({block: 'center', inline: 'center'});
-                const rect = el.getBoundingClientRect();
-                const eventInit = {
-                    bubbles: true,
-                    cancelable: true,
-                    view: window,
-                    clientX: rect.left + rect.width / 2,
-                    clientY: rect.top + rect.height / 2
-                };
-                for (const evt of ['mouseover', 'mouseenter', 'mousemove']) {
-                    el.dispatchEvent(new MouseEvent(evt, eventInit));
-                    if (el.parentElement) el.parentElement.dispatchEvent(new MouseEvent(evt, eventInit));
-                }
-                if (action === 'hover') {
-                    return {hovered: true, clicked: false, tag: hit.tag, text: hit.text};
-                }
-                for (const evt of ['mousedown', 'mouseup', 'click']) {
-                    el.dispatchEvent(new MouseEvent(evt, eventInit));
-                }
-                return {clicked: true, hovered: true, tag: el.tagName, text: hit.text};
-            }
-        """, {"text": text, "exact": exact, "action": action})
+        return click_text_in_context(context, text, action=action, exact=exact)
 
     def _hover_element_by_text(self, text: str) -> bool:
         """hover 包含指定文本的元素。"""
@@ -1015,58 +817,18 @@ class PaymentCreator(PopupHandlerMixin):
         return False
 
     def _click_button_by_texts(self, texts: List[str], preferred_context=None, preferred_label: str = "") -> bool:
-        contexts = [(preferred_label or "preferred", preferred_context)] if preferred_context else []
-        contexts += list(self._iter_contexts())
-        seen = set()
-        for ctx_label, context in contexts:
-            if not context or id(context) in seen:
-                continue
-            seen.add(id(context))
-            for text in texts:
-                try:
-                    btn = context.locator(f'button:has-text("{text}"), input[value="{text}"], a:has-text("{text}")').first
-                    if btn.count() > 0 and btn.is_visible(timeout=1500):
-                        btn.click(timeout=5000)
-                        logger.info(f"已点击按钮 {text} ({ctx_label})")
-                        time.sleep(3)
-                        return True
-                except Exception:
-                    pass
-                try:
-                    result = context.evaluate("""
-                        (text) => {
-                            const visible = (el) => {
-                                const rect = el.getBoundingClientRect();
-                                const style = window.getComputedStyle(el);
-                                return rect.width > 0 && rect.height > 0
-                                    && style.display !== 'none'
-                                    && style.visibility !== 'hidden';
-                            };
-                            for (const el of document.querySelectorAll('button, input[type="button"], input[type="submit"], a')) {
-                                if (!visible(el)) continue;
-                                const val = (el.textContent || el.value || '').trim();
-                                if (val === text) {
-                                    el.click();
-                                    return {clicked: true, tag: el.tagName};
-                                }
-                            }
-                            return {clicked: false};
-                        }
-                    """, text)
-                    if result and result.get("clicked"):
-                        logger.info(f"已通过 JS 点击按钮 {text} ({ctx_label})")
-                        time.sleep(3)
-                        return True
-                except Exception:
-                    pass
-        return False
+        return click_button_texts(
+            self.page,
+            texts,
+            preferred_context=preferred_context,
+            preferred_label=preferred_label,
+        )
 
     def _finish_batch_action(self) -> str:
         """完成批量操作。"""
         if self.action == 'submit':
-            self._close_mobile_banking_ad()
+            self._dismiss_marketing_overlays()
             self._dismiss_in_page_popups(self.page)
-            self._dismiss_popups()
             if self._click_next_step():
                 time.sleep(2)
                 # 上传成功记录页：先全选成功记录，再进入复核页
@@ -1097,15 +859,14 @@ class PaymentCreator(PopupHandlerMixin):
         try:
             import_file = self._generate_batch_import_file()
             self._navigate_to_batch_payment_page()
-            self._dismiss_popups()
+            self._dismiss_in_page_popups(self.page)
             self._upload_batch_file(import_file)
             self._fill_batch_form()
             # 手机银行广告弹窗会延迟出现，逐 frame 关闭并连续检查几次
             time.sleep(1.5)
             for _ in range(4):
-                self._close_mobile_banking_ad()
+                self._dismiss_marketing_overlays()
                 self._dismiss_in_page_popups(self.page)
-                self._dismiss_popups()
                 time.sleep(1)
             self._save_debug_snapshot()
             result = self._finish_batch_action()
@@ -1113,6 +874,15 @@ class PaymentCreator(PopupHandlerMixin):
         except Exception as e:
             logger.error(f"批量模板导入制单失败: {e}")
             results["batch_import"] = f"失败: {e}"
+            self._save_debug_snapshot()
+
+        shot = next(
+            (p for p in self._snapshot_files if str(p).lower().endswith((".jpg", ".png"))), ""
+        )
+        if shot:
+            results["截图"] = shot
+        if self._snapshot_files:
+            results["diagnostic_files"] = list(self._snapshot_files)
         return results
 
     # ==================== 弹窗与 U 盾处理 ====================
@@ -1160,29 +930,13 @@ class PaymentCreator(PopupHandlerMixin):
         return None
 
     def _handle_ukey_password_dialog(self):
-        """处理交易签名时的 U 盾密码弹窗。"""
+        """处理交易签名时的 U 盾密码弹窗（复用 pin_inputter）。"""
         if not self.pin:
             logger.info("未配置 PIN，跳过 U 盾密码弹窗自动输入")
             return
-        try:
-            logger.info("等待 U 盾密码弹窗出现...")
-            win = self._wait_for_ukey_window(timeout=20)
-            if win:
-                self._activate_ukey_window(win)
-            else:
-                logger.warning("未识别到 U 盾密码窗口，按当前焦点尝试输入")
-
-            self._click_ukey_password_input(win)
-            if self._input_with_aikeyboard(self.pin):
-                logger.info("AiKeyboard U 盾密码输入完成")
-            else:
-                logger.warning("AiKeyboard 输入失败")
-
-            time.sleep(0.5)
-            self._confirm_ukey_window(win)
-            time.sleep(5)
-        except Exception as e:
-            logger.error(f"处理 U 盾密码弹窗失败: {e}")
+        logger.info("等待 U 盾密码弹窗出现...")
+        handle_pin_dialog(self.pin)
+        time.sleep(5)
 
     def _handle_ukey_physical_confirm(self):
         """确认完 U 盾密码后，调用机柜控制器按压物理 OK 键。"""
@@ -1206,138 +960,6 @@ class PaymentCreator(PopupHandlerMixin):
         except Exception as e:
             logger.debug(f"调用机柜按压 OK 键失败: {e}")
 
-    def _wait_for_ukey_window(self, timeout: int = 20):
-        if not gw:
-            logger.warning("pygetwindow 不可用，无法按标题识别 U 盾密码窗口")
-            time.sleep(3)
-            return None
-        deadline = time.time() + timeout
-        keywords = ["校验U盾密码", "U盾密码", "网银盾密码", "U盾"]
-        while time.time() < deadline:
-            try:
-                for win in gw.getAllWindows():
-                    title = (win.title or "").strip()
-                    if not title or "Chrome" in title or "Google Chrome" in title:
-                        continue
-                    if title and any(k in title for k in keywords):
-                        logger.info(f"检测到 U 盾密码窗口: title={title}")
-                        return win
-            except Exception:
-                pass
-            time.sleep(0.5)
-        return None
-
-    def _activate_ukey_window(self, win):
-        if not win:
-            return
-        try:
-            if win.isMinimized:
-                win.restore()
-            win.activate()
-            time.sleep(0.4)
-        except Exception:
-            pass
-
-    def _click_ukey_password_input(self, win):
-        if not pyautogui:
-            return
-        try:
-            if win:
-                x = win.left + int(win.width * 0.42)
-                y = win.top + int(win.height * 0.47)
-            else:
-                width, height = pyautogui.size()
-                x = int(width * 0.443)
-                y = int(height * 0.315)
-            pyautogui.click(x, y)
-            time.sleep(0.3)
-        except Exception:
-            pass
-
-    def _confirm_ukey_window(self, win):
-        logger.info("提交 U 盾密码窗口...")
-        if win and self._click_ukey_confirm_button_win32(win):
-            return
-        # AiKeyboard 回车
-        if self._send_with_aikeyboard('Enter'):
-            time.sleep(2)
-            if win and not self._is_ukey_window_alive(win):
-                return
-        if pyautogui:
-            try:
-                if win:
-                    self._activate_ukey_window(win)
-                pyautogui.press("enter")
-                time.sleep(0.5)
-                pyautogui.press("enter")
-                if win and not self._is_ukey_window_alive(win):
-                    return
-            except Exception:
-                pass
-            try:
-                if win:
-                    self._activate_ukey_window(win)
-                    x = win.left + int(win.width * 0.27)
-                    y = win.top + int(win.height * 0.88)
-                    pyautogui.click(x, y)
-                    return
-            except Exception:
-                pass
-        try:
-            self.page.keyboard.press("Enter")
-        except Exception:
-            pass
-
-    def _click_ukey_confirm_button_win32(self, win) -> bool:
-        hwnd = getattr(win, "_hWnd", None) if win else None
-        if not hwnd:
-            return False
-        try:
-            user32 = ctypes.windll.user32
-            candidates = []
-            EnumChildProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
-
-            def get_text(child_hwnd):
-                buf = ctypes.create_unicode_buffer(256)
-                user32.GetWindowTextW(child_hwnd, buf, 256)
-                return buf.value.strip()
-
-            def enum_child(child_hwnd, _):
-                text = get_text(child_hwnd)
-                if text in ("确认", "确定", "OK", "Ok", "ok"):
-                    candidates.append(child_hwnd)
-                return True
-
-            user32.EnumChildWindows(hwnd, EnumChildProc(enum_child), 0)
-            if not candidates:
-                return False
-            BM_CLICK = 0x00F5
-            user32.SetForegroundWindow(hwnd)
-            time.sleep(0.2)
-            user32.SendMessageW(candidates[0], BM_CLICK, 0, 0)
-            time.sleep(1)
-            return not self._is_ukey_window_alive(win)
-        except Exception:
-            return False
-
-    def _is_ukey_window_alive(self, win) -> bool:
-        hwnd = getattr(win, "_hWnd", None) if win else None
-        if not hwnd:
-            return False
-        try:
-            user32 = ctypes.windll.user32
-            return bool(user32.IsWindow(hwnd) and user32.IsWindowVisible(hwnd))
-        except Exception:
-            return False
-
-    @staticmethod
-    def _input_with_aikeyboard(text: str) -> bool:
-        try:
-            from common.keyboard_helper import input_with_aikeyboard
-            return input_with_aikeyboard(text)
-        except Exception:
-            return False
-
     @staticmethod
     def _send_with_aikeyboard(key: str) -> bool:
         try:
@@ -1348,236 +970,30 @@ class PaymentCreator(PopupHandlerMixin):
 
     # ==================== 通用工具 ====================
 
-    def _close_mobile_banking_ad(self) -> bool:
-        """逐 frame 关闭“企业手机银行”推广弹窗，只点 ×，不碰遮罩。"""
-        find_js = """
-            () => {
-                const vis = (el) => {
-                    const r = el.getBoundingClientRect();
-                    const st = window.getComputedStyle(el);
-                    return r.width > 0 && r.height > 0 && st.display !== 'none' && st.visibility !== 'hidden';
-                };
-                let best = null;
-                let bestEl = null;
-                for (const el of document.querySelectorAll('div, section, article')) {
-                    const t = (el.textContent || '').replace(/\s+/g, '');
-                    if (!t.includes('企业手机银行')) continue;
-                    if (!vis(el)) continue;
-                    const r = el.getBoundingClientRect();
-                    if (r.width < 200 || r.height < 100) continue;
-                    if (!best || r.width * r.height < best.w * best.h) {
-                        best = { w: r.width, h: r.height };
-                        bestEl = el;
-                    }
-                }
-                if (!bestEl) return null;
-                let box = bestEl;
-                const vw = window.innerWidth;
-                const vh = window.innerHeight;
-                for (let i = 0; i < 4 && box.parentElement; i++) {
-                    const pr = box.parentElement.getBoundingClientRect();
-                    if (pr.width * pr.height > vw * vh * 0.5) break;
-                    const st = window.getComputedStyle(box.parentElement);
-                    if (st.position === 'fixed' || st.position === 'absolute') box = box.parentElement;
-                }
-                const r = box.getBoundingClientRect();
-                return { right: r.right, top: r.top, width: r.width, height: r.height };
-            }
-        """
-        remove_js = """
-            () => {
-                const vis = (el) => {
-                    const r = el.getBoundingClientRect();
-                    const st = window.getComputedStyle(el);
-                    return r.width > 0 && r.height > 0 && st.display !== 'none' && st.visibility !== 'hidden';
-                };
-                let best = null;
-                let bestEl = null;
-                for (const el of document.querySelectorAll('div, section, article')) {
-                    const t = (el.textContent || '').replace(/\s+/g, '');
-                    if (!t.includes('企业手机银行')) continue;
-                    if (!vis(el)) continue;
-                    const r = el.getBoundingClientRect();
-                    if (r.width < 200 || r.height < 100) continue;
-                    if (!best || r.width * r.height < best.w * best.h) {
-                        best = { w: r.width, h: r.height };
-                        bestEl = el;
-                    }
-                }
-                if (!bestEl) return false;
-                let box = bestEl;
-                const vw = window.innerWidth;
-                const vh = window.innerHeight;
-                for (let i = 0; i < 4 && box.parentElement; i++) {
-                    const pr = box.parentElement.getBoundingClientRect();
-                    if (pr.width * pr.height > vw * vh * 0.5) break;
-                    const st = window.getComputedStyle(box.parentElement);
-                    if (st.position === 'fixed' || st.position === 'absolute') box = box.parentElement;
-                }
-                box.remove();
-                return true;
-            }
-        """
-        closed = False
-        viewport = self.page.viewport_size or {"height": 1080}
-        try:
-            pages = self.page.context.pages
-            logger.info(f"浏览器窗口数={len(pages)}, urls={[p.url for p in pages]}")
-        except Exception:
-            pages = []
-        for frame in [self.page] + list(self.page.frames):
-            try:
-                hit = frame.evaluate("""
-                    () => {
-                        const el = document.querySelector('#befADV1 > img:nth-child(2)')
-                            || document.querySelector('#befADV1 img:nth-child(2)');
-                        if (!el) return false;
-                        el.click();
-                        return true;
-                    }
-                """)
-                if hit:
-                    logger.info(f"已点击建行营销弹层关闭按钮 (#befADV1): {frame.url}")
-                    closed = True
-                    time.sleep(0.6)
-            except Exception:
-                pass
-        for idx, frame in enumerate([self.page] + list(self.page.frames)):
-            try:
-                has_text = frame.evaluate(
-                    "() => ((document.body && document.body.innerText) || '').includes('企业手机银行')"
-                )
-                if has_text:
-                    logger.info(f"弹窗文本出现在第 {idx} 个 frame: {frame.url}")
-            except Exception as exc:
-                logger.info(f"第 {idx} 个 frame 无法读取: {exc}")
-        for frame in [self.page] + list(self.page.frames):
-            try:
-                info = frame.evaluate(find_js)
-            except Exception:
-                continue
-            if not info:
-                continue
-            ox = oy = 0.0
-            if frame is not self.page:
-                try:
-                    box = frame.frame_element().bounding_box()
-                    if box:
-                        ox, oy = box["x"], box["y"]
-                except Exception:
-                    pass
-            x = ox + info["right"] - 18
-            y = oy + info["top"] + 18
-            if 0 <= y <= 0.9 * viewport.get("height", 1080):
-                try:
-                    self.page.mouse.click(x, y)
-                    logger.info(f"已点击手机银行弹窗关闭按钮: ({x:.0f}, {y:.0f})")
-                    closed = True
-                    time.sleep(0.6)
-                except Exception:
-                    pass
-            try:
-                still = frame.evaluate(
-                    "() => ((document.body && document.body.innerText) || '').includes('企业手机银行')"
-                )
-            except Exception:
-                still = False
-            if still:
-                try:
-                    if frame.evaluate(remove_js):
-                        logger.info("已直接移除手机银行弹窗容器")
-                        closed = True
-                except Exception:
-                    pass
-        return closed
 
-    def _dismiss_popups(self):
-        """清理页面弹窗和遮挡层"""
-        for label, context in self._iter_contexts():
-            try:
-                result = context.evaluate("""
-                    () => {
-                        const modalSelectors = [
-                            '.modal.in', '.modal.show', '.modal-dialog', '.modal-content',
-                            '[role="dialog"]', '.layui-layer', '.el-message-box',
-                            '.ant-modal-content', '.sweet-alert',
-                            '.pop_body', '.popup', '.ui-dialog', '.xubox_layer'
-                        ];
-                        let clicked = [];
-                        const isVisible = (el) => {
-                            const rect = el.getBoundingClientRect();
-                            const style = window.getComputedStyle(el);
-                            return rect.width > 0 && rect.height > 0
-                                && style.display !== 'none'
-                                && style.visibility !== 'hidden';
-                        };
-                        const clickButtonIn = (root) => {
-                            const btns = root.querySelectorAll('button, input[type="button"], a, .close, .layui-layer-close, [aria-label="Close"]');
-                            for (const btn of btns) {
-                                if (!isVisible(btn)) continue;
-                                const txt = (btn.textContent || btn.value || '').trim();
-                                if (['关闭','确定','确认','取消','我知道了','暂不'].includes(txt)
-                                    || btn.classList.contains('close')
-                                    || btn.getAttribute('aria-label') === 'Close') {
-                                    btn.click();
-                                    clicked.push(txt || btn.className || 'close');
-                                    return true;
-                                }
-                            }
-                            return false;
-                        };
-                        for (const sel of modalSelectors) {
-                            const modals = document.querySelectorAll(sel);
-                            for (const modal of modals) {
-                                if (!isVisible(modal)) continue;
-                                const rect = modal.getBoundingClientRect();
-                                if (rect.width < 50 || rect.height < 50) continue;
-                                clickButtonIn(modal);
-                            }
-                        }
-                        // 建行常见的“温馨提示”不是标准 dialog，按文本向上找容器。
-                        for (const el of document.querySelectorAll('div, table, td')) {
-                            const text = (el.textContent || '').replace(/\s+/g, '');
-                            if (!text.includes('温馨提示')) continue;
-                            if (!isVisible(el)) continue;
-                            if (clickButtonIn(el)) break;
-                        }
-                        return clicked;
-                    }
-                """)
-                if result:
-                    logger.info(f"已清理页面弹窗 ({label}): {result}")
-            except Exception:
-                pass
+
+    def _capture_snapshot(self, stage: str) -> List[str]:
+        """用统一诊断模块保存截图 + 脱敏 DOM，返回文件列表。"""
         try:
-            self.page.keyboard.press('Escape')
-        except Exception:
-            pass
+            from common.diagnostics import capture_snapshot
+
+            files = capture_snapshot(self.page, self.diagnostics_dir, stage=stage)
+            self._snapshot_files.extend(files)
+            if files:
+                logger.info(f"已保存截图与页面快照({stage}): {files}")
+            return files
+        except Exception as e:
+            logger.warning(f"保存页面快照失败: {e}")
+            return []
 
     def _save_debug_snapshot(self):
-        """保存提交前截图和 HTML，便于核对。"""
-        try:
-            debug_dir = Path(__file__).resolve().parent / "debug"
-            debug_dir.mkdir(exist_ok=True)
-            date_name = time.strftime("%Y-%m-%d")
-            path = debug_dir / f"{date_name}_ccb_制单提交前.png"
-            self.page.screenshot(path=str(path), full_page=True)
-            logger.info(f"已保存制单提交前截图: {path}")
-            html_path = debug_dir / f"{date_name}_ccb_制单提交前.html"
-            html_path.write_text(self.page.content(), encoding="utf-8")
-            logger.info(f"已保存制单提交前 HTML: {html_path}")
-        except Exception as e:
-            logger.debug(f"保存制单调试截图失败: {e}")
+        """保存提交前现场，便于核对。"""
+        self._capture_snapshot("制单提交前")
 
     def _save_result_screenshot(self) -> Optional[Path]:
-        """保存提交结果弹窗截图。"""
-        try:
-            result_dir = Path(__file__).resolve().parent / "records"
-            result_dir.mkdir(exist_ok=True)
-            path = result_dir / f"{time.strftime('%Y-%m-%d')}_ccb_执行结果.png"
-            self.page.screenshot(path=str(path), full_page=False)
-            logger.info(f"已保存执行结果截图: {path}")
-            return path
-        except Exception as e:
-            logger.warning(f"保存执行结果截图失败: {e}")
-            return None
+        """保存提交结果弹窗截图，返回图片路径。"""
+        files = self._capture_snapshot("制单执行结果")
+        for item in files:
+            if str(item).lower().endswith((".jpg", ".png")):
+                return Path(item)
+        return None

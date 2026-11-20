@@ -1,0 +1,12 @@
+{
+  "plugin_id": "bank-bosh",
+  "bank_code": "bosh",
+  "version": "1.0.0",
+  "min_agent_version": "1.1.0",
+  "capabilities": ["collect", "draft"],
+  "entry": {
+    "collect": ["run_task.py"],
+    "draft": ["run_draft.py"]
+  },
+  "changelog": "上海银行流水、电子回单采集与批量转账制单插件初始版本"
+}
