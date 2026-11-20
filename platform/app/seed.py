@@ -73,7 +73,10 @@ def seed(db: Session) -> None:
         db.commit()
         invalidate_default_tenant()
 
-    agents.ensure_local_agent(db)
+    # 只有平台自己跑采集 worker 时才把它注册成本机执行机；Docker 部署里
+    # 采集由远端 Agent 承担，注册出来的 local 永远等不到心跳，只会显示离线。
+    if settings.enable_worker:
+        agents.ensure_local_agent(db)
 
     user = db.execute(select(AppUser).where(AppUser.username == settings.admin_user)).scalars().first()
     if user is None:

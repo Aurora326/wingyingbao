@@ -47,7 +47,7 @@
           <td class="muted">{{ t.agent_code or '未绑定设备' }}</td>
           <td>
             {% if t.status == 'succeeded' %}<span class="tag green">{{ t.status_label }}</span>
-            {% elif t.status == 'failed' %}<span class="tag red">{{ t.status_label }}</span>
+            {% elif t.status in ('failed', 'timeout_review') %}<span class="tag red">{{ t.status_label }}</span>
             {% elif t.status == 'review' %}<span class="tag amber">{{ t.status_label }}</span>
             {% else %}<span class="tag blue">{{ t.status_label }}</span>{% endif %}
             {% if t.error_msg %}<div class="cell-sub danger">{{ t.error_code or '' }} {{ t.error_msg }}</div>{% endif %}
@@ -61,7 +61,18 @@
               {% if t.has_log %}
               <button class="small" type="button" onclick="showDraftLog({{ t.id }})">查看日志</button>
               {% endif %}
-              {% if can_draft and t.status in ('queued', 'running', 'review') %}
+              {% if t.diag_count %}
+              <a class="btn small" href="/tasks/{{ t.id }}/diagnostics?task_kind=draft">失败现场({{ t.diag_count }})</a>
+              {% endif %}
+              {% if can_draft and t.status == 'timeout_review' %}
+              <form method="post" action="/payment-drafts/{{ t.id }}/requeue"
+                    data-confirm-title="核实未导入并重发"
+                    data-confirm-text="重新排队"
+                    data-confirm="请确认已登录网银核实该批次未导入，确认后将重新排队执行？">
+                <button class="small" type="submit">核实未导入·重发</button>
+              </form>
+              {% endif %}
+              {% if can_draft and t.status in ('queued', 'running', 'review', 'timeout_review') %}
               <form method="post" action="/payment-drafts/{{ t.id }}/done">
                 <button class="small primary" type="submit">标记已制单</button>
               </form>

@@ -73,6 +73,7 @@ def list_statements(
                 "serial_no": s.serial_no,
                 "artifact_id": s.artifact_id,
                 "receipt_id": receipts.get(s.id),
+                "payment_doc_id": s.matched_payment_doc_id,
             }
             for s in rows
         ],

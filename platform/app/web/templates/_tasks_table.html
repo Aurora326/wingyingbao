@@ -4,7 +4,7 @@
   <div class="table-wrap">
   <table>
     <thead>
-      <tr><th>时间</th><th>完成时间</th><th>账户</th><th>采集内容</th><th>覆盖日期</th><th>结果</th><th></th></tr>
+      <tr><th>时间</th><th>完成时间</th><th>账户</th><th>采集内容</th><th>覆盖日期</th><th>入库</th><th>结果</th><th></th></tr>
     </thead>
     <tbody>
       {% for t in tasks %}
@@ -25,6 +25,19 @@
         </td>
         <td>{{ task_type_text(t.type) }}</td>
         <td class="muted nowrap">{{ t.start_date | dt }} 至 {{ t.end_date | dt }}</td>
+        <td class="nowrap">
+          {% if t.status == 'succeeded' %}
+            {% if t.error_code == 'NO_DATA' %}
+          <span class="muted">无数据</span>
+            {% elif t.ingested %}
+          <span>已入库 {{ t.ingested }} {{ '张' if t.type == 'receipts' else '笔' }}</span>
+            {% else %}
+          <span class="muted">无新增</span>
+            {% endif %}
+          {% else %}
+          <span class="faint">—</span>
+          {% endif %}
+        </td>
         <td>
           {{ task_status(t.status, t.cancel_requested) }}
           {% if t.status == 'failed' %}
@@ -33,6 +46,9 @@
         </td>
         <td class="right nowrap">
           <button class="small" onclick="showLog({{ t.id }})">查看记录</button>
+          {% if t.diag_count %}
+          <a class="btn small" href="/tasks/{{ t.id }}/diagnostics">失败现场({{ t.diag_count }})</a>
+          {% endif %}
           {% if t.status in ('queued', 'leased', 'running') %}
           {% if t.cancel_requested %}
           <button class="small" disabled>停止中…</button>

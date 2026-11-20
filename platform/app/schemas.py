@@ -112,6 +112,7 @@ class AgentDeviceReport(BaseModel):
     ter_ip: str = ""
     port_count: int = 0
     devices: list[AgentDeviceItem] = Field(default_factory=list)
+    installed_plugins: dict[str, str] = Field(default_factory=dict)
 
 
 class AgentTaskClaim(BaseModel):

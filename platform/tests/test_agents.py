@@ -11,15 +11,28 @@ from app.services.executor import claim_task
 from app.services.scheduler import enqueue_task
 
 
-def test_seed_registers_local_agent(db):
+def test_seed_registers_local_agent_only_when_platform_runs_worker(db, monkeypatch):
+    import dataclasses
+
+    import app.seed as seed_module
+    from sqlalchemy import delete
+
     from app.seed import seed
 
+    monkeypatch.setattr(seed_module, "settings", dataclasses.replace(settings, enable_worker=True))
     seed(db)
     agent = db.execute(select(Agent).where(Agent.code == settings.agent_code)).scalars().first()
     assert agent is not None
     assert agent.status == "online"
     assert agent.hostname
     assert agent.last_heartbeat is not None
+
+    # Docker 部署里平台自己不跑采集，就不该再注册一个永远等不到心跳的 local 执行机
+    db.execute(delete(Agent).where(Agent.code == settings.agent_code))
+    db.commit()
+    monkeypatch.setattr(seed_module, "settings", dataclasses.replace(settings, enable_worker=False))
+    seed(db)
+    assert db.execute(select(Agent).where(Agent.code == settings.agent_code)).scalars().first() is None
 
 
 def test_task_routes_to_device_agent(db):

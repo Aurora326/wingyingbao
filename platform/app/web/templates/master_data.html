@@ -48,6 +48,11 @@
             <option value="disabled">停用</option>
           </select>
         </div>
+        <div class="field full"><label for="ma-reason">变更原因</label><input name="reason" id="ma-reason" placeholder="可选，会记入更新记录"></div>
+        <details class="log-detail" id="master-account-history" hidden>
+          <summary>更新记录</summary>
+          <div id="master-account-history-body"><span class="muted">展开后加载</span></div>
+        </details>
       </div>
       <div class="modal-foot">
         <button type="button" onclick="closeModal('master-account-modal')">取消</button>

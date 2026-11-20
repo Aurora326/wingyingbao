@@ -13,15 +13,25 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Agent, AlertEvent, BankAccount, CollectionTask, PaymentCollectTask
+from app.models import (
+    Agent,
+    AlertEvent,
+    BankAccount,
+    CollectionTask,
+    PaymentCollectTask,
+    PaymentDraftTask,
+    Tenant,
+)
 from app.services import app_settings
 from app.services.banks import bank_label
+from app.tenancy import tenant_context
 
 KIND_LABELS = {
     "task_failed": "采集失败",
     "agent_offline": "设备离线",
     "account_stale": "账户长期未采集",
     "payment_collect_failed": "付款采集失败",
+    "draft_timeout": "制单超时待核实",
 }
 
 STATUS_LABELS = {
@@ -213,8 +223,44 @@ def scan(db: Session, now: dt.datetime | None = None) -> int:
         )
         created += 1
 
+    timeout_drafts = db.execute(
+        select(PaymentDraftTask)
+        .where(PaymentDraftTask.status == "timeout_review")
+        .order_by(PaymentDraftTask.id.desc())
+        .limit(100)
+    ).scalars().all()
+    for draft in timeout_drafts:
+        if _recent(db, "draft_timeout", "payment_draft_task", draft.id, now, cfg.cooldown_hours):
+            continue
+        _add(
+            db,
+            kind="draft_timeout",
+            level="critical",
+            title=f"制单超时待人工核实：{draft.payer_name or draft.payer_account_no}（{bank_label(draft.bank_code)}）",
+            content=(
+                f"制单任务 #{draft.id}（{draft.doc_count} 笔，金额 {draft.amount}）执行超时已暂停自动重发。\n"
+                "请先登录网银核实该批次是否已导入，再决定标记已制单、撤回或重新执行。"
+            ),
+            object_type="payment_draft_task",
+            object_id=draft.id,
+            tenant_id=draft.tenant_id,
+        )
+        created += 1
+
     db.commit()
     return created
+
+
+def scan_all_tenants(db: Session, now: dt.datetime | None = None) -> int:
+    """按租户逐个进入 tenant_context 扫描告警，避免多租户配置与事件串扰。"""
+    tenants = db.execute(select(Tenant.id).where(Tenant.status == "active")).scalars().all()
+    if not tenants:
+        return scan(db, now)
+    total = 0
+    for tid in tenants:
+        with tenant_context(tid):
+            total += scan(db, now)
+    return total
 
 
 def valid_quiet_hours(expr: str) -> bool:
@@ -305,6 +351,18 @@ def deliver(db: Session, now: dt.datetime | None = None) -> int:
             event.error_msg = error[:512]
     db.commit()
     return sent
+
+
+def deliver_all_tenants(db: Session, now: dt.datetime | None = None) -> int:
+    """按租户隔离外发告警，每个租户仅使用自己的 Webhook 与静默时段配置。"""
+    tenants = db.execute(select(Tenant.id).where(Tenant.status == "active")).scalars().all()
+    if not tenants:
+        return deliver(db, now)
+    total = 0
+    for tid in tenants:
+        with tenant_context(tid):
+            total += deliver(db, now)
+    return total
 
 
 def send_test(cfg: AlertConfig) -> tuple[bool, str]:

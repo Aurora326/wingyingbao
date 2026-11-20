@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}失败现场诊断 #{{ task_id }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">{{ '制单任务诊断' if task_kind == 'draft' else '采集任务诊断' }}</div>
+    <h1>任务 #{{ task_id }} 失败现场</h1>
+  </div>
+  <div class="head-meta">
+    <a class="btn small" href="{{ back_url }}">返回列表</a>
+  </div>
+</div>
+
+<div class="summary-strip">
+  <span>状态 <b>{{ task.status }}</b></span>
+  {% if task.error_code %}<span>错误码 <b class="red mono">{{ task.error_code }}</b>{% if error_label %}（{{ error_label }}）{% endif %}</span>{% endif %}
+  <span>附件数 <b>{{ items | length }}</b> 个</span>
+</div>
+
+{% if task.error_msg %}
+<div class="callout">{{ task.error_msg }}</div>
+{% endif %}
+
+{% if meta_list %}
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>执行轨迹与上下文</h2>
+      <div class="panel-sub">报错瞬间记录的 URL、阶段与步骤耗时</div>
+    </div>
+  </div>
+  {% for meta in meta_list %}
+  <div style="margin-bottom:14px">
+    <table class="kv">
+      <tbody>
+        <tr><th>捕获时间</th><td class="mono">{{ meta.captured_at or '—' }}</td></tr>
+        <tr><th>失败阶段</th><td>{{ meta.stage or '—' }}</td></tr>
+        <tr><th>错误分类</th><td class="mono">{{ meta.error_code or '—' }} {{ meta.error_label or '' }}</td></tr>
+        <tr><th>页面地址</th><td class="mono" style="word-break:break-all">{{ meta.url or '—' }}</td></tr>
+        <tr><th>页面标题</th><td>{{ meta.title or '—' }}</td></tr>
+      </tbody>
+    </table>
+    {% if meta.steps %}
+    <div class="table-wrap" style="margin-top:10px">
+      <table>
+        <thead><tr><th>步骤</th><th>状态</th><th class="num">耗时</th><th>备注/错误</th></tr></thead>
+        <tbody>
+          {% for s in meta.steps %}
+          <tr>
+            <td>{{ s.step }}</td>
+            <td><span class="tag {{ 'green' if s.status == 'ok' else 'red' }}">{{ s.status }}</span></td>
+            <td class="num mono">{{ s.duration_ms }} ms</td>
+            <td class="cell-sub">{{ s.error or s.note or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if items %}
+{% for item in items %}
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>
+        {% if item.kind == 'screenshot' %}现场截图
+        {% elif item.kind == 'dom' %}脱敏 DOM 快照
+        {% elif item.kind == 'trace' %}Playwright 追踪包
+        {% elif item.kind == 'meta' %}结构化上下文
+        {% else %}诊断附件{% endif %}
+        · <span class="mono">{{ item.name }}</span>
+      </h2>
+      <div class="panel-sub">第 {{ item.attempt }} 次尝试 · {{ (item.size / 1024) | round(1) }} KB · {{ item.created_at.strftime('%Y-%m-%d %H:%M:%S') if item.created_at else '' }}</div>
+    </div>
+    <div class="head-meta">
+      <a class="btn small" href="/diagnostics/{{ item.id }}/raw?download=1">下载原文件</a>
+    </div>
+  </div>
+  {% if item.kind == 'screenshot' %}
+  <div style="margin-top:10px;text-align:center">
+    <a href="/diagnostics/{{ item.id }}/raw" target="_blank" rel="noopener">
+      <img src="/diagnostics/{{ item.id }}/raw" alt="{{ item.name }}" style="max-width:100%;max-height:560px;border:1px solid #e5e7eb;border-radius:6px">
+    </a>
+  </div>
+  {% elif item.preview_text %}
+  <details style="margin-top:10px">
+    <summary>展开查看脱敏源码（{{ item.preview_text | length }} 字符，账号与金额已脱敏）</summary>
+    <pre style="max-height:420px;overflow:auto;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:6px;font-size:12px;white-space:pre-wrap;word-break:break-all">{{ item.preview_text }}</pre>
+  </details>
+  {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="panel">
+  <div class="empty">该任务暂未回传现场截图或脱敏 DOM 附件（系统默认保留最近 14 天的失败现场）。</div>
+</div>
+{% endif %}
+{% endblock %}

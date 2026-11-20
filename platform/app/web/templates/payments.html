@@ -21,7 +21,7 @@
         <svg class="ico"><use href="#i-close"/></svg>
       </button>
     </div>
-    <form method="post" id="pay-confirm-form">
+    <form method="post" id="pay-confirm-form" hx-swap="none">
       <div class="form-grid">
         <div class="field full">
           <label for="pay-confirm-payer-search">付款账户</label>
@@ -149,6 +149,15 @@
           </select>
         </div>
         <div class="field full"><label for="pay-edit-description">说明</label><textarea id="pay-edit-description" name="description" rows="3"></textarea></div>
+        <div class="field full"><label for="pay-edit-reason">变更原因</label><input id="pay-edit-reason" name="change_reason" placeholder="可选，会记入更新记录"></div>
+        <div class="field full" id="pay-edit-match-field" hidden>
+          <label>付款匹配</label>
+          <div class="muted" id="pay-edit-match-text"></div>
+        </div>
+        <details class="log-detail" id="pay-edit-history" hidden>
+          <summary>更新记录</summary>
+          <div id="pay-edit-history-body"><span class="muted">展开后加载</span></div>
+        </details>
       </div>
       <div class="modal-foot">
         <button type="button" onclick="closeModal('pay-edit-modal')">取消</button>
@@ -419,11 +428,50 @@
     });
   });
 
+  document.body.addEventListener('payment-updated', (event) => {
+    const msg = event.detail && event.detail.msg;
+    if (msg && typeof toast === 'function') toast(msg);
+    if (window.htmx && document.getElementById('payments-region')) {
+      htmx.ajax('GET', window.location.pathname + window.location.search, {
+        target: '#payments-region', swap: 'outerHTML',
+      });
+    }
+  });
+
+  function confirmPayDoc(button) {
+    const docId = button.dataset.doc;
+    const apply = button.dataset.apply || '';
+    const payerId = button.dataset.payerId;
+    const payeeId = button.dataset.payeeId;
+    if (payerId && payeeId) {
+      openConfirmModal({
+        title: '确认付款单据',
+        message: `${apply ? '单据 ' + apply + '\n' : ''}确认后状态将变为「可制单」`,
+        confirmText: '确认',
+        onConfirm: () => {
+          if (window.htmx) {
+            htmx.ajax('POST', `/payments/${docId}/confirm-quick`, {swap: 'none'});
+            return;
+          }
+          const form = document.createElement('form');
+          form.method = 'post';
+          form.action = `/payments/${docId}/confirm-quick`;
+          document.body.appendChild(form);
+          form.submit();
+        },
+      });
+      return;
+    }
+    openPayConfirm(button);
+  }
+
   function openPayConfirm(button) {
     const form = document.getElementById('pay-confirm-form');
     if (!form) return;
     form.reset();
     form.action = `/payments/${button.dataset.doc}/confirm`;
+    form.setAttribute('hx-post', form.action);
+    if (window.htmx) htmx.process(form);
     document.getElementById('pay-confirm-subtitle').textContent =
       button.dataset.apply ? `单据 ${button.dataset.apply}` : '';
     setComboValue('confirm_payer', null, button.dataset.payer, '');
@@ -461,6 +509,34 @@
         pickSub(doc.payer_sub_account_id);
       }
       openModal('pay-edit-modal', '#pay-edit-apply-no');
+      const reasonInput = document.getElementById('pay-edit-reason');
+      if (reasonInput) reasonInput.value = '';
+      const matchField = document.getElementById('pay-edit-match-field');
+      const matchText = document.getElementById('pay-edit-match-text');
+      if (matchField && matchText) {
+        const matched = doc.matched_statement;
+        matchField.hidden = !matched;
+        matchText.textContent = matched
+          ? `${matched.txn_date} 支出 ¥${matched.amount}${matched.serial_no ? ' · 流水号 ' + matched.serial_no : ''}`
+          : '';
+      }
+      const history = document.getElementById('pay-edit-history');
+      const historyBody = document.getElementById('pay-edit-history-body');
+      if (history && historyBody) {
+        history.hidden = false;
+        history.open = false;
+        history.dataset.loaded = '';
+        historyBody.innerHTML = '<span class="muted">展开后加载</span>';
+        history.ontoggle = () => {
+          if (!history.open || history.dataset.loaded === id) return;
+          history.dataset.loaded = id;
+          if (window.htmx) {
+            window.htmx.ajax('GET', `/audit/history?target_type=payment_doc&target_id=${id}`, {
+              target: '#pay-edit-history-body', swap: 'innerHTML',
+            });
+          }
+        };
+      }
     } catch (err) {
       alert(`加载单据失败：${err.message}`);
     }
@@ -615,7 +691,7 @@
   .combo-form input, .combo-form select { height: 30px; }
   .combo-form-actions { display: flex; gap: 6px; }
   .combo-form-error { min-height: 14px; font-size: 11.5px; color: var(--red); }
-  .pay-row-actions { display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
+  .pay-row-actions { display:flex; flex-direction:row; align-items:center; gap:6px; }
 
   .pay-panel { padding:0; overflow:hidden; }
   .pay-tabs { display:flex; flex-wrap:wrap; gap:4px; }
@@ -662,6 +738,7 @@
   .status-ready { background:#E4F1EA; color:var(--green); }
   .status-drafting { background:#EDF0F8; color:#3d5b93; }
   .status-drafted { background:#EDE9E1; color:#5b5245; }
+  .status-paid { background:#E4F1EA; color:var(--green); }
   .status-rejected { background:#F8E7E4; color:var(--red); }
   .task-status-queued { background:#EDE9E1; color:#5b5245; }
   .task-status-running { background:#EDF0F8; color:#3d5b93; }

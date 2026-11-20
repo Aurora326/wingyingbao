@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
-from app.models import PayeeAccount, PaymentCollectTask, PaymentDoc, PaymentSourceAccount, SubAccount
+from app.models import PayeeAccount, PaymentCollectTask, PaymentDoc, PaymentSourceAccount, Statement, SubAccount
 from app.services.payment_scope import allowed_book_sets
 from app.services.payment import (
     PaymentError,
@@ -177,7 +177,25 @@ def get_doc(doc_id: int, request: Request, db: Session = Depends(get_db)):
     scope = _allowed_book_sets(db, request)
     if scope is not None and doc.book_set_id not in scope:
         raise HTTPException(status_code=403, detail="无权查看该账套的单据")
-    return _doc_dict(doc)
+    matched = db.execute(
+        select(Statement)
+        .where(Statement.matched_payment_doc_id == doc.id)
+        .order_by(Statement.txn_date.desc())
+    ).scalars().first()
+    payload = _doc_dict(doc)
+    payload["matched_statement"] = (
+        {
+            "id": matched.id,
+            "txn_date": matched.txn_date.isoformat() if matched.txn_date else "",
+            "amount": str(matched.amount),
+            "serial_no": matched.serial_no,
+            "counterparty_name": matched.counterparty_name,
+            "matched_at": matched.payment_matched_at.isoformat() if matched.payment_matched_at else "",
+        }
+        if matched
+        else None
+    )
+    return payload
 
 
 @router.post("/docs/{doc_id}/confirm")

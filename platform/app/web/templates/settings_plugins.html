@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}采集插件 · 平台管理{% endblock %}
+{% block content %}
+<div class="settings-shell">
+  <aside class="settings-nav" aria-label="平台管理">
+    <a href="/settings/users">
+      <svg class="ico"><use href="#i-shield"/></svg><span>用户与权限</span>
+    </a>
+    <a href="/settings/system">
+      <svg class="ico"><use href="#i-sliders"/></svg><span>系统维护</span>
+    </a>
+    <a href="/settings/alerts">
+      <svg class="ico"><use href="#i-alert"/></svg><span>告警通知</span>
+    </a>
+    <a class="active" href="/settings/plugins" aria-current="page">
+      <svg class="ico"><use href="#i-layers"/></svg><span>采集插件</span>
+    </a>
+  </aside>
+
+  <div class="settings-content">
+    {% if msg %}<div class="callout">{{ msg }}</div>{% endif %}
+
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">平台管理</div>
+        <h1>采集插件热更新</h1>
+      </div>
+      <div class="head-meta">
+        <span class="tag {{ 'green' if has_public_key else 'amber' }}">
+          {{ 'Ed25519 验签已启用' if has_public_key else '未配置公钥（仅校验 SHA256）' }}
+        </span>
+      </div>
+    </div>
+
+    <div class="summary-strip">
+      <span><b>{{ releases | length }}</b> 个历史版本</span>
+      <span><b class="green">{{ desired_prod_count }}</b> 个正式生效</span>
+      <span><b class="blue">{{ desired_test_count }}</b> 个测试生效</span>
+      <span><b>{{ agents | length }}</b> 台客户执行机</span>
+    </div>
+
+    <form class="panel" method="post" action="/settings/plugins/upload" enctype="multipart/form-data">
+      <div class="panel-head">
+        <div>
+          <h2>上传插件包</h2>
+          <div class="panel-sub">使用 <code>python platform/scripts/pack_plugin.py &lt;银行目录&gt;</code> 打包并离线签名后上传；根目录必须包含 <code>manifest.json</code></div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="plugin-file">插件压缩包（.zip）</label>
+          <input id="plugin-file" type="file" name="file" accept=".zip" required>
+        </div>
+        <div class="field">
+          <label for="plugin-sig">Ed25519 签名（可选，配置公钥后必填）</label>
+          <input id="plugin-sig" type="text" name="signature" placeholder="粘贴 .release.json 中的 signature" autocomplete="off">
+        </div>
+        <div class="field full">
+          <label for="plugin-changelog">本次更新说明</label>
+          <input id="plugin-changelog" type="text" name="changelog" placeholder="例如：适配上海银行新版批量转账菜单定位符" autocomplete="off">
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="primary" type="submit">上传入库</button>
+      </div>
+    </form>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>版本发布与回退</h2>
+          <div class="panel-sub">先点击「推测试机」在内部测试机验证跑通，再点「推正式机」全量生效；异常时对旧版本再点一次即可秒级回退</div>
+        </div>
+      </div>
+      {% if releases %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>插件</th>
+              <th>版本号</th>
+              <th>能力</th>
+              <th>当前生效</th>
+              <th>更新说明</th>
+              <th>大小 / SHA256</th>
+              <th class="right">发布操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in releases %}
+            <tr>
+              <td>
+                <b>{{ r.plugin_id }}</b>
+                {% if r.bank_code %}<div class="cell-sub">{{ bank_label(r.bank_code) }}（{{ r.bank_code }}）</div>{% endif %}
+              </td>
+              <td class="mono">{{ r.version }}</td>
+              <td class="muted">{{ (r.manifest.capabilities or []) | join(' / ') or '—' }}</td>
+              <td>
+                <div class="plugin-tags">
+                  {% if r.active_prod %}<span class="tag green">正式生效</span>{% endif %}
+                  {% if r.active_test %}<span class="tag blue">测试生效</span>{% endif %}
+                  {% if not r.active_prod and not r.active_test %}<span class="tag">历史/待发布</span>{% endif %}
+                </div>
+              </td>
+              <td>
+                {{ r.changelog or '—' }}
+                <div class="cell-sub">{{ r.uploaded_by or 'admin' }} · {{ r.created_at.strftime('%m-%d %H:%M') if r.created_at else '' }}</div>
+              </td>
+              <td class="mono cell-sub">
+                {{ (r.size / 1024) | round(1) }} KB<br>{{ r.sha256[:12] }}…
+              </td>
+              <td class="right nowrap">
+                <div class="cell-actions" style="justify-content:flex-end">
+                  <form method="post" action="/settings/plugins/{{ r.id }}/activate">
+                    <input type="hidden" name="channel" value="test">
+                    <button class="small" type="submit" {{ 'disabled' if r.active_test }}>推测试机</button>
+                  </form>
+                  <form method="post" action="/settings/plugins/{{ r.id }}/activate"
+                        data-confirm-title="推送正式机"
+                        data-confirm-text="推送到正式机"
+                        data-confirm="确认将 {{ r.plugin_id }} v{{ r.version }} 设为正式机（prod）生效版本？所有正式客户机将在下次心跳静默切换。">
+                    <input type="hidden" name="channel" value="prod">
+                    <button class="small primary" type="submit" {{ 'disabled' if r.active_prod }}>推正式机</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty">还没有上传任何插件包。客户机当前按本地 <code>collectors.yaml</code> 运行。</div>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>客户执行机版本状态</h2>
+          <div class="panel-sub">每台客户机心跳时上报已装插件版本，并自动拉取所属通道（测试机/正式机）的目标版本</div>
+        </div>
+      </div>
+      {% if agents %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>执行机</th>
+              <th>在线状态</th>
+              <th>通道</th>
+              <th>插件版本对齐状态</th>
+              <th class="right">切换通道</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in agents %}
+            <tr>
+              <td>
+                <b>{{ a.name }}</b>
+                <div class="cell-sub mono">{{ a.code }}</div>
+              </td>
+              <td>
+                <span class="tag {{ 'green' if a.status == 'online' else 'red' }}">{{ '在线' if a.status == 'online' else '离线' }}</span>
+                <div class="cell-sub">{{ a.last_heartbeat.strftime('%m-%d %H:%M') if a.last_heartbeat else '未上报' }}</div>
+              </td>
+              <td>
+                <span class="tag {{ 'blue' if a.channel == 'test' else 'green' }}">{{ '测试机 (test)' if a.channel == 'test' else '正式机 (prod)' }}</span>
+              </td>
+              <td>
+                {% if a.plugin_statuses %}
+                  <div class="plugin-tags">
+                  {% for p in a.plugin_statuses %}
+                    <span class="tag {{ 'green' if p.synced else 'amber' }}">
+                      {{ p.plugin_id }}: {{ p.actual or '未装' }}{% if not p.synced %} → {{ p.expected }}{% endif %}
+                    </span>
+                  {% endfor %}
+                  </div>
+                {% else %}
+                  <span class="muted">暂无已发布插件</span>
+                {% endif %}
+              </td>
+              <td class="right nowrap">
+                <form method="post" action="/settings/plugins/agents/{{ a.id }}/channel">
+                  <input type="hidden" name="channel" value="{{ 'prod' if a.channel == 'test' else 'test' }}">
+                  <button class="small" type="submit">设为{{ '正式机' if a.channel == 'test' else '测试机' }}</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty">还没有接入执行机。</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

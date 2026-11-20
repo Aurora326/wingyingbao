@@ -51,6 +51,7 @@
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V5"/><path d="m7 10 5-5 5 5"/><path d="M5 20h14"/></symbol>
   <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="m3 13 9 5 9-5"/><path d="m3 18 9 5 9-5"/></symbol>
 </svg>
 
 <aside class="sidebar" id="app-sidebar">
@@ -174,6 +175,24 @@
 </main>
 
 <div id="toast"></div>
+
+<div class="modal" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="box form-box confirm-box">
+    <div class="head">
+      <div>
+        <strong id="confirm-title">确认操作</strong>
+        <div class="modal-sub" id="confirm-message"></div>
+      </div>
+      <button class="icon-btn" onclick="closeConfirmModal()" aria-label="关闭">
+        <svg class="ico"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <div class="modal-foot">
+      <button type="button" onclick="closeConfirmModal()">取消</button>
+      <button type="button" class="primary" id="confirm-ok" onclick="confirmModalOk()">确定</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal" id="log-modal" onclick="if(event.target === this) closeLog()">
   <div class="box log-viewer" role="dialog" aria-modal="true" aria-labelledby="log-title">

@@ -12,6 +12,9 @@
     <a class="{{ 'active' if tab == 'alerts' }}" href="/settings/alerts" {% if tab == 'alerts' %}aria-current="page"{% endif %}>
       <svg class="ico"><use href="#i-alert"/></svg><span>告警通知</span>
     </a>
+    <a class="{{ 'active' if tab == 'plugins' }}" href="/settings/plugins" {% if tab == 'plugins' %}aria-current="page"{% endif %}>
+      <svg class="ico"><use href="#i-layers"/></svg><span>采集插件</span>
+    </a>
   </aside>
 
   <div class="settings-content">

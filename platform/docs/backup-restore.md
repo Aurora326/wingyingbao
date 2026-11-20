@@ -6,6 +6,7 @@
 
 - `app_<时间戳>.dump`：PostgreSQL 自定义格式的完整数据库备份
 - `artifacts/`：流水、回单等归档文件（按大小增量复制）
+- `master.key`：Fernet 加密主密钥副本（用于解密网银账号密码、UKey PIN、明源云/OA 凭据与 Agent 令牌；仅属主可读，务必离线加密妥善保管）
 
 备份目录默认是数据目录下的 `backups/<时间戳>/`。容器部署时 `backups` 已挂载到宿主机 `platform/backups/`，容器或数据卷损坏时备份仍可取回。
 

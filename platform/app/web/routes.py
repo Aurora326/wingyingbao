@@ -17,11 +17,12 @@ from app.api import recon as recon_api
 from app.api import tasks as tasks_api
 from app.config import settings
 from app.db import SessionLocal
-from app.models import Agent, AlertEvent, AppUser, AuditLog, BankAccount, CollectionTask, LoginAttempt, PaymentCollectTask, Tenant
+from app.models import Agent, AlertEvent, AppUser, Artifact, AuditLog, BankAccount, CollectionTask, LoginAttempt, PaymentCollectTask, Receipt, Statement, TaskRun, Tenant
 from app.services import alerts, app_settings, login_guard, security
 from app.services import permissions
-from app.services.audit import write_audit
+from app.services.audit import field_label, list_changes, source_label, write_audit
 from app.services.backup import run_backup_job
+from app.services.diagnostics import count_diagnostics_by_tasks
 from app.services.abc_ledger import sub_region
 from app.services.banks import bank_label
 from app.services.banks import list_banks
@@ -35,6 +36,8 @@ from app.web.pagination import PAGE_SIZES, is_hx, normalize_size, page_url, pagi
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
+templates.env.globals["field_label"] = field_label
+templates.env.globals["source_label"] = source_label
 _STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
@@ -104,6 +107,12 @@ _AUDIT_ACTIONS = {
     "draft_batch_create": "生成制单批次",
     "draft_task_done": "标记制单完成",
     "draft_task_cancel": "撤回制单任务",
+    "draft_task_timeout": "制单超时转人工核实",
+    "draft_task_requeue": "人工核实后重发制单",
+    "plugin_upload": "上传采集插件包",
+    "plugin_activate": "切换插件生效版本",
+    "plugin_deactivate": "停用插件版本",
+    "agent_channel_update": "调整执行机发布通道",
     "payee_create": "新建收款账户",
     "payee_change": "变更收款账户",
 }
@@ -118,6 +127,7 @@ _AUDIT_TARGETS = {
     "payment_draft_batch": "制单批次",
     "payment_draft_task": "制单任务",
     "payee_account": "收款账户",
+    "plugin_release": "采集插件",
 }
 _AUDIT_STATUS = {"succeeded": "已完成", "failed": "未完成", "running": "进行中", "cancelled": "已停止"}
 
@@ -494,6 +504,37 @@ def _task_list_context(
         for task in items:
             task["daily_seq"] = daily_seq.get(task["id"])
 
+    # 每个任务实际入库的笔数（流水/回单 → 产物 → 任务运行）
+    stmt_counts: dict = {}
+    rcpt_counts: dict = {}
+    task_ids = [task["id"] for task in items]
+    if task_ids:
+        stmt_counts = dict(
+            db.execute(
+                select(TaskRun.task_id, func.count(Statement.id))
+                .join(Artifact, Artifact.task_run_id == TaskRun.id)
+                .join(Statement, Statement.artifact_id == Artifact.id)
+                .where(TaskRun.task_id.in_(task_ids))
+                .group_by(TaskRun.task_id)
+            ).all()
+        )
+        rcpt_counts = dict(
+            db.execute(
+                select(TaskRun.task_id, func.count(Receipt.id))
+                .join(Artifact, Artifact.task_run_id == TaskRun.id)
+                .join(Receipt, Receipt.artifact_id == Artifact.id)
+                .where(TaskRun.task_id.in_(task_ids), Receipt.receipt_no != "")
+                .group_by(TaskRun.task_id)
+            ).all()
+        )
+    diag_counts = count_diagnostics_by_tasks(db, "collection", task_ids) if task_ids else {}
+    for task in items:
+        if task.get("type") == "receipts":
+            task["ingested"] = rcpt_counts.get(task["id"], 0)
+        else:
+            task["ingested"] = stmt_counts.get(task["id"], 0)
+        task["diag_count"] = diag_counts.get(task["id"], 0)
+
     return {
         "tasks": result["items"],
         "status": status,
@@ -627,6 +668,62 @@ def tasks_partial(
             context["task_source"] = "bank"
             context["source"] = ""
     return templates.TemplateResponse(request=request, name="tasks_partial.html", context=context)
+
+
+CHANGE_ACTION_LABELS = {
+    "payment_edit": "编辑付款单据",
+    "payment_confirm": "确认收付款账户",
+    "payment_review": "审核付款单据",
+    "payment_change": "变更付款单据",
+    "account_update": "修改付款账户",
+    "account_delete": "删除付款账户",
+    "payee_change": "修改收款账户",
+    "payee_delete": "删除收款账户",
+    "sub_account_create": "新增子账簿",
+    "sub_account_status": "启停子账簿",
+}
+
+_CHANGE_MENUS = {
+    "payment_doc": "payments",
+    "bank_account": "master_data",
+    "payee_account": "master_data",
+    "sub_account": "master_data",
+}
+
+
+@router.get("/audit/history")
+def audit_history(
+    request: Request,
+    target_type: str,
+    target_id: str = "",
+    page: int = 1,
+    size: int = 10,
+):
+    user = getattr(request.state, "user", None)
+    if user is None:
+        return RedirectResponse("/", status_code=303)
+    menu = _CHANGE_MENUS.get(target_type)
+    if menu is not None:
+        if not permissions.can_menu(user.role, menu):
+            return RedirectResponse("/", status_code=303)
+    elif user.role != "admin":
+        return RedirectResponse("/", status_code=303)
+
+    with SessionLocal() as db:
+        result = list_changes(db, target_type, target_id, page, size)
+    return templates.TemplateResponse(
+        request=request,
+        name="_change_history.html",
+        context={
+            "target_type": target_type,
+            "target_id": target_id,
+            "items": result["items"],
+            "page_no": result["page"],
+            "pages": result["pages"],
+            "total": result["total"],
+            "action_labels": CHANGE_ACTION_LABELS,
+        },
+    )
 
 
 @router.get("/statements")

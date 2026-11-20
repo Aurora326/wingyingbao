@@ -13,7 +13,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-AGENT_VERSION = "device-report/1.0"
+from plugin_manager import installed_plugins, sync_plugins
+
+AGENT_VERSION = "device-report/1.1"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 UKeyAgent/1.0"
@@ -225,6 +227,7 @@ def build_report(ter_id: str, mb_exe: str, agent_code: str, agent_name: str, tim
         "ter_ip": terminal["ter_ip"],
         "port_count": terminal["port_count"],
         "devices": terminal["devices"],
+        "installed_plugins": installed_plugins(),
     }
 
 
@@ -264,6 +267,13 @@ def run_once(args) -> int:
                 f"created={result.get('created')} updated={result.get('updated')} "
                 f"missing={result.get('missing')}"
             )
+            desired = result.get("desired_plugins") or {}
+            if desired:
+                sync_res = sync_plugins(args.url, args.token, args.agent_code, desired)
+                if sync_res["updated"]:
+                    log(f"插件静默热更新完成: {', '.join(sync_res['updated'])}")
+                for pid, err in (sync_res["errors"] or {}).items():
+                    log(f"插件同步失败 {pid}: {err}")
         except Exception as exc:  # noqa: BLE001
             failed += 1
             log(f"上报失败 ter={ter_id}: {exc}")

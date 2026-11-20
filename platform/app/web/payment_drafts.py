@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 from app.db import SessionLocal
 from app.models import PaymentDraftBatch, PaymentDraftTask
 from app.services import permissions
+from app.services.diagnostics import count_diagnostics_by_tasks
 from app.services.payment_scope import allowed_book_sets
 from app.services.banks import BANK_NAMES
 from app.services.payment_draft import (
@@ -20,11 +21,13 @@ from app.services.payment_draft import (
     DraftError,
     TASK_FAILED,
     TASK_SUCCEEDED,
+    TASK_TIMEOUT_REVIEW,
     cancel_task,
     create_batch,
     _clean_log,
     mark_task_done,
     preview,
+    requeue_task,
 )
 from app.web.pagination import is_hx, normalize_size
 from app.web.routes import templates
@@ -37,6 +40,7 @@ TASK_LABELS = {
     "queued": "待执行",
     "running": "执行中",
     "review": "已导入待核对",
+    "timeout_review": "超时待核实",
     "succeeded": "已制单",
     "failed": "已失败",
 }
@@ -103,6 +107,7 @@ def drafts_page(request: Request, msg: str = "", status: str = "", page: int = 1
                 PaymentDraftBatch.created_by == getattr(user, "username", "")
             )
         pending = int(db.execute(pending_query).scalar_one() or 0)
+        diag_counts = count_diagnostics_by_tasks(db, "draft", [task.id for task, _ in rows])
 
     tasks = []
     for task, batch in rows:
@@ -123,6 +128,7 @@ def drafts_page(request: Request, msg: str = "", status: str = "", page: int = 1
                 "bank_batch_no": task.bank_batch_no,
                 "has_file": bool(task.file_path),
                 "has_log": bool(task.log_text or task.error_msg),
+                "diag_count": diag_counts.get(task.id, 0),
                 "done_at": task.done_at,
             }
         )
@@ -235,4 +241,17 @@ def drafts_cancel(request: Request, task_id: int):
         except DraftError as exc:
             return _back(exc.message, "/payment-drafts")
         message = f"{task.payer_account_no} 已撤回，{task.doc_count} 笔单据退回可制单"
+    return _back(message, "/payment-drafts")
+
+
+@router.post("/payment-drafts/{task_id}/requeue")
+def drafts_requeue(request: Request, task_id: int):
+    if not _can_draft(request):
+        return _back("没有制单权限", "/payment-drafts")
+    with SessionLocal() as db:
+        try:
+            task = requeue_task(db, task_id, operator=_operator(request))
+        except DraftError as exc:
+            return _back(exc.message, "/payment-drafts")
+        message = f"{task.payer_account_no} 已人工确认未导入并重新加入制单队列"
     return _back(message, "/payment-drafts")

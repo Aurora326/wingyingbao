@@ -14,8 +14,10 @@ import urllib.request
 from pathlib import Path
 
 from device_report import USER_AGENT, load_env, log, sleep_until_next, stop_requested
+from local_lock import AgentBusLock, default_lock_path
+from plugin_manager import resolve_plugin_command, upload_diagnostics
 
-AGENT_VERSION = "draft-worker/1.0"
+AGENT_VERSION = "draft-worker/1.1"
 BASE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = BASE_DIR.parent
 MAX_FILE_BYTES = 20 * 1024 * 1024
@@ -65,8 +67,18 @@ def download_file(url: str, token: str, task: dict, agent_code: str, target: Pat
     return target
 
 
-def draft_command(args, bank_code: str, task_path: Path) -> tuple[list[str], Path]:
-    fallback = ([args.collector_python, "run_draft.py", "--task", str(task_path)], Path(args.collector_root))
+def draft_command(args, bank_code: str, task_path: Path) -> tuple[list[str], Path, list[str]]:
+    """优先从本机热更新插件目录解析制单入口，未安装插件时平滑回退 collectors.yaml。"""
+    resolved = resolve_plugin_command(
+        bank_code,
+        "draft",
+        task_path,
+        getattr(args, "collector_python", "python"),
+    )
+    if resolved is not None:
+        return resolved
+
+    fallback = ([args.collector_python, "run_draft.py", "--task", str(task_path)], Path(args.collector_root), [])
     path = Path(getattr(args, "collectors_file", "") or "")
     if not bank_code or not path.is_file():
         return fallback
@@ -82,7 +94,7 @@ def draft_command(args, bank_code: str, task_path: Path) -> tuple[list[str], Pat
     cwd = Path(str(entry.get("cwd") or args.collector_root))
     if not cwd.is_dir():
         raise RuntimeError(f"制单器工作目录不存在：{cwd}（请检查 collectors.yaml）")
-    return [*argv, "--task", str(task_path)], cwd
+    return [*argv, "--task", str(task_path)], cwd, []
 
 
 def _terminate_process(proc: subprocess.Popen) -> None:
@@ -125,6 +137,8 @@ def execute_task(task: dict, args) -> dict:
 
     file_name = task.get("file_name") or "platform_draft.xlsx"
     platform_file = download_file(args.url, args.token, task, args.agent_code, work_dir / file_name)
+    diag_dir = work_dir / "diagnostics"
+    diag_dir.mkdir(parents=True, exist_ok=True)
     result_path = work_dir / "result.json"
     job = dict(task)
     credentials = job.pop("credentials", None) or {}
@@ -133,6 +147,7 @@ def execute_task(task: dict, args) -> dict:
         {
             "file_path": str(platform_file),
             "work_dir": str(work_dir),
+            "diagnostics_dir": str(diag_dir),
             "result_path": str(result_path),
             "mb_exe": args.mb_exe,
             "gf3_exe": args.gf3_exe,
@@ -159,8 +174,17 @@ def execute_task(task: dict, args) -> dict:
     exit_code: int | None = None
     log_text = ""
     timed_out = False
+    lock_path = getattr(args, "lock_file", None) or default_lock_path(args.work_dir)
+    bus_lock = AgentBusLock(lock_path)
+    locked = False
     try:
-        argv, cwd = draft_command(args, task.get("bank_code", ""), task_path)
+        argv, cwd, extra_pythonpaths = draft_command(args, task.get("bank_code", ""), task_path)
+        if extra_pythonpaths:
+            existing_pp = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = os.pathsep.join([*extra_pythonpaths, *([existing_pp] if existing_pp else [])])
+        if not bus_lock.acquire(timeout=max(30, int(args.timeout))):
+            raise TimeoutError("等待客户机 UKey/桌面互斥锁超时，可能有采集任务正在运行")
+        locked = True
         proc = subprocess.Popen(
             argv,
             cwd=str(cwd),
@@ -189,6 +213,9 @@ def execute_task(task: dict, args) -> dict:
     except Exception:  # noqa: BLE001
         exit_code = 1
         log_text = traceback.format_exc()
+    finally:
+        if locked:
+            bus_lock.release()
 
     if result_path.exists():
         try:
@@ -199,6 +226,28 @@ def execute_task(task: dict, args) -> dict:
         result = {"ok": False, "error_code": "TIMEOUT", "message": "制单子进程超时"}
     else:
         result = {"ok": False, "error_code": "UNKNOWN", "message": f"未生成结果文件 (exit={exit_code})"}
+
+    if args.url and args.token and (exit_code not in (0, None) or not result.get("ok", True)):
+        diag_files: list[Path] = []
+        if diag_dir.is_dir():
+            diag_files.extend(p for p in sorted(diag_dir.rglob("*")) if p.is_file())
+        for raw in result.get("diagnostic_files") or []:
+            p = Path(str(raw))
+            if p.is_file():
+                diag_files.append(p)
+        if diag_files:
+            upload_diagnostics(
+                args.url,
+                args.token,
+                args.agent_code,
+                task_id,
+                attempt,
+                diag_files,
+                task_kind="draft",
+                error_code=str(result.get("error_code") or ""),
+                stage=str(result.get("stage") or ""),
+            )
+
     files = _read_files(result.get("files"))
     return {
         "agent_code": args.agent_code,

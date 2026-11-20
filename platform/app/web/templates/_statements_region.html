@@ -111,6 +111,9 @@
           <td class="num">{{ signed_money(row.direction, row.amount) }}</td>
           <td class="num muted">{{ row.balance | money }}</td>
           <td class="right nowrap">
+            {% if row.payment_doc_id %}
+            <span class="cell-sub">已匹配付款</span>
+            {% endif %}
             {% if row.receipt_id %}
             <a class="btn small" href="/receipts?q={{ row.serial_no }}">回单</a>
             {% endif %}

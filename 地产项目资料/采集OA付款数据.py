@@ -9,7 +9,7 @@ OA 请款 / 财务报销数据采集
     （wf_id=119/121/125/127/129/131）
 
 路径：
-  1. requests 登录 OA（密码为 md5(base64(md5(明文)))，图形验证码用 ddddocr 识别）；
+  1. requests 登录 OA（密码为 md5(base64(md5(明文)))，图形验证码用百度 OCR 识别）；
   2. 调 WorkFlowHandler.ashx?method=GetJSSX 分页取列表（JSON）；
   3. 按登记日期过滤，逐条打开 WorkFlow_Form.aspx 解析详情；
   4. 输出平台可导入的 Excel（付款申请 sheet）。
@@ -95,12 +95,80 @@ def load_credentials() -> tuple[str, str]:
     return user, pwd
 
 
-def _ocr():
-    try:
-        import ddddocr
-    except Exception as exc:  # noqa: BLE001
-        raise SystemExit("缺少 ddddocr，无法识别 OA 验证码：pip install ddddocr") from exc
-    return ddddocr.DdddOcr(show_ad=False)
+class _BaiduOCR:
+    """百度云通用文字识别，和银行采集器共用同一套凭证配置。"""
+
+    TOKEN_URL = "https://aip.baidubce.com/oauth/2.0/token"
+    OCR_URL = "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic"
+
+    def __init__(self, api_key: str, secret_key: str) -> None:
+        self.api_key = api_key
+        self.secret_key = secret_key
+        self._access_token = ""
+        self._expire_at = 0.0
+
+    def _token(self) -> str:
+        if self._access_token and time.time() < self._expire_at - 300:
+            return self._access_token
+        resp = requests.post(
+            self.TOKEN_URL,
+            params={
+                "grant_type": "client_credentials",
+                "client_id": self.api_key,
+                "client_secret": self.secret_key,
+            },
+            timeout=10,
+        )
+        data = resp.json()
+        if "access_token" not in data:
+            raise RuntimeError(f"获取百度 OCR 凭证失败: {data.get('error_description') or data}")
+        self._access_token = data["access_token"]
+        self._expire_at = time.time() + int(data.get("expires_in", 2592000))
+        return self._access_token
+
+    def classification(self, image_bytes: bytes) -> str:
+        resp = requests.post(
+            self.OCR_URL,
+            params={"access_token": self._token()},
+            data={
+                "image": base64.b64encode(image_bytes).decode("ascii"),
+                "language_type": "ENG",
+                "probability": "true",
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=20,
+        )
+        data = resp.json()
+        if "error_code" in data:
+            raise RuntimeError(f"百度 OCR 识别失败: {data.get('error_msg')}")
+        text = "".join(str(item.get("words") or "") for item in data.get("words_result", []))
+        return re.sub(r"[^a-zA-Z0-9]", "", text)
+
+
+def _ocr_credentials() -> tuple[str, str]:
+    api_key = os.environ.get("BAIDU_OCR_API_KEY", "").strip()
+    secret_key = os.environ.get("BAIDU_OCR_SECRET_KEY", "").strip()
+    if api_key and secret_key:
+        return api_key, secret_key
+    for cfg_path in (BASE_DIR / "config.ini", BASE_DIR.parent / "config.ini"):
+        if not cfg_path.exists():
+            continue
+        cfg = configparser.ConfigParser()
+        cfg.read(cfg_path, encoding="utf-8")
+        if cfg.has_section("captcha"):
+            api_key = cfg.get("captcha", "api_key", fallback="").strip()
+            secret_key = cfg.get("captcha", "secret_key", fallback="").strip()
+            if api_key and secret_key:
+                return api_key, secret_key
+    raise SystemExit(
+        "缺少百度 OCR 凭证：请设置 BAIDU_OCR_API_KEY / BAIDU_OCR_SECRET_KEY，"
+        "或在 config.ini 的 [captcha] 中配置 api_key / secret_key。"
+    )
+
+
+def _ocr() -> _BaiduOCR:
+    api_key, secret_key = _ocr_credentials()
+    return _BaiduOCR(api_key, secret_key)
 
 
 def _hidden_fields(page: str) -> dict:

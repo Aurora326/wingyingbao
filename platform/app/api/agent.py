@@ -6,14 +6,14 @@ from contextlib import contextmanager
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
-from app.models import Agent, PaymentDraftTask
+from app.models import Agent, CollectionTask, PaymentDraftTask, PluginRelease
 from app.schemas import AgentDeviceReport, AgentTaskClaim, AgentTaskResult
 from app.services.agent_report import AgentReportError, apply_device_report
 from app.services.agent_tasks import (
@@ -23,6 +23,7 @@ from app.services.agent_tasks import (
     get_agent_task_credentials,
     get_agent_task_status,
 )
+from app.services.diagnostics import DiagnosticError, save_diagnostic_file
 from app.services.payment_collect import (
     PaymentCollectError,
     apply_payment_task_result,
@@ -32,6 +33,11 @@ from app.services.payment_draft import (
     DraftError,
     apply_draft_task_result,
     claim_draft_task,
+)
+from app.services.plugins import (
+    PluginError,
+    desired_plugins_for_agent,
+    resolve_release_path,
 )
 from app.tenancy import tenant_context
 
@@ -249,3 +255,151 @@ def report_draft_task_result(
             return apply_draft_task_result(db, task_id, payload, code)
         except DraftError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+async def _handle_diagnostic_upload(
+    *,
+    db: Session,
+    task_kind: str,
+    task_id: int,
+    agent_code: str,
+    attempt: int,
+    kind: str,
+    error_code: str,
+    stage: str,
+    file: UploadFile,
+) -> dict:
+    if task_kind == "collection":
+        task = db.get(CollectionTask, task_id)
+        if task is None:
+            raise HTTPException(status_code=404, detail="采集任务不存在")
+        if task.agent_code and task.agent_code != agent_code:
+            raise HTTPException(status_code=403, detail="任务不属于该 Agent")
+        tenant_id = task.tenant_id
+    elif task_kind == "draft":
+        task = db.get(PaymentDraftTask, task_id)
+        if task is None:
+            raise HTTPException(status_code=404, detail="制单任务不存在")
+        if task.agent_code and task.agent_code != agent_code:
+            raise HTTPException(status_code=403, detail="任务不属于该 Agent")
+        tenant_id = task.tenant_id
+    else:
+        raise HTTPException(status_code=400, detail="不支持的任务类型")
+
+    content = await file.read()
+    try:
+        row = save_diagnostic_file(
+            db,
+            task_kind=task_kind,
+            task_id=task_id,
+            attempt=attempt,
+            filename=file.filename or "diagnostic.bin",
+            content=content,
+            content_type=file.content_type or "",
+            kind=kind,
+            error_code=error_code,
+            stage=stage,
+            tenant_id=tenant_id,
+        )
+    except DiagnosticError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+    return {
+        "ok": True,
+        "id": row.id,
+        "kind": row.kind,
+        "size": row.size,
+        "name": row.original_name,
+    }
+
+
+@router.post("/tasks/{task_id}/diagnostics")
+async def upload_task_diagnostic(
+    task_id: int,
+    agent_code: str = Form(...),
+    attempt: int = Form(1),
+    task_kind: str = Form("collection"),
+    kind: str = Form(""),
+    error_code: str = Form(""),
+    stage: str = Form(""),
+    file: UploadFile = File(...),
+    token: str = Depends(require_agent_token),
+    db: Session = Depends(get_db),
+):
+    code = _authorize_agent(agent_code, token, db)
+    with _agent_tenant(db, code):
+        return await _handle_diagnostic_upload(
+            db=db,
+            task_kind=task_kind,
+            task_id=task_id,
+            agent_code=code,
+            attempt=attempt,
+            kind=kind,
+            error_code=error_code,
+            stage=stage,
+            file=file,
+        )
+
+
+@router.post("/draft-tasks/{task_id}/diagnostics")
+async def upload_draft_diagnostic(
+    task_id: int,
+    agent_code: str = Form(...),
+    attempt: int = Form(1),
+    kind: str = Form(""),
+    error_code: str = Form(""),
+    stage: str = Form(""),
+    file: UploadFile = File(...),
+    token: str = Depends(require_agent_token),
+    db: Session = Depends(get_db),
+):
+    code = _authorize_agent(agent_code, token, db)
+    with _agent_tenant(db, code):
+        return await _handle_diagnostic_upload(
+            db=db,
+            task_kind="draft",
+            task_id=task_id,
+            agent_code=code,
+            attempt=attempt,
+            kind=kind,
+            error_code=error_code,
+            stage=stage,
+            file=file,
+        )
+
+
+@router.get("/plugins/desired")
+def get_desired_plugins(
+    agent_code: str,
+    token: str = Depends(require_agent_token),
+    db: Session = Depends(get_db),
+):
+    code = _authorize_agent(agent_code, token, db)
+    with _agent_tenant(db, code):
+        agent = db.execute(select(Agent).where(Agent.code == code)).scalars().first()
+        channel = (agent.channel if agent else "prod") or "prod"
+        return {
+            "ok": True,
+            "agent_code": code,
+            "channel": channel,
+            "desired_plugins": desired_plugins_for_agent(db, code),
+        }
+
+
+@router.get("/plugins/{release_id}/download")
+def download_plugin_release(
+    release_id: int,
+    agent_code: str,
+    token: str = Depends(require_agent_token),
+    db: Session = Depends(get_db),
+):
+    _authorize_agent(agent_code, token, db)
+    row = db.get(PluginRelease, release_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="插件版本不存在")
+    try:
+        path = resolve_release_path(row)
+    except PluginError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="插件文件已丢失")
+    return FileResponse(str(path), filename=path.name, media_type="application/zip")

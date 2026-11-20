@@ -129,14 +129,23 @@ def create_backup(
     artifacts_dir: Path | None = None,
     target_root: Path | None = None,
     keep_days: int = DEFAULT_KEEP_DAYS,
+    master_key_path: Path | None = None,
 ) -> Path:
     artifacts_dir = Path(artifacts_dir or settings.artifacts_dir)
     target_root = Path(target_root or settings.data_dir / "backups")
+    key_src = Path(master_key_path or settings.master_key_path)
     stamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
     target = target_root / stamp
     target.mkdir(parents=True, exist_ok=True)
     backup_postgres(target)
     copy_new_files(artifacts_dir, target / "artifacts")
+    if key_src.is_file():
+        key_dst = target / "master.key"
+        shutil.copy2(key_src, key_dst)
+        try:
+            os.chmod(key_dst, 0o600)
+        except OSError:
+            pass
     prune_backups(target_root, keep_days)
     return target
 

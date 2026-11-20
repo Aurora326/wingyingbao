@@ -117,6 +117,7 @@ class Scheduler(threading.Thread):
         self._last_payment_slot: dict[int, str] = {}
         self._last_alert_at: dt.datetime | None = None
         self._last_backup_date: dt.date | None = None
+        self._last_diag_cleanup_date: dt.date | None = None
 
     def stop(self) -> None:
         self._stop.set()
@@ -177,6 +178,22 @@ class Scheduler(threading.Thread):
 
         self._alert_tick(now)
         self._backup_tick(now)
+        self._diagnostic_cleanup_tick(now)
+
+    def _diagnostic_cleanup_tick(self, now: dt.datetime) -> None:
+        """每天 03:00 之后清理超过保留期的失败现场诊断附件。"""
+        if now.hour != 3:
+            return
+        if self._last_diag_cleanup_date == now.date():
+            return
+        self._last_diag_cleanup_date = now.date()
+        from app.services.diagnostics import cleanup_expired_diagnostics
+
+        try:
+            with SessionLocal() as db:
+                cleanup_expired_diagnostics(db, now=now)
+        except Exception:
+            pass
 
     def _backup_tick(self, now: dt.datetime) -> None:
         """每天 02:30 之后触发一次自动备份，重启后当天只补一次。"""
@@ -197,8 +214,8 @@ class Scheduler(threading.Thread):
 
         try:
             with SessionLocal() as db:
-                alerts.scan(db, now)
-                alerts.deliver(db, now)
+                alerts.scan_all_tenants(db, now)
+                alerts.deliver_all_tenants(db, now)
         except Exception:
             pass
 

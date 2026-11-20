@@ -6,7 +6,7 @@
   <div class="table-wrap">
   <table>
     <thead>
-      <tr><th>时间 / 触发</th><th>采集范围</th><th>结果</th><th>执行时间</th><th>日志</th></tr>
+      <tr><th>时间 / 触发</th><th>采集范围</th><th>结果</th><th>入库</th><th>执行时间</th><th>日志</th></tr>
     </thead>
     <tbody>
       {% for t in payment_tasks %}
@@ -29,6 +29,13 @@
         <td>
           {{ task_status(t.status) }}
           {% if t.error_msg %}<div class="cell-sub">{{ t.error_msg }}</div>{% endif %}
+        </td>
+        <td class="muted nowrap">
+          {% if t.ingested is not none %}
+          新增 {{ t.ingested }}{% if t.updated is not none %} · 更新 {{ t.updated }}{% endif %}{% if t.skipped %} · 跳过 {{ t.skipped }}{% endif %}
+          {% else %}
+          <span class="faint">—</span>
+          {% endif %}
         </td>
         <td class="muted nowrap">
           {% if t.started_at %}{{ t.started_at[:16] | replace('T', ' ') }}{% else %}—{% endif %}

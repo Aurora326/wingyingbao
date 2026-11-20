@@ -16,13 +16,12 @@ from app.models import (
     Enterprise,
     PayeeAccount,
     PaymentDoc,
-    PaymentDocChange,
     PaymentReview,
     SubAccount,
 )
 from app.services.parsers.statement import _to_date, _to_decimal, _to_text
 from app.services.abc_ledger import match_sub_account, sub_account_no
-from app.services.audit import write_audit
+from app.services.audit import snapshot, write_audit, write_changes
 
 MAIN_SHEET = "付款申请"
 STEP_SHEET = "审批过程"
@@ -307,6 +306,7 @@ def confirm_accounts(
     if doc.status not in (STATUS_PENDING_CONFIRM, STATUS_REJECTED):
         raise PaymentError("当前状态不允许确认账户")
     from_status = doc.status
+    before = snapshot(doc, "payment_doc")
 
     payer = db.get(BankAccount, payer_account_id) if payer_account_id else None
     payee = db.get(PayeeAccount, payee_account_id) if payee_account_id else None
@@ -314,25 +314,6 @@ def confirm_accounts(
         raise PaymentError("请选择付款账户")
     if payee is None:
         raise PaymentError("请选择收款账户")
-
-    changes = [
-        ("payer_account_id", doc.payer_account_id, payer.id),
-        ("payee_account_id", doc.payee_account_id, payee.id),
-        ("payee_account_no", doc.payee_account_no, payee.account_no),
-        ("payee_bank", doc.payee_bank, payee.bank_name),
-    ]
-    for field, old, new in changes:
-        if str(old or "") != str(new or ""):
-            db.add(
-                PaymentDocChange(
-                    doc_id=doc.id,
-                    field=field,
-                    old_value=str(old or ""),
-                    new_value=str(new or ""),
-                    reason=reason,
-                    operator=operator,
-                )
-            )
 
     doc.payer_account_id = payer.id
     payer_account_no = payer.account_no
@@ -350,20 +331,21 @@ def confirm_accounts(
     doc.confirmed_by = operator
     doc.confirmed_at = dt.datetime.now()
     doc.reject_reason = ""
-    write_audit(
+    write_changes(
         db,
-        operator,
-        "payment_confirm",
-        "payment_doc",
-        doc.id,
-        {
+        doc,
+        before,
+        actor=operator,
+        action="payment_confirm",
+        target_type="payment_doc",
+        reason=reason,
+        source="manual",
+        label=doc.apply_no,
+        extra={
             "apply_no": doc.apply_no,
             "amount": str(doc.amount or "0"),
-            "payer_account_no": doc.payer_account_no,
-            "payee_account_no": doc.payee_account_no,
             "from_status": from_status,
             "to_status": doc.status,
-            "reason": reason,
         },
     )
     db.commit()
@@ -381,6 +363,7 @@ def review_doc(db: Session, doc_id: int, action: str, opinion: str = "", reviewe
     if action not in ("approve", "reject"):
         raise PaymentError("审核动作不合法")
     from_status = doc.status
+    before = snapshot(doc, "payment_doc")
 
     db.add(PaymentReview(doc_id=doc.id, reviewer=reviewer, action=action, opinion=opinion))
     doc.reviewed_by = reviewer
@@ -391,13 +374,17 @@ def review_doc(db: Session, doc_id: int, action: str, opinion: str = "", reviewe
     else:
         doc.status = STATUS_REJECTED
         doc.reject_reason = opinion
-    write_audit(
+    write_changes(
         db,
-        reviewer,
-        "payment_review",
-        "payment_doc",
-        doc.id,
-        {
+        doc,
+        before,
+        actor=reviewer,
+        action="payment_review",
+        target_type="payment_doc",
+        reason=opinion,
+        source="manual",
+        label=doc.apply_no,
+        extra={
             "apply_no": doc.apply_no,
             "amount": str(doc.amount or "0"),
             "from_status": from_status,

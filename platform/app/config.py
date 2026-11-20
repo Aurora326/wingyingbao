@@ -72,6 +72,8 @@ class Settings:
     usb_robot_passwd: str = os.getenv("PLATFORM_USB_ROBOT_PASSWD", "")
     usb_robot_web_ip: str = os.getenv("PLATFORM_USB_ROBOT_WEB_IP", "")
     usb_robot_list_type: str = os.getenv("PLATFORM_USB_ROBOT_LIST_TYPE", "0")
+    plugin_public_key: str = os.getenv("PLATFORM_PLUGIN_PUBLIC_KEY", "")
+    diagnostic_keep_days: int = int(os.getenv("PLATFORM_DIAGNOSTIC_KEEP_DAYS", "14"))
     db_url: str = field(default="")
 
     def __post_init__(self) -> None:
@@ -98,6 +100,14 @@ class Settings:
     @property
     def logs_dir(self) -> Path:
         return self.data_dir / "logs"
+
+    @property
+    def diagnostics_dir(self) -> Path:
+        return self.data_dir / "diagnostics"
+
+    @property
+    def plugins_dir(self) -> Path:
+        return self.data_dir / "plugins"
 
     @property
     def bus_lock_path(self) -> Path:
@@ -141,7 +151,15 @@ class Settings:
         return self.data_dir / "master.key"
 
     def ensure_dirs(self) -> None:
-        for path in (self.data_dir, self.artifacts_dir, self.tasks_dir, self.profiles_dir, self.logs_dir):
+        for path in (
+            self.data_dir,
+            self.artifacts_dir,
+            self.tasks_dir,
+            self.profiles_dir,
+            self.logs_dir,
+            self.diagnostics_dir,
+            self.plugins_dir,
+        ):
             path.mkdir(parents=True, exist_ok=True)
 
 

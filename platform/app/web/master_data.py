@@ -25,6 +25,7 @@ from app.models import (
 )
 from app.services import permissions
 from app.services.abc_ledger import sub_region
+from app.services.audit import snapshot, write_changes, write_create, write_delete
 from app.services.banks import BANK_NAMES
 from app.services.payment_master import sync_payment_master
 from app.web.pagination import is_hx, normalize_size, paginate_items
@@ -33,6 +34,15 @@ from app.web.routes import templates
 router = APIRouter()
 
 PAGE_SIZE = 10
+
+
+def _actor(request: Request) -> str:
+    user = getattr(request.state, "user", None)
+    return getattr(user, "username", "") or ""
+
+
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else ""
 
 
 def _redirect(msg: str = "") -> RedirectResponse:
@@ -301,18 +311,31 @@ def update_master_account(
     bank: str = Form(""),
     branch: str = Form(""),
     status: str = Form(""),
+    reason: str = Form(""),
 ):
     with SessionLocal() as db:
         if type == "payer":
             account = db.get(BankAccount, id)
             if account is None:
                 return _done(request, "付款账户不存在")
+            before = snapshot(account, "bank_account")
             account.account_name = name.strip()[:128]
+            write_changes(
+                db,
+                account,
+                before,
+                actor=_actor(request),
+                action="account_update",
+                target_type="bank_account",
+                reason=reason.strip(),
+                ip=_client_ip(request),
+            )
             db.commit()
             return _done(request, "付款账户已更新")
         payee = db.get(PayeeAccount, id)
         if payee is None:
             return _done(request, "收款账户不存在")
+        before = snapshot(payee, "payee_account")
         new_account_no = "".join(account_no.split())
         if new_account_no and new_account_no != payee.account_no:
             exists = db.execute(
@@ -329,6 +352,16 @@ def update_master_account(
         payee.branch_name = branch.strip()[:128]
         if status in ("active", "disabled"):
             payee.status = status
+        write_changes(
+            db,
+            payee,
+            before,
+            actor=_actor(request),
+            action="payee_change",
+            target_type="payee_account",
+            reason=reason.strip(),
+            ip=_client_ip(request),
+        )
         db.commit()
     return _done(request, "收款账户已更新")
 
@@ -363,6 +396,14 @@ def delete_master_account(request: Request, type: str = Form(...), id: int = For
                     used.append(f"{label} {count}")
             if used:
                 return _done(request, f"该付款账户还有 {'、'.join(used)}，不能删除")
+            write_delete(
+                db,
+                account,
+                actor=_actor(request),
+                action="account_delete",
+                target_type="bank_account",
+                ip=_client_ip(request),
+            )
             db.delete(account)
             db.commit()
             return _done(request, "付款账户已删除")
@@ -381,6 +422,14 @@ def delete_master_account(request: Request, type: str = Form(...), id: int = For
                     used.append(f"{label} {count}")
             if used:
                 return _done(request, f"该收款账户还有 {'、'.join(used)}，不能删除")
+            write_delete(
+                db,
+                payee,
+                actor=_actor(request),
+                action="payee_delete",
+                target_type="payee_account",
+                ip=_client_ip(request),
+            )
             db.delete(payee)
             db.commit()
             return _done(request, "收款账户已删除")
@@ -412,14 +461,22 @@ def create_sub_account(
         ).scalars().first()
         if exists is not None:
             return _done(request, "该主账户下已存在这个子账簿号")
-        db.add(
-            SubAccount(
-                parent_account_id=parent.id,
-                sub_no=code[:32],
-                ledger_name=ledger_name.strip()[:256],
-                project_name=project_name.strip()[:256],
-                status="正常",
-            )
+        sub = SubAccount(
+            parent_account_id=parent.id,
+            sub_no=code[:32],
+            ledger_name=ledger_name.strip()[:256],
+            project_name=project_name.strip()[:256],
+            status="正常",
+        )
+        db.add(sub)
+        db.flush()
+        write_create(
+            db,
+            sub,
+            actor=_actor(request),
+            action="sub_account_create",
+            target_type="sub_account",
+            ip=_client_ip(request),
         )
         db.commit()
     return _done(request, "子账簿已新增")
@@ -433,7 +490,17 @@ def toggle_sub_account(request: Request, sub_id: int, status: str = Form(...)):
         sub = db.get(SubAccount, sub_id)
         if sub is None:
             return _done(request, "子账簿不存在")
+        before = snapshot(sub, "sub_account")
         sub.status = status
+        write_changes(
+            db,
+            sub,
+            before,
+            actor=_actor(request),
+            action="sub_account_status",
+            target_type="sub_account",
+            ip=_client_ip(request),
+        )
         db.commit()
         docs = db.execute(
             select(func.count()).where(PaymentDoc.payer_sub_account_id == sub.id)

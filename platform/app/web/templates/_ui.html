@@ -49,7 +49,7 @@
 {%- endmacro -%}
 
 {%- macro error_text(code) -%}
-{%- set errors = {'LOGIN_FAILED':'登录失败：账号、密码或验证码未通过','SELECTOR_NOT_FOUND':'页面结构变化，未找到目标元素','AUTH_FAILED':'登录认证未通过','UKEY_NOT_FOUND':'未检测到对应的 UKey','TIMEOUT':'操作超时，银行页面响应过慢','NETWORK_ERROR':'网络连接异常','CAPTCHA_FAILED':'验证码识别失败','DOWNLOAD_FAILED':'回单下载失败','COLLECT_FAILED':'采集失败','CANCELLED':'用户停止任务','STOPPING':'任务正在停止','UNKNOWN':'未知错误，建议查看执行日志'} -%}
+{%- set errors = {'PAGE_CHANGED':'页面结构变化（疑似网银改版）','UKEY_ERROR':'UKey 或机柜端口异常','BANK_TEMP_ERROR':'网银临时故障/网络超时','PLUGIN_CRASH':'插件脚本异常','LOGIN_FAILED':'登录失败：账号、密码或验证码未通过','SELECTOR_NOT_FOUND':'页面结构变化，未找到目标元素','AUTH_FAILED':'登录认证未通过','UKEY_NOT_FOUND':'未检测到对应的 UKey','TIMEOUT':'操作超时，银行页面响应过慢','NETWORK_ERROR':'网络连接异常','CAPTCHA_FAILED':'验证码识别失败','DOWNLOAD_FAILED':'回单下载失败','COLLECT_FAILED':'采集失败','CANCELLED':'用户停止任务','STOPPING':'任务正在停止','UNKNOWN':'未知错误，建议查看执行日志'} -%}
 {{- errors.get(code, code or '') -}}
 {%- endmacro -%}
 

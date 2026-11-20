@@ -43,7 +43,11 @@
       </a>
       {% endfor %}
     </nav>
+    <button class="btn small" type="submit" form="pay-rematch-form"
+            title="用已采集的银行流水重新匹配付款单据">匹配流水</button>
   </form>
+
+  <form id="pay-rematch-form" method="post" action="/payments/rematch" hidden></form>
 
   {% if can_draft %}
   <div class="pay-bulk">
@@ -128,11 +132,19 @@
           </td>
           <td>
             <span class="pay-status status-{{ doc.status }}">{{ status_labels.get(doc.status, doc.status) }}</span>
+            {% if doc.payment_status == 'paid' %}<span class="pay-status status-paid">已付款</span>{% endif %}
             {% if doc.reject_reason %}<div class="cell-sub danger">{{ doc.reject_reason }}</div>{% endif %}
           </td>
           <td class="muted nowrap">{{ doc.created_at.strftime('%Y-%m-%d') if doc.created_at else '—' }}</td>
           <td>
             <div class="pay-row-actions">
+            {% if doc.status in ('pending_confirm', 'rejected') %}
+            <button class="small" type="button" onclick="confirmPayDoc(this)"
+                    data-doc="{{ doc.id }}" data-apply="{{ doc.apply_no }}"
+                    data-payer-id="{{ doc.payer_account_id or '' }}"
+                    data-payee-id="{{ doc.payee_account_id or '' }}"
+                    data-payer="{{ doc.payer_account_no }}" data-payee="{{ doc.payee_account_no }}">确认</button>
+            {% endif %}
             <button class="small" type="button" onclick="openPayEdit(this)" data-doc="{{ doc.id }}">编辑</button>
             </div>
           </td>

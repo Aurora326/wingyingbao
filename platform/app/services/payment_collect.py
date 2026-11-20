@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import datetime as dt
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -140,7 +141,12 @@ def _archived_oa_codes(db: Session) -> list[str]:
     return [code for code in codes if code]
 
 
+_INGEST_COUNTS = re.compile(r"新增\s*(\d+)[，,]\s*更新\s*(\d+)[，,]\s*跳过\s*(\d+)")
+
+
 def task_dict(task: PaymentCollectTask) -> dict:
+    match = _INGEST_COUNTS.search(task.log_text or "")
+    counts = [int(value) for value in match.groups()] if match else [None, None, None]
     return {
         "id": task.id,
         "status": task.status,
@@ -156,6 +162,9 @@ def task_dict(task: PaymentCollectTask) -> dict:
         "created_at": task.created_at.isoformat() if task.created_at else "",
         "started_at": task.started_at.isoformat() if task.started_at else "",
         "finished_at": task.finished_at.isoformat() if task.finished_at else "",
+        "ingested": counts[0],
+        "updated": counts[1],
+        "skipped": counts[2],
         "log_text": task.log_text or "",
     }
 

@@ -3,16 +3,14 @@
   {% if log_rows %}
   <div class="table-scroll">
   <table class="log-table">
-    <thead><tr><th>时间</th><th>操作</th><th>对象</th><th>发生了什么</th></tr></thead>
+    <thead><tr><th>时间</th><th>操作</th><th>操作人</th><th>对象</th><th>操作内容</th></tr></thead>
     <tbody>
       {% for log in log_rows %}
       {% set details = log | audit_details %}
       <tr>
         <td class="when">{{ log.created_at.strftime('%m-%d %H:%M') if log.created_at else '—' }}</td>
-        <td>
-          <b>{{ log.action | audit_action }}</b>
-          <div class="cell-sub">{{ log.actor | audit_actor }}</div>
-        </td>
+        <td><b>{{ log.action | audit_action }}</b></td>
+        <td class="nowrap">{{ log.actor | audit_actor }}</td>
         <td class="muted nowrap">{{ log | audit_target }}</td>
         <td class="summary">
           {{ log | audit_summary }}

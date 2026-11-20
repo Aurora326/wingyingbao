@@ -75,6 +75,7 @@ class Agent(Base, TimestampMixin, TenantMixin):
     ip: Mapped[str] = mapped_column(String(64), default="")
     version: Mapped[str] = mapped_column(String(32), default="")
     status: Mapped[str] = mapped_column(String(16), default="offline")
+    channel: Mapped[str] = mapped_column(String(16), default="prod", server_default="prod")
     last_heartbeat: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
     capabilities: Mapped[dict] = mapped_column(JSON, default=dict)
     token_hash: Mapped[str] = mapped_column(String(64), default="")
@@ -237,6 +238,11 @@ class Statement(Base, TimestampMixin, TenantMixin):
     raw_json: Mapped[dict] = mapped_column(JSON, default=dict)
     matched_receipt_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     matched_internal_doc_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    matched_payment_doc_id: Mapped[int | None] = mapped_column(
+        ForeignKey("payment_doc.id"), nullable=True, index=True
+    )
+    payment_match_type: Mapped[str] = mapped_column(String(8), default="")
+    payment_matched_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class Receipt(Base, TimestampMixin, TenantMixin):
@@ -317,6 +323,10 @@ class ReconItem(Base, TimestampMixin, TenantMixin):
 
 class AuditLog(Base, TimestampMixin, TenantMixin):
     __tablename__ = "audit_log"
+    __table_args__ = (
+        Index("ix_audit_log_target", "tenant_id", "target_type", "target_id", "id"),
+        Index("ix_audit_log_action", "tenant_id", "action", "id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     actor: Mapped[str] = mapped_column(String(64), default="")
@@ -632,3 +642,49 @@ class LoginAttempt(Base, TimestampMixin):
     locked_until: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
     last_failed_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
     last_ip: Mapped[str] = mapped_column(String(64), default="")
+
+
+class TaskDiagnostic(Base, TimestampMixin, TenantMixin):
+    """任务失败现场诊断附件（压缩截图、脱敏 DOM、结构化轨迹、按需 Trace）。"""
+
+    __tablename__ = "task_diagnostic"
+    __table_args__ = (
+        Index("ix_task_diag_target", "task_kind", "task_id"),
+        Index("ix_task_diag_created", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    task_kind: Mapped[str] = mapped_column(String(16), default="collection")
+    task_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    attempt: Mapped[int] = mapped_column(Integer, default=1)
+    kind: Mapped[str] = mapped_column(String(24), default="screenshot")
+    error_code: Mapped[str] = mapped_column(String(32), default="")
+    stage: Mapped[str] = mapped_column(String(64), default="")
+    original_name: Mapped[str] = mapped_column(String(256), default="")
+    object_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(64), default="")
+    size: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class PluginRelease(Base, TimestampMixin):
+    """采集/制单插件版本库（平台级全局资产，按 test/prod 双通道切换生效版本）。"""
+
+    __tablename__ = "plugin_release"
+    __table_args__ = (
+        UniqueConstraint("plugin_id", "version", name="uq_plugin_release_id_ver"),
+        Index("ix_plugin_release_bank", "bank_code"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    plugin_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    bank_code: Mapped[str] = mapped_column(String(32), default="")
+    version: Mapped[str] = mapped_column(String(32), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    signature: Mapped[str] = mapped_column(String(256), default="")
+    file_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    size: Mapped[int] = mapped_column(Integer, default=0)
+    manifest: Mapped[dict] = mapped_column(JSON, default=dict)
+    changelog: Mapped[str] = mapped_column(String(512), default="")
+    active_test: Mapped[bool] = mapped_column(Boolean, default=False)
+    active_prod: Mapped[bool] = mapped_column(Boolean, default=False)
+    uploaded_by: Mapped[str] = mapped_column(String(64), default="")

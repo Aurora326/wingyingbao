@@ -6,7 +6,7 @@ from decimal import Decimal
 from openpyxl import Workbook
 from sqlalchemy import select
 
-from app.models import AuditLog, BankAccount, Enterprise, PayeeAccount, PaymentDoc, PaymentDocChange
+from app.models import AuditLog, BankAccount, Enterprise, PayeeAccount, PaymentDoc
 from app.services.payment import (
     STATUS_DRAFTED,
     STATUS_PENDING_CONFIRM,
@@ -79,7 +79,15 @@ def test_import_confirm_review_and_draft(db, tmp_path):
     db.refresh(doc)
     assert doc.status == STATUS_PENDING_REVIEW
     assert doc.payer_account_id == payer.id
-    assert db.execute(select(PaymentDocChange).where(PaymentDocChange.doc_id == doc.id)).scalars().all()
+    confirm_log = db.execute(
+        select(AuditLog).where(
+            AuditLog.action == "payment_confirm",
+            AuditLog.target_type == "payment_doc",
+            AuditLog.target_id == str(doc.id),
+        )
+    ).scalars().first()
+    assert confirm_log is not None
+    assert confirm_log.detail["changes"]
 
     review_doc(db, doc.id, "approve", opinion="同意制单", reviewer="cashier")
     db.refresh(doc)

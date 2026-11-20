@@ -25,7 +25,7 @@ from app.models import (
     PaymentDraftTask,
     UkeyDevice,
 )
-from app.services import security
+from app.services import payment_match, security
 from app.services.audit import write_audit
 
 STATUS_DRAFTING = "drafting"
@@ -34,6 +34,7 @@ TASK_QUEUED = "queued"
 TASK_RUNNING = "running"
 TASK_SUCCEEDED = "succeeded"
 TASK_REVIEW = "review"
+TASK_TIMEOUT_REVIEW = "timeout_review"
 TASK_FAILED = "failed"
 
 BATCH_RUNNING = "running"
@@ -295,6 +296,10 @@ def mark_task_done(db: Session, task_id: int, operator: str = "") -> PaymentDraf
         doc.drafted_by = operator
         doc.drafted_at = now
         doc.draft_ref = task.file_path
+        try:
+            payment_match.match_statements_for_document(db, doc)
+        except Exception:  # noqa: BLE001
+            pass
 
     task.status = TASK_SUCCEEDED
     task.done_by = operator
@@ -373,6 +378,35 @@ def cancel_task(db: Session, task_id: int, operator: str = "") -> PaymentDraftTa
         operator=operator,
         audit_action="draft_task_cancel",
     )
+
+
+def requeue_task(db: Session, task_id: int, operator: str = "") -> PaymentDraftTask:
+    """人工核实网银未导入后，显式将超时待核实任务重新放回执行队列。"""
+    task = db.get(PaymentDraftTask, task_id)
+    if task is None:
+        raise DraftError("制单任务不存在")
+    if task.status != TASK_TIMEOUT_REVIEW:
+        raise DraftError("只有「超时待核实」的任务才需要人工确认后重新执行")
+    task.status = TASK_QUEUED
+    task.lease_until = None
+    task.error_code = ""
+    task.error_msg = ""
+    write_audit(
+        db,
+        operator,
+        "draft_task_requeue",
+        "payment_draft_task",
+        task.id,
+        {
+            "batch_id": task.batch_id,
+            "bank_code": task.bank_code,
+            "payer_account_no": task.payer_account_no,
+            "doc_count": task.doc_count,
+            "amount": str(task.amount or 0),
+        },
+    )
+    db.commit()
+    return task
 
 
 def _refresh_batch(db: Session, batch_id: int) -> None:
@@ -456,11 +490,26 @@ def claim_draft_task(db: Session, agent_code: str) -> dict | None:
         )
     ).scalars().all()
     for row in stale:
-        row.status = TASK_QUEUED
+        # 制单涉及资金操作，租约超时严禁自动重入队（防止网银已导入但回传超时导致重复付款），
+        # 转入「超时待核实」，必须由出纳登录网银核对后再决定标记完成、撤回或手工重发。
+        row.status = TASK_TIMEOUT_REVIEW
         row.lease_until = None
-        row.agent_code = ""
         row.error_code = "LEASE_EXPIRED"
-        row.error_msg = "执行超时，已退回队列"
+        row.error_msg = "执行超时待人工核实，请先登录网银确认是否已导入，避免重复制单"
+        write_audit(
+            db,
+            "system",
+            "draft_task_timeout",
+            "payment_draft_task",
+            row.id,
+            {
+                "batch_id": row.batch_id,
+                "bank_code": row.bank_code,
+                "payer_account_no": row.payer_account_no,
+                "agent_code": row.agent_code,
+                "amount": str(row.amount or 0),
+            },
+        )
 
     task = db.execute(
         select(PaymentDraftTask)

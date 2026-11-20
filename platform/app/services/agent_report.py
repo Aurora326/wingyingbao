@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.models import Agent, AuditLog, UkeyDevice
 from app.schemas import AgentDeviceReport
 from app.services import mb_local
+from app.services.plugins import desired_plugins_for_channel
 from app.services.usb_robot import bank_code_from_name, cabinet_from_ter_id
 from app.tenancy import current_tenant_id
 
@@ -63,6 +64,12 @@ def apply_device_report(db: Session, payload: AgentDeviceReport) -> dict:
         }
     )
     capabilities.update({"backends": ["mb"], "terminals": terminals, "mode": "agent"})
+    if payload.installed_plugins:
+        capabilities["plugins"] = {
+            str(k)[:64]: str(v)[:32]
+            for k, v in payload.installed_plugins.items()
+            if str(k).strip()
+        }
     agent.capabilities = capabilities
 
     cabinet = cabinet_from_ter_id(ter_id)
@@ -157,13 +164,16 @@ def apply_device_report(db: Session, payload: AgentDeviceReport) -> dict:
         )
     )
     db.flush()
+    desired_plugins = desired_plugins_for_channel(db, agent.channel or "prod")
     db.commit()
     return {
         "ok": True,
         "agent_code": agent_code,
+        "channel": agent.channel or "prod",
         "ter_id": ter_id,
         "total": len(payload.devices),
         "created": created,
         "updated": updated,
         "missing": missing,
+        "desired_plugins": desired_plugins,
     }

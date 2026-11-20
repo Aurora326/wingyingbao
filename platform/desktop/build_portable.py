@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import configparser
 import os
 import shutil
 import subprocess
@@ -14,6 +15,7 @@ DEFAULT_COLLECTORS = WORKSPACE / "collectors"
 DEFAULT_COLLECTORS_FILE = PLATFORM_DIR / "collectors.yaml"
 DEFAULT_MINGYUAN = WORKSPACE / "地产项目资料" / "采集明源云审批过程.py"
 DEFAULT_OA = WORKSPACE / "地产项目资料" / "采集OA付款数据.py"
+DEFAULT_CAPTCHA_CONFIG = WORKSPACE / "南京银行" / "njcb_automation" / "config.ini"
 DEFAULT_OUTPUT = PLATFORM_DIR / "dist" / "UKeyAgent"
 IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache", "work", "agent.env")
 
@@ -77,6 +79,29 @@ def build_runtime(app_dir: Path, requirements: Path, install_browser: bool) -> P
     return python
 
 
+def write_captcha_config(source: Path, target: Path) -> None:
+    """把百度 OCR 凭证写进分发包根目录，客户机开箱即用。
+
+    凭证来自本机被 gitignore 的环境变量或 config.ini，不进入源码仓库。
+    """
+    cfg = configparser.ConfigParser(interpolation=None)
+    if source.is_file():
+        cfg.read(source, encoding="utf-8")
+    api_key = os.environ.get("BAIDU_OCR_API_KEY", "").strip()
+    secret_key = os.environ.get("BAIDU_OCR_SECRET_KEY", "").strip()
+    if cfg.has_section("captcha"):
+        api_key = api_key or cfg.get("captcha", "api_key", fallback="").strip()
+        secret_key = secret_key or cfg.get("captcha", "secret_key", fallback="").strip()
+    if not api_key or not secret_key:
+        print(f"警告：没有找到百度 OCR 凭证，分发包不包含 captcha 配置: {source}")
+        return
+    out = configparser.ConfigParser(interpolation=None)
+    out["captcha"] = {"api_key": api_key, "secret_key": secret_key, "enabled": "true"}
+    with target.open("w", encoding="utf-8") as fh:
+        out.write(fh)
+    print(f"已写入分发包 OCR 配置: {target}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="组装 UKey 采集助手便携目录")
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
@@ -84,6 +109,11 @@ def main() -> int:
     parser.add_argument("--collectors-file", default=str(DEFAULT_COLLECTORS_FILE))
     parser.add_argument("--mingyuan-collector", default=str(DEFAULT_MINGYUAN))
     parser.add_argument("--oa-collector", default=str(DEFAULT_OA))
+    parser.add_argument(
+        "--captcha-config",
+        default=str(DEFAULT_CAPTCHA_CONFIG),
+        help="百度 OCR 凭证来源，只复制 [captcha] 段到分发包",
+    )
     parser.add_argument("--force", action="store_true", help="覆盖已有输出目录")
     parser.add_argument("--skip-runtime", action="store_true", help="不创建 Python 运行时")
     parser.add_argument("--skip-browser", action="store_true", help="不安装 Playwright Chromium")
@@ -112,6 +142,7 @@ def main() -> int:
         print(f"已复制采集器清单: {collectors_file}")
     else:
         print(f"警告：采集器清单不存在，客户机需自行配置: {collectors_file}")
+    write_captcha_config(Path(args.captcha_config), app_dir / "config.ini")
     mingyuan_source = Path(args.mingyuan_collector)
     if mingyuan_source.exists():
         target_dir = app_dir / "mingyuan"

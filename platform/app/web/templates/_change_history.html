@@ -1,0 +1,52 @@
+{% if items %}
+<div class="change-history">
+  {% for item in items %}
+  <div class="change-item">
+    <div class="change-head">
+      <b>{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</b>
+      <span>{{ action_labels.get(item.action, item.action) }}</span>
+      <span class="muted">{{ item.actor or '—' }}</span>
+      {% if item.detail.get('source') %}<span class="change-source">{{ source_label(item.detail.get('source')) }}</span>{% endif %}
+    </div>
+    {% set changes = item.detail.get('changes') %}
+    {% if changes %}
+    <div class="change-fields">
+      {% for field, diff in changes.items() %}
+      <div class="change-field">
+        <span class="muted">{{ field_label(target_type, field) }}</span>
+        <span>{{ diff.get('from') or '—' }}</span>
+        <span class="muted">→</span>
+        <span>{{ diff.get('to') or '—' }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% set snap = item.detail.get('snapshot') %}
+    {% if snap %}
+    <div class="change-fields">
+      {% for field, value in snap.items() %}{% if value %}
+      <div class="change-field"><span class="muted">{{ field_label(target_type, field) }}</span><span>{{ value }}</span></div>
+      {% endif %}{% endfor %}
+    </div>
+    {% endif %}
+    {% if item.detail.get('reason') %}<div class="change-reason">原因：{{ item.detail.get('reason') }}</div>{% endif %}
+    {% if item.detail.get('opinion') and not item.detail.get('reason') %}<div class="change-reason">意见：{{ item.detail.get('opinion') }}</div>{% endif %}
+  </div>
+  {% endfor %}
+  {% if pages > 1 %}
+  <div class="change-pager">
+    {% if page_no > 1 %}
+    <button type="button" class="small" hx-get="/audit/history?target_type={{ target_type }}&target_id={{ target_id }}&page={{ page_no - 1 }}"
+            hx-target="closest .change-history" hx-swap="outerHTML">上一页</button>
+    {% endif %}
+    <span class="muted">{{ page_no }} / {{ pages }}（共 {{ total }} 条）</span>
+    {% if page_no < pages %}
+    <button type="button" class="small" hx-get="/audit/history?target_type={{ target_type }}&target_id={{ target_id }}&page={{ page_no + 1 }}"
+            hx-target="closest .change-history" hx-swap="outerHTML">下一页</button>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="change-empty muted">暂无更新记录</div>
+{% endif %}

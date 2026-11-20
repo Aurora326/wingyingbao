@@ -132,6 +132,20 @@ async function confirmModalOk() {
   }
 }
 
+// 带 data-confirm 的表单统一走平台自己的确认弹窗，不用浏览器原生 confirm。
+document.addEventListener("submit", (event) => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || !form.dataset.confirm) return;
+  event.preventDefault();
+  openConfirmModal({
+    title: form.dataset.confirmTitle || "确认操作",
+    message: form.dataset.confirm,
+    confirmText: form.dataset.confirmText || "确定",
+    danger: form.dataset.confirmDanger !== undefined,
+    onConfirm: () => form.submit(),
+  });
+});
+
 function stopTask(taskId) {
   openConfirmModal({
     title: "停止采集",
@@ -914,7 +928,7 @@ function initTaskAutoRefresh() {
     if (refreshing || document.hidden) return;
     if (!document.getElementById("task-stats") || !document.getElementById("task-table")) return;
     if (document.querySelector(".modal.open")) {
-      schedule(activeCount() > 0 ? 5000 : 0);
+      schedule(activeCount() > 0 ? 5000 : 30000);
       return;
     }
     refreshing = true;
@@ -944,12 +958,12 @@ function initTaskAutoRefresh() {
       // 网络抖动时保持当前内容
     } finally {
       refreshing = false;
-      schedule(activeCount() > 0 ? 3000 : 0);
+      schedule(activeCount() > 0 ? 3000 : 30000);
     }
   };
 
-  window.syncTaskAutoRefresh = () => schedule(activeCount() > 0 ? 3000 : 0);
-  schedule(activeCount() > 0 ? 3000 : 0);
+  window.syncTaskAutoRefresh = () => schedule(activeCount() > 0 ? 3000 : 30000);
+  schedule(activeCount() > 0 ? 3000 : 30000);
   const wake = () => {
     if (document.hidden) return;
     if (timer) window.clearTimeout(timer);
@@ -1120,6 +1134,25 @@ function openMasterEdit(btn) {
   });
   document.getElementById("ma-status-field").style.display = isPayer ? "none" : "";
   openModal("master-account-modal");
+  const history = document.getElementById("master-account-history");
+  const historyBody = document.getElementById("master-account-history-body");
+  const historyType = isPayer ? "bank_account" : "payee_account";
+  const historyId = btn.dataset.id || "";
+  if (history && historyBody) {
+    history.hidden = !historyId;
+    history.open = false;
+    history.dataset.loaded = "";
+    historyBody.innerHTML = '<span class="muted">展开后加载</span>';
+    history.ontoggle = () => {
+      if (!history.open || !historyId || history.dataset.loaded === historyId) return;
+      history.dataset.loaded = historyId;
+      if (window.htmx) {
+        window.htmx.ajax("GET", `/audit/history?target_type=${historyType}&target_id=${historyId}`, {
+          target: "#master-account-history-body", swap: "innerHTML",
+        });
+      }
+    };
+  }
 }
 
 function openMasterDelete(btn) {
@@ -1147,6 +1180,8 @@ function openPayeeCreate() {
     el.readOnly = false;
   });
   document.getElementById("ma-status-field").style.display = "none";
+  const history = document.getElementById("master-account-history");
+  if (history) history.hidden = true;
   openModal("master-account-modal", "#ma-name");
 }
 

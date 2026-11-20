@@ -16,8 +16,10 @@ import urllib.request
 from pathlib import Path
 
 from device_report import USER_AGENT, load_env, log, sleep_until_next, stop_requested
+from local_lock import AgentBusLock, default_lock_path
+from plugin_manager import resolve_plugin_command, upload_diagnostics
 
-AGENT_VERSION = "task-worker/1.0"
+AGENT_VERSION = "task-worker/1.1"
 CANCEL_POLL_SECONDS = 5
 BASE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = BASE_DIR.parent
@@ -129,12 +131,21 @@ def _read_files(paths) -> list[dict]:
     return files
 
 
-def collector_command(args, bank_code: str, task_path: Path) -> tuple[list[str], Path]:
-    """优先按 collectors.yaml 解析采集程序，和平台侧同一份清单；
-    清单里没有这家银行时退回旧的 common.collect 骨架。"""
+def collector_command(args, bank_code: str, task_path: Path) -> tuple[list[str], Path, list[str]]:
+    """优先从本机热更新插件目录解析采集程序；未安装插件时平滑回退 collectors.yaml。"""
+    resolved = resolve_plugin_command(
+        bank_code,
+        "collect",
+        task_path,
+        getattr(args, "collector_python", sys.executable),
+    )
+    if resolved is not None:
+        return resolved
+
     fallback = (
         [args.collector_python, "-m", "common.collect.run_task", "--task", str(task_path)],
         Path(args.collector_root),
+        [],
     )
     path = Path(getattr(args, "collectors_file", "") or "")
     if not bank_code:
@@ -157,7 +168,20 @@ def collector_command(args, bank_code: str, task_path: Path) -> tuple[list[str],
     cwd = Path(str(entry.get("cwd") or args.collector_root))
     if not cwd.is_dir():
         raise RuntimeError(f"采集器工作目录不存在：{cwd}（请检查 collectors.yaml 的 cwd）")
-    return [*argv, "--task", str(task_path)], cwd
+    return [*argv, "--task", str(task_path)], cwd, []
+
+
+def _collect_diagnostic_files(diag_dir: Path, result: dict) -> list[Path]:
+    paths: list[Path] = []
+    if diag_dir.is_dir():
+        for item in sorted(diag_dir.rglob("*")):
+            if item.is_file():
+                paths.append(item)
+    for raw in result.get("diagnostic_files") or []:
+        p = Path(str(raw))
+        if p.is_file():
+            paths.append(p)
+    return paths
 
 
 def execute_task(task: dict, args) -> dict:
@@ -166,9 +190,11 @@ def execute_task(task: dict, args) -> dict:
     work_dir = args.work_dir / f"task_{task_id}_attempt_{attempt}"
     if work_dir.exists():
         shutil.rmtree(work_dir, ignore_errors=True)
+    diag_dir = work_dir / "diagnostics"
     (work_dir / "downloads").mkdir(parents=True, exist_ok=True)
     (work_dir / "logs").mkdir(parents=True, exist_ok=True)
     (work_dir / "archive").mkdir(parents=True, exist_ok=True)
+    diag_dir.mkdir(parents=True, exist_ok=True)
 
     task_path = work_dir / "task.json"
     result_path = work_dir / "result.json"
@@ -180,6 +206,7 @@ def execute_task(task: dict, args) -> dict:
             "work_dir": str(work_dir),
             "profile_dir": str(work_dir / "profile"),
             "archive_root": str(work_dir / "archive"),
+            "diagnostics_dir": str(diag_dir),
             "log_path": str(work_dir / "logs" / f"{task.get('bank_code', 'bank')}_{dt.date.today():%Y%m%d}.log"),
             "result_path": str(result_path),
             "mb_exe": args.mb_exe,
@@ -202,13 +229,22 @@ def execute_task(task: dict, args) -> dict:
             "BANK_PIN": credentials.get("pin", ""),
         }
     )
+    lock_path = getattr(args, "lock_file", None) or default_lock_path(args.work_dir)
+    bus_lock = AgentBusLock(lock_path)
+    locked = False
     try:
-        argv, cwd = collector_command(args, task.get("bank_code", ""), task_path)
+        argv, cwd, extra_pythonpaths = collector_command(args, task.get("bank_code", ""), task_path)
+        if extra_pythonpaths:
+            existing_pp = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = os.pathsep.join([*extra_pythonpaths, *([existing_pp] if existing_pp else [])])
         if cancel_requested(args, task_id):
             cancelled = True
             exit_code = 130
             log_text = "用户停止任务"
         else:
+            if not bus_lock.acquire(timeout=max(30, int(args.timeout))):
+                raise TimeoutError("等待客户机 UKey/桌面互斥锁超时，可能有制单或采集任务正在运行")
+            locked = True
             popen_kwargs = (
                 {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
                 if os.name == "nt"
@@ -253,6 +289,9 @@ def execute_task(task: dict, args) -> dict:
     except Exception:  # noqa: BLE001
         exit_code = 1
         log_text = traceback.format_exc()
+    finally:
+        if locked:
+            bus_lock.release()
 
     if cancelled:
         result = {"error_code": "CANCELLED", "message": "用户停止任务"}
@@ -267,6 +306,21 @@ def execute_task(task: dict, args) -> dict:
             result = {"error_code": "TIMEOUT", "message": "采集子进程超时"}
         else:
             result = {"error_code": "UNKNOWN", "message": f"未生成结果文件 (exit={exit_code})"}
+
+        if args.url and args.token and (exit_code not in (0, None) or result.get("ok") is False):
+            diag_files = _collect_diagnostic_files(diag_dir, result)
+            if diag_files:
+                upload_diagnostics(
+                    args.url,
+                    args.token,
+                    args.agent_code,
+                    task_id,
+                    attempt,
+                    diag_files,
+                    task_kind="collection",
+                    error_code=str(result.get("error_code") or ""),
+                    stage=str(result.get("stage") or ""),
+                )
 
         files = _read_files(result.get("files"))
         result.pop("ok", None)

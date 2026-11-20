@@ -19,6 +19,7 @@ from app.db import SessionLocal
 from app.models import Artifact, AuditLog, BankAccount, CollectionTask, Credential, TaskRun, UkeyDevice, utcnow
 from app.services import ingest as ingest_service
 from app.services import collectors, security, storage
+from app.services import payment_match
 from app.services.agents import heartbeat
 from app.services.lock import BusLock
 from app.services.parsers import statement as statement_parser
@@ -215,6 +216,10 @@ def _finalize(db, task: CollectionTask, result: dict, exit_code: int | None, log
         continuous, breaks = ingest_service.verify_balance_continuity(db, account.id)
         if not continuous:
             ingest_summary["errors"].extend(breaks[:5])
+        try:
+            ingest_summary["payment_matched"] = payment_match.match_statements_for_account(db, account.id)
+        except Exception as exc:  # noqa: BLE001
+            ingest_summary["errors"].append(f"付款匹配失败: {type(exc).__name__}: {exc}")
 
     task.finished_at = utcnow()
     if cancelled:

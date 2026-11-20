@@ -29,6 +29,7 @@ from app.web.payment_drafts import router as payment_drafts_router
 from app.web.payment_settings import router as payment_settings_router
 from app.web.profile import router as profile_router
 from app.web.master_data import router as master_data_router
+from app.web.plugins import router as plugins_router
 
 PUBLIC_PREFIXES = ("/static", "/login", "/health", "/docs", "/openapi.json", "/api/agent/")
 
@@ -132,6 +133,7 @@ def create_app() -> FastAPI:
     app.include_router(payment_settings_router)
     app.include_router(profile_router)
     app.include_router(master_data_router)
+    app.include_router(plugins_router)
     app.include_router(accounts_api.router)
     app.include_router(tasks_api.router)
     app.include_router(data_api.router)

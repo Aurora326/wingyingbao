@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import re
 import shutil
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 
@@ -21,8 +22,8 @@ from app.services.payment import (
     import_payment_excel,
     review_doc,
 )
-from app.services import permissions
-from app.services.audit import write_audit
+from app.services import payment_match, permissions
+from app.services.audit import snapshot, write_changes
 from app.services.payment_scope import active_delegations, allowed_book_sets
 from app.services.payment_collect import (
     PaymentCollectError,
@@ -69,6 +70,17 @@ def _redirect(msg: str = "", next_url: str = "") -> RedirectResponse:
         sep = "&" if "?" in target else "?"
         target += f"{sep}msg={quote(msg)}"
     return RedirectResponse(target, status_code=303)
+
+
+def _action_response(request: Request, msg: str):
+    """htmx 局部提交返回事件触发刷新，普通提交仍然重定向。"""
+    if request.headers.get("HX-Request") == "true":
+        response = Response(status_code=204)
+        response.headers["HX-Trigger"] = json.dumps(
+            {"payment-updated": {"msg": msg}}
+        )
+        return response
+    return _redirect(msg)
 
 
 @router.get("/payments")
@@ -321,10 +333,12 @@ def payments_confirm(
 ):
     try:
         with SessionLocal() as db:
-            confirm_accounts(db, doc_id, payer_account_id, payee_account_id, reason=reason, operator=_operator(request))
+            operator = _operator(request)
+            confirm_accounts(db, doc_id, payer_account_id, payee_account_id, reason=reason, operator=operator)
+            review_doc(db, doc_id, "approve", opinion="确认后直接通过", reviewer=operator)
     except PaymentError as exc:
-        return _redirect(f"确认失败：{exc}")
-    return _redirect("账户已确认，已进入出纳审核")
+        return _action_response(request, f"确认失败：{exc}")
+    return _action_response(request, "账户已确认，可制单")
 
 
 @router.post("/payments/{doc_id}/edit")
@@ -344,13 +358,7 @@ async def payments_edit(request: Request, doc_id: int):
             return _redirect("付款单据不存在", next_url)
         if doc.status == "drafting":
             return _redirect("单据正在制单中，如需修改请先在制单任务里撤回", next_url)
-        before = {
-            "apply_no": doc.apply_no,
-            "amount": str(doc.amount or ""),
-            "status": doc.status,
-            "payer_account_no": doc.payer_account_no,
-            "payee_account_no": doc.payee_account_no,
-        }
+        before = snapshot(doc, "payment_doc")
         apply_no = value("apply_no")
         if not apply_no:
             return _redirect("申请编号不能为空", next_url)
@@ -432,33 +440,63 @@ async def payments_edit(request: Request, doc_id: int):
         doc.approval_handler = value("approval_handler")
         doc.status = status
         doc.description = value("description")
-        after = {
-            "apply_no": doc.apply_no,
-            "amount": str(doc.amount or ""),
-            "status": doc.status,
-            "payer_account_no": doc.payer_account_no,
-            "payee_account_no": doc.payee_account_no,
-        }
-        changed = {
-            key: {"from": before[key], "to": after[key]}
-            for key in before
-            if before[key] != after[key]
-        }
-        if changed:
-            write_audit(
-                db,
-                _operator(request),
-                "payment_edit",
-                "payment_doc",
-                doc.id,
-                {"apply_no": doc.apply_no, "changes": changed},
-            )
+        write_changes(
+            db,
+            doc,
+            before,
+            actor=_operator(request),
+            action="payment_edit",
+            target_type="payment_doc",
+            reason=value("change_reason"),
+            source="manual",
+            ip=request.client.host if request.client else "",
+            label=doc.apply_no,
+        )
         try:
             db.commit()
         except IntegrityError:
             db.rollback()
             return _redirect("申请编号已存在，请修改后再保存", next_url)
     return _redirect("单据已更新", next_url)
+
+
+@router.post("/payments/rematch")
+def payments_rematch(request: Request):
+    user = getattr(request.state, "user", None)
+    if user is None or not permissions.can_menu(user.role, "payments"):
+        return RedirectResponse("/", status_code=303)
+    with SessionLocal() as db:
+        count = payment_match.rematch_unmatched(db)
+        db.commit()
+    return _redirect(f"已匹配 {count} 笔流水", "/payments")
+
+
+@router.post("/payments/{doc_id}/confirm-quick")
+def payments_confirm_quick(request: Request, doc_id: int):
+    user = getattr(request.state, "user", None)
+    if user is None or not permissions.can_menu(user.role, "payments"):
+        return RedirectResponse("/", status_code=303)
+    with SessionLocal() as db:
+        doc = db.get(PaymentDoc, doc_id)
+        if doc is None:
+            return _action_response(request, "付款单据不存在")
+        if not (doc.payer_account_id and doc.payee_account_id):
+            return _action_response(request, "请先在编辑弹窗里选择付款账户和收款账户")
+        operator = _operator(request)
+        try:
+            confirm_accounts(
+                db,
+                doc.id,
+                doc.payer_account_id,
+                doc.payee_account_id,
+                reason="确认收付款账户",
+                operator=operator,
+            )
+            review_doc(db, doc.id, "approve", opinion="确认后直接通过", reviewer=operator)
+        except PaymentError as exc:
+            db.rollback()
+            return _action_response(request, str(exc))
+    return _action_response(request, "单据已确认，可制单")
 
 
 def _payer_item(account: BankAccount) -> dict:

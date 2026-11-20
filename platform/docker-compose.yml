@@ -34,7 +34,7 @@ services:
     ports:
       - "${PLATFORM_BIND_IP:-127.0.0.1}:${PLATFORM_PORT:-8800}:8800"
     environment:
-      # 换机器务必改掉：密文、会话、主密钥都挂在这个值上
+      # 换机器务必改掉：用于登录会话签名；凭据加密主密钥独立存放在 /data/master.key（自动随备份归档）
       PLATFORM_SECRET_KEY: ${PLATFORM_SECRET_KEY:-change-this-in-production}
       PLATFORM_ADMIN_USER: ${PLATFORM_ADMIN_USER:-admin}
       PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-admin123}
